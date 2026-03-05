@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Corebound</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <canvas id="game-canvas" aria-label="Corebound game canvas"></canvas>
+
+    <div id="hud">
+      <div class="hud-row">
+        <span class="hud-label">Depth</span>
+        <span id="hud-depth" class="hud-value">0m</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">Cash</span>
+        <span id="hud-cash" class="hud-value">$0</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">Inventory</span>
+        <span id="hud-inventory" class="hud-value">0 / 0</span>
+      </div>
+      <div id="hud-sell" class="hud-row" hidden>
+        <span class="hud-label">Sell</span>
+        <button id="sell-button" class="hud-button" type="button" disabled>Sell Ore</button>
+      </div>
+      <div id="hud-shop" class="hud-section">
+        <div class="hud-section-title">Surface Shop</div>
+        <div class="hud-row hud-shop-row">
+          <div class="hud-shop-info">
+            <div id="shop-upgrade-name" class="hud-value">Upgrade</div>
+            <div id="shop-upgrade-detail" class="hud-detail">+0 capacity • $0</div>
+          </div>
+          <button id="buy-upgrade" class="hud-button" type="button" disabled>Buy</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="controls">
+      <div class="controls-title">Controls</div>
+      <div class="controls-list">
+        <div class="controls-item">
+          <span class="controls-key">WASD / Arrows</span>
+          <span class="controls-action">Move</span>
+        </div>
+        <div class="controls-item">
+          <span class="controls-key">Space</span>
+          <span class="controls-action">Dig</span>
+        </div>
+        <div class="controls-item">
+          <span class="controls-key">Sell button</span>
+          <span class="controls-action">Sell ore at surface</span>
+        </div>
+        <div class="controls-item">
+          <span class="controls-key">Buy button</span>
+          <span class="controls-action">Purchase surface upgrade</span>
+        </div>
+      </div>
+    </div>
+
+    <script src="game.js" defer></script>
+  </body>
+</html>
