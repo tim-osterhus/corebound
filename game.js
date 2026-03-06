@@ -7,6 +7,7 @@ const hudDepth = document.getElementById("hud-depth");
 const hudCash = document.getElementById("hud-cash");
 const hudInventory = document.getElementById("hud-inventory");
 const hudFuel = document.getElementById("hud-fuel");
+const hudFuelRow = document.getElementById("hud-fuel-row");
 const hudSellRow = document.getElementById("hud-sell");
 const sellButton = document.getElementById("sell-button");
 const shopUpgradeName = document.getElementById("shop-upgrade-name");
@@ -370,6 +371,9 @@ function updateHud() {
   hudInventory.textContent = `${total} / ${capacity} | ${perOre}`;
   if (hudFuel) {
     hudFuel.textContent = `${fuel} / ${FUEL_MAX}`;
+  }
+  if (hudFuelRow) {
+    hudFuelRow.classList.toggle("is-low", fuel <= FUEL_LOW_THRESHOLD);
   }
 
   const canSell = depth === 0 && total > 0;
