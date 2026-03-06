@@ -4,6 +4,7 @@ const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d", { alpha: false });
 
 const hudDepth = document.getElementById("hud-depth");
+const hudStratum = document.getElementById("hud-stratum");
 const hudCash = document.getElementById("hud-cash");
 const hudInventory = document.getElementById("hud-inventory");
 const hudFuel = document.getElementById("hud-fuel");
@@ -460,12 +461,16 @@ function digAdjacentTile() {
 
 function updateHud() {
   const depth = getPlayerDepth();
+  const stratumName = depth === 0 ? "Surface" : getStratumForRow(depth)?.name || "Unknown";
   if (depth === 0) {
     setFuel(FUEL_MAX);
   }
   const cash = getSafeCash();
   const capacity = getSafeCapacity();
   const fuel = getSafeFuel();
+  if (hudStratum) {
+    hudStratum.textContent = stratumName;
+  }
   hudDepth.textContent = `${depth}m`;
   hudCash.textContent = `$${cash}`;
   const total = getInventoryTotal();
