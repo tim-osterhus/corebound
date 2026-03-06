@@ -42,6 +42,7 @@ const STRATA = [
     maxRow: WORLD_ROWS - 1,
   },
 ];
+const SURFACE_STRATUM = { id: "surface", name: "Surface", minRow: 0, maxRow: 0 };
 
 const TILE = {
   AIR: 0,
@@ -105,11 +106,21 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function getStratumForRow(row) {
-  const safeRow = Number.isFinite(row) ? Math.floor(row) : -1;
-  if (safeRow < 1 || safeRow >= WORLD_ROWS) return null;
+function getSafeWorldRow(row) {
+  const normalizedRow = Number.isFinite(row) ? Math.floor(row) : 0;
+  return clamp(normalizedRow, 0, WORLD_ROWS - 1);
+}
 
-  return STRATA.find((stratum) => safeRow >= stratum.minRow && safeRow <= stratum.maxRow) || null;
+function getStratumForRow(row) {
+  const safeRow = getSafeWorldRow(row);
+  if (safeRow === 0) return SURFACE_STRATUM;
+
+  return (
+    STRATA.find((stratum) => safeRow >= stratum.minRow && safeRow <= stratum.maxRow) ||
+    STRATA.find((stratum) => safeRow <= stratum.maxRow) ||
+    STRATA[STRATA.length - 1] ||
+    SURFACE_STRATUM
+  );
 }
 
 function toNonNegativeInt(value) {
@@ -152,7 +163,6 @@ function createTile(type, oreId = null, metadata = {}) {
 
 function getStratumTileMetadata(row) {
   const stratum = getStratumForRow(row);
-  if (!stratum) return {};
 
   return {
     stratumId: stratum.id,
@@ -162,13 +172,11 @@ function getStratumTileMetadata(row) {
 
 function getOreTableForRow(row) {
   const stratum = getStratumForRow(row);
-  if (!stratum) return null;
-
   return STRATUM_ORE_TABLES[stratum.id] || null;
 }
 
 function getSolidTileColor(tile, row) {
-  const stratumId = tile?.stratumId || getStratumForRow(row)?.id;
+  const stratumId = tile?.stratumId || getStratumForRow(row).id;
   return STRATUM_TILE_COLORS[stratumId] || TILE_COLORS.solid;
 }
 
@@ -461,7 +469,7 @@ function digAdjacentTile() {
 
 function updateHud() {
   const depth = getPlayerDepth();
-  const stratumName = depth === 0 ? "Surface" : getStratumForRow(depth)?.name || "Unknown";
+  const stratumName = getStratumForRow(depth).name;
   if (depth === 0) {
     setFuel(FUEL_MAX);
   }
