@@ -355,6 +355,9 @@ function digAdjacentTile() {
 
 function updateHud() {
   const depth = getPlayerDepth();
+  if (depth === 0) {
+    setFuel(FUEL_MAX);
+  }
   const cash = getSafeCash();
   const capacity = getSafeCapacity();
   const fuel = getSafeFuel();
