@@ -23,6 +23,8 @@ const WORLD_HEIGHT = WORLD_ROWS * TILE_SIZE;
 const STARTER_SHAFT_WIDTH = 2;
 const STARTER_SHAFT_DEPTH = 8;
 const FUEL_MAX = 100;
+const STARTING_INVENTORY_CAPACITY = 12;
+const STARTING_PLAYER_SPEED = 240;
 const FUEL_MOVE_RATE = 6;
 const FUEL_DIG_COST = 8;
 const FUEL_LOW_THRESHOLD = 20;
@@ -94,12 +96,65 @@ const STRATUM_ORE_TABLES = {
   },
 };
 
-const SURFACE_UPGRADE = {
-  id: "cargo-pods",
-  name: "Cargo Pods",
-  cost: 120,
-  capacityBoost: 5,
-};
+const UPGRADE_LINES = [
+  {
+    id: "cargo-pods",
+    name: "Cargo Pods",
+    unlock: { minDepth: 0 },
+    tiers: [
+      {
+        id: "cargo-pods-1",
+        cost: 120,
+        effectLabel: "+5 capacity",
+        effects: { inventoryCapacity: 5 },
+      },
+      {
+        id: "cargo-pods-2",
+        cost: 220,
+        effectLabel: "+8 capacity",
+        effects: { inventoryCapacity: 8 },
+      },
+    ],
+  },
+  {
+    id: "fuel-tanks",
+    name: "Fuel Tanks",
+    unlock: { minDepth: 0 },
+    tiers: [
+      {
+        id: "fuel-tanks-1",
+        cost: 90,
+        effectLabel: "+20 fuel",
+        effects: { fuelCapacity: 20 },
+      },
+      {
+        id: "fuel-tanks-2",
+        cost: 180,
+        effectLabel: "+35 fuel",
+        effects: { fuelCapacity: 35 },
+      },
+    ],
+  },
+  {
+    id: "drill-motor",
+    name: "Drill Motor",
+    unlock: { minDepth: STRATA[1].minRow },
+    tiers: [
+      {
+        id: "drill-motor-1",
+        cost: 160,
+        effectLabel: "+20 speed",
+        effects: { moveSpeed: 20 },
+      },
+      {
+        id: "drill-motor-2",
+        cost: 280,
+        effectLabel: "+35 speed",
+        effects: { moveSpeed: 35 },
+      },
+    ],
+  },
+];
 
 function clamp(value, min, max) {
   if (!Number.isFinite(value)) return min;
@@ -138,7 +193,7 @@ function getSafeCash() {
 }
 
 function clampFuel(value) {
-  return clamp(value, 0, FUEL_MAX);
+  return clamp(value, 0, getFuelCapacity());
 }
 
 function getSafeFuel() {
@@ -149,8 +204,34 @@ function setFuel(nextFuel) {
   state.fuel = clampFuel(nextFuel);
 }
 
+function getPurchasedUpgradeTiers(lineId) {
+  const line = getUpgradeLine(lineId);
+  if (!line) return [];
+  return line.tiers.slice(0, getPurchasedUpgradeTier(lineId));
+}
+
+function getUpgradeEffectTotal(effectKey) {
+  return UPGRADE_LINES.reduce((total, line) => {
+    return (
+      total +
+      getPurchasedUpgradeTiers(line.id).reduce(
+        (lineTotal, tier) => lineTotal + toNonNegativeInt(tier.effects?.[effectKey]),
+        0
+      )
+    );
+  }, 0);
+}
+
+function getFuelCapacity() {
+  return FUEL_MAX + getUpgradeEffectTotal("fuelCapacity");
+}
+
 function getSafeCapacity() {
-  return toNonNegativeInt(state.inventory.capacity);
+  return STARTING_INVENTORY_CAPACITY + getUpgradeEffectTotal("inventoryCapacity");
+}
+
+function getMoveSpeed() {
+  return STARTING_PLAYER_SPEED + getUpgradeEffectTotal("moveSpeed");
 }
 
 function getSafeOreCount(oreId) {
@@ -278,19 +359,18 @@ const state = {
   keys: new Set(),
   lastMove: { x: 0, y: 1 },
   inventory: {
-    capacity: 12,
+    capacity: STARTING_INVENTORY_CAPACITY,
     counts: Object.fromEntries(ORE_ORDER.map((id) => [id, 0])),
   },
-  upgrades: {
-    [SURFACE_UPGRADE.id]: false,
-  },
+  upgrades: Object.fromEntries(UPGRADE_LINES.map((line) => [line.id, 0])),
+  deepestDepth: 0,
   cash: 0,
   fuel: FUEL_MAX,
   player: {
     x: (spawnCol + 0.5) * TILE_SIZE,
     y: (spawnRow + 0.5) * TILE_SIZE,
     size: 26,
-    speed: 240,
+    speed: STARTING_PLAYER_SPEED,
   },
 };
 
@@ -341,21 +421,99 @@ function sellInventory() {
   updateHud();
 }
 
-function canBuyUpgrade(depth) {
+function getDeepestDepth() {
+  return clamp(toNonNegativeInt(state.deepestDepth), 0, WORLD_ROWS - 1);
+}
+
+function updateDeepestDepth(depth = getPlayerDepth()) {
+  const safeDepth = clamp(toNonNegativeInt(depth), 0, WORLD_ROWS - 1);
+  state.deepestDepth = Math.max(getDeepestDepth(), safeDepth);
+  return state.deepestDepth;
+}
+
+function getUpgradeLine(lineId) {
+  return UPGRADE_LINES.find((line) => line.id === lineId) || null;
+}
+
+function getPurchasedUpgradeTier(lineId) {
+  const line = getUpgradeLine(lineId);
+  if (!line) return 0;
+  return clamp(toNonNegativeInt(state.upgrades[lineId]), 0, line.tiers.length);
+}
+
+function getNextUpgradeTier(lineId) {
+  const line = getUpgradeLine(lineId);
+  if (!line) return null;
+  return line.tiers[getPurchasedUpgradeTier(lineId)] || null;
+}
+
+function getUpgradeUnlock(lineId) {
+  const line = getUpgradeLine(lineId);
+  if (!line) return null;
+
+  return getNextUpgradeTier(lineId)?.unlock || line.unlock || { minDepth: 0 };
+}
+
+function getUnlockDepth(unlock) {
+  return clamp(toNonNegativeInt(unlock?.minDepth), 0, WORLD_ROWS - 1);
+}
+
+function formatUnlockLabel(unlock) {
+  const minDepth = getUnlockDepth(unlock);
+  if (minDepth === 0) return SURFACE_STRATUM.name;
+  return `${getStratumForRow(minDepth).name} (${minDepth}m)`;
+}
+
+function isUpgradeUnlocked(lineId, milestoneDepth = getDeepestDepth()) {
+  const line = getUpgradeLine(lineId);
+  if (!line) return false;
+  return milestoneDepth >= getUnlockDepth(getUpgradeUnlock(lineId));
+}
+
+function isUpgradeMaxed(lineId) {
+  const line = getUpgradeLine(lineId);
+  if (!line) return true;
+  return getPurchasedUpgradeTier(lineId) >= line.tiers.length;
+}
+
+function canAffordUpgrade(lineId) {
+  const nextTier = getNextUpgradeTier(lineId);
+  return Boolean(nextTier) && getSafeCash() >= nextTier.cost;
+}
+
+function canPurchaseUpgrade(lineId, depth = getPlayerDepth()) {
+  if (depth !== 0) return false;
+  if (!getUpgradeLine(lineId)) return false;
+  if (isUpgradeMaxed(lineId)) return false;
+  if (!isUpgradeUnlocked(lineId)) return false;
+  return canAffordUpgrade(lineId);
+}
+
+function purchaseUpgrade(lineId) {
+  if (!canPurchaseUpgrade(lineId)) return false;
+
+  const nextTier = getNextUpgradeTier(lineId);
+  if (!nextTier) return false;
+
+  state.cash = getSafeCash() - nextTier.cost;
+  state.upgrades[lineId] = getPurchasedUpgradeTier(lineId) + 1;
+  updateHud();
+  return true;
+}
+
+function getFeaturedUpgradeLine() {
   return (
-    depth === 0 &&
-    getSafeCash() >= SURFACE_UPGRADE.cost &&
-    !state.upgrades[SURFACE_UPGRADE.id]
+    UPGRADE_LINES.find((line) => !isUpgradeMaxed(line.id) && isUpgradeUnlocked(line.id)) ||
+    UPGRADE_LINES.find((line) => !isUpgradeMaxed(line.id)) ||
+    UPGRADE_LINES[0] ||
+    null
   );
 }
 
 function buyUpgrade() {
-  const depth = getPlayerDepth();
-  if (!canBuyUpgrade(depth)) return;
-  state.cash = getSafeCash() - SURFACE_UPGRADE.cost;
-  state.inventory.capacity = getSafeCapacity() + SURFACE_UPGRADE.capacityBoost;
-  state.upgrades[SURFACE_UPGRADE.id] = true;
-  updateHud();
+  const featuredLine = getFeaturedUpgradeLine();
+  if (!featuredLine) return;
+  purchaseUpgrade(featuredLine.id);
 }
 
 function isSolidTile(col, row) {
@@ -407,7 +565,7 @@ function movePlayer(delta) {
     state.lastMove.y = Math.sign(dirY);
   }
 
-  let speed = state.player.speed;
+  let speed = getMoveSpeed();
   if (state.fuel <= 0) {
     speed *= FUEL_EMPTY_SPEED_MULT;
   }
@@ -469,12 +627,14 @@ function digAdjacentTile() {
 
 function updateHud() {
   const depth = getPlayerDepth();
+  updateDeepestDepth(depth);
   const stratumName = getStratumForRow(depth).name;
   if (depth === 0) {
-    setFuel(FUEL_MAX);
+    setFuel(getFuelCapacity());
   }
   const cash = getSafeCash();
   const capacity = getSafeCapacity();
+  const fuelCapacity = getFuelCapacity();
   const fuel = getSafeFuel();
   if (hudStratum) {
     hudStratum.textContent = stratumName;
@@ -487,7 +647,7 @@ function updateHud() {
   ).join(" ");
   hudInventory.textContent = `${total} / ${capacity} | ${perOre}`;
   if (hudFuel) {
-    hudFuel.textContent = `${fuel} / ${FUEL_MAX}`;
+    hudFuel.textContent = `${fuel} / ${fuelCapacity}`;
   }
   if (hudFuelRow) {
     hudFuelRow.classList.toggle("is-low", fuel <= FUEL_LOW_THRESHOLD);
@@ -501,15 +661,40 @@ function updateHud() {
     sellButton.disabled = !canSell;
   }
 
+  const featuredUpgradeLine = getFeaturedUpgradeLine();
+  const featuredUpgradeId = featuredUpgradeLine?.id || null;
+  const nextTier = featuredUpgradeId ? getNextUpgradeTier(featuredUpgradeId) : null;
+  const unlock = featuredUpgradeId ? getUpgradeUnlock(featuredUpgradeId) : null;
   if (shopUpgradeName) {
-    shopUpgradeName.textContent = SURFACE_UPGRADE.name;
+    shopUpgradeName.textContent = featuredUpgradeLine ? featuredUpgradeLine.name : "No Upgrades";
   }
   if (shopUpgradeDetail) {
-    shopUpgradeDetail.textContent = `+${SURFACE_UPGRADE.capacityBoost} capacity • $${SURFACE_UPGRADE.cost}`;
+    if (!featuredUpgradeLine) {
+      shopUpgradeDetail.textContent = "No upgrade lines configured";
+    } else if (!nextTier) {
+      shopUpgradeDetail.textContent = `${featuredUpgradeLine.tiers.length}/${featuredUpgradeLine.tiers.length} tiers purchased`;
+    } else {
+      const tierNumber = getPurchasedUpgradeTier(featuredUpgradeId) + 1;
+      const unlockCopy = isUpgradeUnlocked(featuredUpgradeId)
+        ? "Unlocked"
+        : `Unlock at ${formatUnlockLabel(unlock)}`;
+      shopUpgradeDetail.textContent = `Tier ${tierNumber}/${featuredUpgradeLine.tiers.length} • ${nextTier.effectLabel} • $${nextTier.cost} • ${unlockCopy}`;
+    }
   }
   if (buyUpgradeButton) {
-    buyUpgradeButton.disabled = !canBuyUpgrade(depth);
-    buyUpgradeButton.textContent = state.upgrades[SURFACE_UPGRADE.id] ? "Owned" : "Buy";
+    if (!featuredUpgradeId) {
+      buyUpgradeButton.disabled = true;
+      buyUpgradeButton.textContent = "N/A";
+    } else if (isUpgradeMaxed(featuredUpgradeId)) {
+      buyUpgradeButton.disabled = true;
+      buyUpgradeButton.textContent = "Maxed";
+    } else if (!isUpgradeUnlocked(featuredUpgradeId)) {
+      buyUpgradeButton.disabled = true;
+      buyUpgradeButton.textContent = "Locked";
+    } else {
+      buyUpgradeButton.disabled = !canPurchaseUpgrade(featuredUpgradeId, depth);
+      buyUpgradeButton.textContent = depth === 0 ? "Buy" : "Surface only";
+    }
   }
 }
 
