@@ -70,8 +70,16 @@ function getSafeCash() {
   return toNonNegativeInt(state.cash);
 }
 
+function clampFuel(value) {
+  return clamp(value, 0, FUEL_MAX);
+}
+
 function getSafeFuel() {
-  return clamp(toNonNegativeInt(state.fuel), 0, FUEL_MAX);
+  return clampFuel(toNonNegativeInt(state.fuel));
+}
+
+function setFuel(nextFuel) {
+  state.fuel = clampFuel(nextFuel);
 }
 
 function getSafeCapacity() {
@@ -276,6 +284,7 @@ function movePlayer(delta) {
   if (state.keys.has("KeyA") || state.keys.has("ArrowLeft")) dirX -= 1;
   if (state.keys.has("KeyD") || state.keys.has("ArrowRight")) dirX += 1;
 
+  const hasInput = dirX !== 0 || dirY !== 0;
   if (dirX !== 0 || dirY !== 0) {
     const length = Math.hypot(dirX, dirY);
     dirX /= length;
@@ -284,13 +293,19 @@ function movePlayer(delta) {
     state.lastMove.y = Math.sign(dirY);
   }
 
-  const moveX = dirX * state.player.speed * delta;
-  const moveY = dirY * state.player.speed * delta;
+  let speed = state.player.speed;
+  if (state.fuel <= 0) {
+    speed *= FUEL_EMPTY_SPEED_MULT;
+  }
+  const moveX = dirX * speed * delta;
+  const moveY = dirY * speed * delta;
   const half = state.player.size / 2;
   const minX = half;
   const maxX = WORLD_WIDTH - half;
   const minY = half;
   const maxY = WORLD_HEIGHT - half;
+  const startX = state.player.x;
+  const startY = state.player.y;
 
   if (moveX !== 0) {
     const nextX = state.player.x + moveX;
@@ -306,6 +321,10 @@ function movePlayer(delta) {
     if (!collidesAt(state.player.x, clampedY)) {
       state.player.y = clampedY;
     }
+  }
+
+  if (hasInput && (state.player.x !== startX || state.player.y !== startY)) {
+    setFuel(state.fuel - FUEL_MOVE_RATE * delta);
   }
 }
 
