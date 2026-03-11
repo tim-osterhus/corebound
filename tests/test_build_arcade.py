@@ -30,11 +30,11 @@ class BuildArcadeTests(unittest.TestCase):
                             {
                                 "slug": "corebound",
                                 "title": "Corebound",
-                                "status": "Stub",
-                                "summary": "Reserved slot.",
-                                "description": "Stub only.",
-                                "cta_label": "Open stub",
-                                "launch_state": "stub",
+                                "status": "Alpha",
+                                "version": "0.0.1",
+                                "summary": "First public build.",
+                                "description": "Early release.",
+                                "cta_label": "Open game",
                             }
                         ],
                     }
@@ -63,7 +63,9 @@ class BuildArcadeTests(unittest.TestCase):
 
         self.assertIn("generated from <code>data/games.json</code>", index_html)
         self.assertIn('href="corebound/"', index_html)
-        self.assertIn("Stub only", corebound_html)
+        self.assertIn("Current build", corebound_html)
+        self.assertIn("v0.0.1", index_html)
+        self.assertIn("v0.0.1", corebound_html)
         self.assertIn("../assets/site.css", corebound_html)
         self.assertIn("--accent", stylesheet)
 
@@ -82,8 +84,8 @@ class BuildArcadeTests(unittest.TestCase):
                         "title": "Broken Arcade"
                       },
                       "games": [
-                        { "slug": "corebound", "title": "Corebound" },
-                        { "slug": "corebound", "title": "Duplicate" }
+                        { "slug": "corebound", "title": "Corebound", "version": "0.0.1" },
+                        { "slug": "corebound", "title": "Duplicate", "version": "0.0.2" }
                       ]
                     }
                     """
@@ -107,6 +109,46 @@ class BuildArcadeTests(unittest.TestCase):
 
         self.assertNotEqual(completed.returncode, 0)
         self.assertIn("Duplicate game slug", completed.stderr + completed.stdout)
+
+    def test_builder_rejects_invalid_game_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_dir = root / "data"
+            manifest_dir.mkdir(parents=True)
+            output_root = root / "site"
+
+            (manifest_dir / "games.json").write_text(
+                textwrap.dedent(
+                    """\
+                    {
+                      "site": {
+                        "title": "Broken Arcade"
+                      },
+                      "games": [
+                        { "slug": "corebound", "title": "Corebound", "version": "alpha" }
+                      ]
+                    }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            completed = subprocess.run(
+                [
+                    "python3",
+                    str(BUILD_SCRIPT),
+                    "--manifest",
+                    str((manifest_dir / "games.json").resolve()),
+                    "--output-root",
+                    str(output_root.resolve()),
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+            )
+
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("requires a semantic version string", completed.stderr + completed.stdout)
 
 
 if __name__ == "__main__":

@@ -2,11 +2,11 @@
 
 `auto-games` is the local games repo that publishes to the GitHub repo `auto-games`.
 
-This repo is intentionally starting from a Day 0 baseline:
+This repo publishes the versioned browser-game arcade behind `game.millrace.ai`.
 
 - `game.millrace.ai` is a generated arcade index page.
-- `game.millrace.ai/corebound` exists as a stub only.
-- no playable game implementation is carried over from the earlier Corebound prototype work.
+- each published title is described in `data/games.json`
+- public releases start lean and grow through visible version bumps
 
 ## Source Of Truth
 
@@ -33,6 +33,6 @@ python3 scripts/build_arcade.py
 python3 -m unittest tests.test_build_arcade
 ```
 
-## Current Day 0 State
+## Current Public State
 
-The only published game entry is `corebound`, and it is intentionally a stub while the broader arcade resets to zero.
+The first published title is `corebound`, live as version `0.0.1` on the public release track.

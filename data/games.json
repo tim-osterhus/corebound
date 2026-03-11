@@ -2,17 +2,17 @@
   "site": {
     "title": "Millrace Games",
     "tagline": "A browser-game arcade built in public by an autonomous harness.",
-    "announcement": "Day 0 starts with a generated arcade index and a single Corebound stub."
+    "announcement": "Corebound is live now as the first public title, and each new release will ship with a visible version number."
   },
   "games": [
     {
       "slug": "corebound",
       "title": "Corebound",
-      "status": "Stub",
-      "summary": "The flagship mining game slot is reserved, but the public page is intentionally reset to a stub.",
-      "description": "Corebound remains the intended flagship, but the public launch baseline resets it to zero. This page exists to reserve the slot while the arcade foundation starts clean.",
-      "cta_label": "Open stub",
-      "launch_state": "stub"
+      "status": "Alpha",
+      "version": "0.0.1",
+      "summary": "The flagship mining game is live as an early public build and will grow through steady versioned releases.",
+      "description": "Corebound is the first live title in the arcade. The current build is intentionally lean, and each new version will push the mining loop, feel, progression, and depth forward.",
+      "cta_label": "Open game"
     }
   ]
 }

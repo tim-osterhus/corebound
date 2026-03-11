@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 from pathlib import Path
 
 
@@ -187,7 +188,7 @@ code {
 .hero,
 .panel,
 .game-card,
-.stub {
+.build-note {
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
@@ -358,6 +359,12 @@ h1 {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .pill {
   align-self: flex-start;
   padding: 0.28rem 0.7rem;
@@ -365,6 +372,11 @@ h1 {
   font-size: 0.78rem;
   color: var(--accent-soft);
   background: var(--accent-dim);
+}
+
+.pill-secondary {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .body-copy {
@@ -427,7 +439,7 @@ h1 {
   text-decoration: none;
 }
 
-.stub {
+.build-note {
   margin-top: 1.5rem;
   padding: 1.35rem;
   border-radius: 20px;
@@ -463,7 +475,7 @@ h1 {
   .hero,
   .game-card,
   .panel,
-  .stub {
+  .build-note {
     border-radius: 18px;
   }
 }
@@ -475,6 +487,8 @@ HEADER_LINKS = [
     ("Source", "https://github.com/tim-osterhus/turnloop"),
     ("Project", "https://github.com/tim-osterhus/auto-games"),
 ]
+
+VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 
 def load_manifest(manifest_path: Path) -> dict:
@@ -494,12 +508,19 @@ def load_manifest(manifest_path: Path) -> dict:
         seen_slugs.add(slug)
         if not isinstance(title, str) or not title:
             raise ValueError(f"Game '{slug}' requires a non-empty string title.")
+        version = game.get("version")
+        if not isinstance(version, str) or not VERSION_RE.fullmatch(version):
+            raise ValueError(f"Game '{slug}' requires a semantic version string like '0.0.1'.")
 
     return payload
 
 
 def esc(value: str) -> str:
     return html.escape(value, quote=True)
+
+
+def display_version(game: dict) -> str:
+    return f"v{game['version']}"
 
 
 def render_topbar(home_href: str, extra_links: list[tuple[str, str]] | None = None) -> str:
@@ -528,10 +549,15 @@ def render_topbar(home_href: str, extra_links: list[tuple[str, str]] | None = No
 def render_index(site: dict, games: list[dict]) -> str:
     cards = []
     for game in games:
+        status = esc(game.get("status", "Live"))
+        version = esc(display_version(game))
         cards.append(
             f"""
       <article class="game-card">
-        <span class="pill">{esc(game.get("status", "Unknown"))}</span>
+        <div class="tag-row">
+          <span class="pill">{status}</span>
+          <span class="pill pill-secondary">{version}</span>
+        </div>
         <h2>{esc(game["title"])}</h2>
         <p class="body-copy">{esc(game.get("summary", ""))}</p>
         <a class="cta" href="{esc(game['slug'])}/">{esc(game.get("cta_label", "Open"))}</a>
@@ -543,8 +569,8 @@ def render_index(site: dict, games: list[dict]) -> str:
     tagline = esc(site.get("tagline", ""))
     announcement = esc(site.get("announcement", ""))
     primary_game = games[0]
-    stub_count = sum(1 for game in games if str(game.get("launch_state", "")).lower() == "stub")
-    live_count = len(games) - stub_count
+    featured_version = esc(display_version(primary_game))
+    versioned_count = sum(1 for game in games if game.get("version"))
     topbar = render_topbar("./")
 
     return f"""<!DOCTYPE html>
@@ -563,7 +589,7 @@ def render_index(site: dict, games: list[dict]) -> str:
       {topbar}
       <section class="hero">
         <div class="hero-copy">
-          <p class="hero-badge"><span class="dot"></span> Day 0 baseline</p>
+          <p class="hero-badge"><span class="dot"></span> Versioned releases</p>
           <p class="eyebrow">Millrace Arcade</p>
           <h1>{title}</h1>
           <p class="lede">{tagline}</p>
@@ -573,22 +599,22 @@ def render_index(site: dict, games: list[dict]) -> str:
           </div>
         </div>
         <aside class="hero-panel">
-          <p class="panel-label">Launch posture</p>
+          <p class="panel-label">Release track</p>
           <div class="notice">
-            <strong>Current baseline.</strong> {announcement}
+            <strong>Live now.</strong> {announcement}
           </div>
           <div class="stat-grid">
             <div class="stat-card">
               <span class="stat-value">{len(games)}</span>
-              <span class="stat-note">public slots</span>
+              <span class="stat-note">titles online</span>
             </div>
             <div class="stat-card">
-              <span class="stat-value">{stub_count}</span>
-              <span class="stat-note">stub slots</span>
+              <span class="stat-value">{versioned_count}</span>
+              <span class="stat-note">versioned builds</span>
             </div>
             <div class="stat-card">
-              <span class="stat-value">{live_count}</span>
-              <span class="stat-note">live builds</span>
+              <span class="stat-value">{featured_version}</span>
+              <span class="stat-note">featured release</span>
             </div>
           </div>
         </aside>
@@ -602,8 +628,8 @@ def render_index(site: dict, games: list[dict]) -> str:
           <p class="body-copy">This page is generated from <code>data/games.json</code> by <code>scripts/build_arcade.py</code>.</p>
         </div>
         <div class="panel">
-          <h2>Why so small?</h2>
-          <p class="body-copy">Day 0 intentionally launches a clean arcade index and a single stub so the public surface starts from zero instead of inheriting an unfinished game.</p>
+          <h2>Release cadence</h2>
+          <p class="body-copy">Each public title carries a visible version number so players can see how recently it shipped and how quickly the arcade is moving.</p>
         </div>
       </section>
     </main>
@@ -614,10 +640,10 @@ def render_index(site: dict, games: list[dict]) -> str:
 
 def render_game_page(site: dict, game: dict) -> str:
     title = esc(game["title"])
-    status = esc(game.get("status", "Unknown"))
+    status = esc(game.get("status", "Live"))
     summary = esc(game.get("summary", ""))
     description = esc(game.get("description", ""))
-    launch_state = esc(game.get("launch_state", "stub"))
+    version = esc(display_version(game))
     site_title = esc(site.get("title", "Games"))
     topbar = render_topbar("../", [("Arcade", "../")])
 
@@ -638,31 +664,31 @@ def render_game_page(site: dict, game: dict) -> str:
       <section class="hero">
         <div class="hero-copy">
           <a class="crumb" href="../">&larr; Back to arcade</a>
-          <p class="hero-badge"><span class="dot"></span> {status} / {launch_state}</p>
+          <p class="hero-badge"><span class="dot"></span> {status} / {version}</p>
           <p class="eyebrow">Game Slot</p>
           <h1>{title}</h1>
           <p class="lede">{summary}</p>
         </div>
         <aside class="hero-panel">
-          <p class="panel-label">Launch posture</p>
+          <p class="panel-label">Current release</p>
           <div class="notice">
-            <strong>{status}</strong> slot in <code>{launch_state}</code> state.
+            <strong>{status}</strong> release · version <code>{version}</code>.
           </div>
         </aside>
       </section>
       <section class="meta">
         <div class="panel">
-          <h2>Status</h2>
-          <p class="body-copy"><strong>{status}</strong> · launch state: <code>{launch_state}</code></p>
+          <h2>Version</h2>
+          <p class="body-copy"><strong>{version}</strong> · {status} release</p>
         </div>
         <div class="panel">
-          <h2>Intent</h2>
+          <h2>What to expect</h2>
           <p class="body-copy">{description}</p>
         </div>
       </section>
-      <section class="stub">
-        <h2>Stub only</h2>
-        <p class="body-copy">This page intentionally holds the place for {title}. The public Day 0 baseline reserves the slot without carrying over the earlier prototype implementation.</p>
+      <section class="build-note">
+        <h2>Current build</h2>
+        <p class="body-copy">{title} is online as an early public release. The playable surface is intentionally lean right now, and upcoming versions will keep expanding depth, feel, and progression.</p>
       </section>
     </main>
   </body>
