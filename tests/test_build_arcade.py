@@ -11,7 +11,7 @@ BUILD_SCRIPT = REPO_ROOT / "scripts" / "build_arcade.py"
 
 
 class BuildArcadeTests(unittest.TestCase):
-    def test_builder_generates_index_assets_and_stub_page(self) -> None:
+    def test_builder_generates_index_assets_and_release_page(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             manifest_dir = root / "data"
@@ -60,14 +60,18 @@ class BuildArcadeTests(unittest.TestCase):
             index_html = (output_root / "index.html").read_text(encoding="utf-8")
             corebound_html = (output_root / "corebound" / "index.html").read_text(encoding="utf-8")
             stylesheet = (output_root / "assets" / "site.css").read_text(encoding="utf-8")
+            favicon_exists = (output_root / "MillraceIconTransparent.png").exists()
 
         self.assertIn("generated from <code>data/games.json</code>", index_html)
         self.assertIn('href="corebound/"', index_html)
         self.assertIn("Current build", corebound_html)
         self.assertIn("v0.0.1", index_html)
         self.assertIn("v0.0.1", corebound_html)
+        self.assertIn('href="MillraceIconTransparent.png"', index_html)
+        self.assertIn('href="../MillraceIconTransparent.png"', corebound_html)
         self.assertIn("../assets/site.css", corebound_html)
         self.assertIn("--accent", stylesheet)
+        self.assertTrue(favicon_exists)
 
     def test_builder_rejects_duplicate_game_slugs(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

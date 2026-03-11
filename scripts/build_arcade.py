@@ -6,6 +6,7 @@ import argparse
 import html
 import json
 import re
+import shutil
 from pathlib import Path
 
 
@@ -488,6 +489,7 @@ HEADER_LINKS = [
     ("Project", "https://github.com/tim-osterhus/auto-games"),
 ]
 
+ICON_FILENAME = "MillraceIconTransparent.png"
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 
@@ -521,6 +523,17 @@ def esc(value: str) -> str:
 
 def display_version(game: dict) -> str:
     return f"v{game['version']}"
+
+
+def render_favicon_links(href: str) -> str:
+    safe_href = esc(href)
+    return "\n".join(
+        [
+            f'    <link rel="icon" type="image/png" href="{safe_href}">',
+            f'    <link rel="shortcut icon" type="image/png" href="{safe_href}">',
+            f'    <link rel="apple-touch-icon" href="{safe_href}">',
+        ]
+    )
 
 
 def render_topbar(home_href: str, extra_links: list[tuple[str, str]] | None = None) -> str:
@@ -582,6 +595,7 @@ def render_index(site: dict, games: list[dict]) -> str:
     <meta name="description" content="{tagline}">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap" rel="stylesheet">
+{render_favicon_links(ICON_FILENAME)}
     <link rel="stylesheet" href="assets/site.css">
   </head>
   <body>
@@ -656,6 +670,7 @@ def render_game_page(site: dict, game: dict) -> str:
     <meta name="description" content="{summary}">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap" rel="stylesheet">
+{render_favicon_links(f"../{ICON_FILENAME}")}
     <link rel="stylesheet" href="../assets/site.css">
   </head>
   <body>
@@ -721,7 +736,15 @@ def build_arcade(manifest_path: Path, output_root: Path) -> list[Path]:
     assets_dir.mkdir(parents=True, exist_ok=True)
     (assets_dir / "site.css").write_text(STYLE_CSS, encoding="utf-8")
 
-    written = [assets_dir / "site.css"]
+    icon_source = Path(__file__).resolve().parents[1] / ICON_FILENAME
+    if not icon_source.exists():
+        raise FileNotFoundError(f"Expected arcade icon at {icon_source}")
+
+    output_icon = output_root / ICON_FILENAME
+    if output_icon.resolve() != icon_source.resolve():
+        shutil.copy2(icon_source, output_icon)
+
+    written = [assets_dir / "site.css", output_icon]
 
     index_path = output_root / "index.html"
     index_path.write_text(render_index(site, games), encoding="utf-8")
