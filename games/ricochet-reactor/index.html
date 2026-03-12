@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ricochet Reactor | Millrace Arcade</title>
+    <meta
+      name="description"
+      content="Ricochet Reactor is a Millrace arcade prototype shell with a reactor-defense HUD and a staged arena ready for the first playable loop."
+    >
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../../MillraceIconTransparent.png">
+    <link rel="shortcut icon" type="image/png" href="../../MillraceIconTransparent.png">
+    <link rel="apple-touch-icon" href="../../MillraceIconTransparent.png">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <nav class="topbar" aria-label="Millrace shell">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">MR</span>
+          <div class="brand-copy">
+            <p class="eyebrow">Autonomous build log</p>
+            <h2>Millrace Arcade</h2>
+          </div>
+        </div>
+        <a class="back-link" href="../">Back to arcade</a>
+      </nav>
+
+      <header class="panel hero-panel">
+        <div class="hero-copy">
+          <div>
+            <p class="eyebrow">Containment chamber</p>
+            <h1>Ricochet Reactor</h1>
+            <p class="lede">A staged shell for a future ricochet-defense run, framed in the Millrace arcade with reactor telemetry, lane briefings, and a live arena mount point.</p>
+          </div>
+          <div class="hero-meta" aria-label="Release metadata">
+            <span class="meta-pill status-pill">Prototype</span>
+            <span class="meta-pill version-pill">v0.0.1</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="layout">
+        <section class="panel hud-panel" aria-label="Reactor HUD">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Run telemetry</p>
+              <h2>Control stack</h2>
+            </div>
+            <span id="boot-state" class="meta-pill boot-pill">Booting</span>
+          </div>
+
+          <div class="stat-grid">
+            <article class="stat-card">
+              <span class="stat-label">Charge</span>
+              <strong id="charge-value" class="stat-value">00%</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Integrity</span>
+              <strong id="integrity-value" class="stat-value">Stable</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Ricochet chain</span>
+              <strong id="chain-value" class="stat-value">x0</strong>
+            </article>
+          </div>
+
+          <div class="readout">
+            <div class="readout-row">
+              <span>Launch lane</span>
+              <strong id="lane-value">North rail offline</strong>
+            </div>
+            <div class="readout-row">
+              <span>Primary directive</span>
+              <strong id="directive-value">Prime the shell for first contact</strong>
+            </div>
+            <div class="readout-row">
+              <span>Arena conduit</span>
+              <strong id="arena-value">Waiting for gameplay systems</strong>
+            </div>
+          </div>
+
+          <div class="briefing-panel">
+            <p class="eyebrow">Scaffold notes</p>
+            <ul class="briefing-list">
+              <li>HUD values are placeholders for the first playable pass.</li>
+              <li>The arena mount stays present so future game logic can target a stable container.</li>
+              <li>The shell keeps public Millrace framing without implying shipped combat behavior yet.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="panel arena-panel" aria-label="Arena shell">
+          <div class="section-heading arena-heading">
+            <div>
+              <p class="eyebrow">Arena stage</p>
+              <h2>Reactor chamber</h2>
+            </div>
+            <p id="status-message" class="status-message" role="status" aria-live="polite">Boot sequence in progress.</p>
+          </div>
+
+          <div id="arena-shell" class="arena-shell">
+            <div class="arena-grid" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="reactor-core" aria-hidden="true">
+              <span class="core-ring ring-outer"></span>
+              <span class="core-ring ring-mid"></span>
+              <span class="core-ring ring-inner"></span>
+            </div>
+            <div class="arena-copy">
+              <p class="eyebrow">Arena conduit</p>
+              <h3>Gameplay mount point reserved</h3>
+              <p>The authored shell is online. Future tasks can attach paddle, projectile, enemy, and scoring systems here without reworking the public page frame.</p>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="main.js"></script>
+  </body>
+</html>

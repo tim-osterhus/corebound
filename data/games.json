@@ -14,6 +14,16 @@
       "description": "Corebound is the first live title in the arcade. The current build is intentionally lean, and each new version will push the mining loop, feel, progression, and depth forward.",
       "cta_label": "Open game",
       "source_dir": "games/corebound"
+    },
+    {
+      "slug": "ricochet-reactor",
+      "title": "Ricochet Reactor",
+      "status": "Prototype",
+      "version": "0.0.1",
+      "summary": "A reactor-defense shell has entered the arcade with the Millrace frame, HUD scaffolding, and arena stage set for the first playable loop.",
+      "description": "Ricochet Reactor is a new arcade prototype built around a future ricochet-combat loop. This release ships the branded shell, telemetry placeholders, and arena container so the first playable systems can land cleanly in follow-up tasks.",
+      "cta_label": "Open prototype",
+      "source_dir": "games/ricochet-reactor"
     }
   ]
 }
