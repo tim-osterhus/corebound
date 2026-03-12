@@ -33,11 +33,11 @@
           <div>
             <p class="eyebrow">Containment chamber</p>
             <h1>Ricochet Reactor</h1>
-            <p class="lede">The first playable reactor-defense pass is online with live chamber controls, ricochet shots, and a short-range dash loop framed inside the Millrace arcade shell.</p>
+            <p class="lede">The chamber now runs as a survival defense trial with escalating waves, three enemy behaviors, reactor pressure, and a hard fail state when the pilot or core collapses.</p>
           </div>
           <div class="hero-meta" aria-label="Release metadata">
             <span class="meta-pill status-pill">Prototype</span>
-            <span class="meta-pill version-pill">v0.0.2</span>
+            <span class="meta-pill version-pill">v0.0.4</span>
           </div>
         </div>
       </header>
@@ -69,6 +69,14 @@
               <span class="stat-label">Dash cooldown</span>
               <strong id="dash-value" class="stat-value">Ready</strong>
             </article>
+            <article class="stat-card">
+              <span class="stat-label">Run score</span>
+              <strong id="score-value" class="stat-value">0000</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Best score</span>
+              <strong id="best-score-value" class="stat-value">0000</strong>
+            </article>
           </div>
 
           <div class="readout">
@@ -84,6 +92,10 @@
               <span>Arena status</span>
               <strong id="arena-value">Control loop initializing</strong>
             </div>
+            <div class="readout-row">
+              <span>Recovery cells</span>
+              <strong id="pickup-value">No cells recovered yet</strong>
+            </div>
           </div>
 
           <div class="briefing-panel">
@@ -92,6 +104,7 @@
               <li>Move with WASD or arrow keys.</li>
               <li>Aim with the mouse and hold click to fire ricochet rounds.</li>
               <li>Press Space or Shift to dash across the chamber when the cooldown is ready.</li>
+              <li>Press R, click the arena, or use Restart run after a failure to restart the run.</li>
             </ul>
           </div>
         </section>
@@ -102,7 +115,10 @@
               <p class="eyebrow">Arena stage</p>
               <h2>Reactor chamber</h2>
             </div>
-            <p id="status-message" class="status-message" role="status" aria-live="polite">Boot sequence in progress.</p>
+            <div class="arena-actions">
+              <p id="status-message" class="status-message" role="status" aria-live="polite">Boot sequence in progress.</p>
+              <button id="restart-button" class="restart-button" type="button" hidden>Restart run</button>
+            </div>
           </div>
 
           <div id="arena-shell" class="arena-shell">

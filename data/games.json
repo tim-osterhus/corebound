@@ -19,9 +19,9 @@
       "slug": "ricochet-reactor",
       "title": "Ricochet Reactor",
       "status": "Prototype",
-      "version": "0.0.2",
-      "summary": "Ricochet Reactor now ships a first playable chamber with live movement, ricochet shots, dash cooldown management, and reactor HUD telemetry.",
-      "description": "Ricochet Reactor is an arcade prototype built around a ricochet-combat loop. This version turns the public shell into a playable chamber with bounded movement, mouse aiming, wall-bouncing shots, a dash burst, and live placeholder HUD readouts for the future defense run.",
+      "version": "0.0.4",
+      "summary": "Ricochet Reactor now layers score attack pressure onto the survival defense loop with enemy drops, reactor recovery pickups, best-score persistence, and a clean restart flow.",
+      "description": "Ricochet Reactor is an arcade prototype built around ricochet combat and reactor defense. This release adds score rewards for enemy kills, collectible recovery cells that repair the reactor, persistent best-score tracking, and a one-step restart loop after failure.",
       "cta_label": "Open prototype",
       "source_dir": "games/ricochet-reactor"
     }

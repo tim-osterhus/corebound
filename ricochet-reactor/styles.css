@@ -336,10 +336,40 @@ h2 {
   margin-bottom: 18px;
 }
 
+.arena-actions {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
 .status-message {
   color: var(--muted);
   text-align: right;
   line-height: 1.4;
+}
+
+.restart-button {
+  min-height: 42px;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 90, 54, 0.32);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 90, 54, 0.2), rgba(255, 90, 54, 0.1));
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.restart-button:hover,
+.restart-button:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: rgba(255, 90, 54, 0.5);
+  background: linear-gradient(180deg, rgba(255, 90, 54, 0.28), rgba(255, 90, 54, 0.14));
 }
 
 .arena-shell {
@@ -474,6 +504,10 @@ h2 {
 
   .status-message {
     text-align: left;
+  }
+
+  .arena-actions {
+    justify-items: start;
   }
 
   .stat-grid {
