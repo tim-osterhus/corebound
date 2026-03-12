@@ -9,10 +9,11 @@
       "slug": "corebound",
       "title": "Corebound",
       "status": "Alpha",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "summary": "The flagship mining game is live as an early public build and will grow through steady versioned releases.",
       "description": "Corebound is the first live title in the arcade. The current build is intentionally lean, and each new version will push the mining loop, feel, progression, and depth forward.",
-      "cta_label": "Open game"
+      "cta_label": "Open game",
+      "source_dir": "games/corebound"
     }
   ]
 }
