@@ -13,7 +13,7 @@
     <link rel="icon" type="image/png" href="../../MillraceIconTransparent.png">
     <link rel="shortcut icon" type="image/png" href="../../MillraceIconTransparent.png">
     <link rel="apple-touch-icon" href="../../MillraceIconTransparent.png">
-    <link rel="stylesheet" href="styles.css?v=0.0.5">
+    <link rel="stylesheet" href="styles.css?v=0.0.6">
   </head>
   <body>
     <main class="shell">
@@ -37,7 +37,7 @@
           </div>
           <div class="hero-meta" aria-label="Release metadata">
             <span class="meta-pill status-pill">Prototype</span>
-            <span class="meta-pill version-pill">v0.0.5</span>
+            <span class="meta-pill version-pill">v0.0.6</span>
           </div>
         </div>
       </header>
@@ -104,7 +104,7 @@
                 <p class="eyebrow">Loadout</p>
                 <h3>Active upgrades</h3>
               </div>
-              <span class="meta-pill upgrades-tier">Tier 0</span>
+              <span id="upgrades-tier" class="meta-pill upgrades-tier">Tier 0</span>
             </div>
             <ul id="upgrades-list" class="upgrades-list">
               <li class="upgrade-chip">No upgrades installed</li>
@@ -181,21 +181,21 @@
                     <p class="upgrade-selection-prompt">Select one upgrade to prep the next run segment.</p>
                   </div>
                   <div class="upgrade-card-grid" role="list" aria-label="Upgrade choices">
-                    <article class="upgrade-card" role="listitem">
-                      <p class="upgrade-card-kicker">Slot 1</p>
-                      <h4>Ricochet Array</h4>
-                      <p>Placeholder for a rebound-focused reward.</p>
-                    </article>
-                    <article class="upgrade-card" role="listitem">
-                      <p class="upgrade-card-kicker">Slot 2</p>
-                      <h4>Stability Weave</h4>
-                      <p>Placeholder for a reactor defense reward.</p>
-                    </article>
-                    <article class="upgrade-card" role="listitem">
-                      <p class="upgrade-card-kicker">Slot 3</p>
-                      <h4>Dash Relay</h4>
-                      <p>Placeholder for a mobility reward.</p>
-                    </article>
+                    <button id="upgrade-card-0" class="upgrade-card" type="button" role="listitem" data-upgrade-card>
+                      <p id="upgrade-card-kicker-0" class="upgrade-card-kicker">Slot 1</p>
+                      <h4 id="upgrade-card-title-0">Ricochet Array</h4>
+                      <p id="upgrade-card-description-0">Placeholder for a rebound-focused reward.</p>
+                    </button>
+                    <button id="upgrade-card-1" class="upgrade-card" type="button" role="listitem" data-upgrade-card>
+                      <p id="upgrade-card-kicker-1" class="upgrade-card-kicker">Slot 2</p>
+                      <h4 id="upgrade-card-title-1">Stability Weave</h4>
+                      <p id="upgrade-card-description-1">Placeholder for a reactor defense reward.</p>
+                    </button>
+                    <button id="upgrade-card-2" class="upgrade-card" type="button" role="listitem" data-upgrade-card>
+                      <p id="upgrade-card-kicker-2" class="upgrade-card-kicker">Slot 3</p>
+                      <h4 id="upgrade-card-title-2">Dash Relay</h4>
+                      <p id="upgrade-card-description-2">Placeholder for a mobility reward.</p>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -205,6 +205,6 @@
       </section>
     </main>
 
-    <script src="main.js?v=0.0.5"></script>
+    <script src="main.js?v=0.0.6"></script>
   </body>
 </html>

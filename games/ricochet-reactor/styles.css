@@ -684,11 +684,35 @@ h2 {
 }
 
 .upgrade-card {
+  appearance: none;
+  width: 100%;
   min-height: 100%;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   background: linear-gradient(180deg, rgba(93, 226, 255, 0.08), rgba(255, 255, 255, 0.03));
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.upgrade-card:hover,
+.upgrade-card:focus-visible {
+  outline: none;
+  transform: translateY(-2px);
+  border-color: rgba(93, 226, 255, 0.26);
+  background: linear-gradient(180deg, rgba(93, 226, 255, 0.14), rgba(255, 255, 255, 0.05));
+}
+
+.upgrade-card:disabled {
+  cursor: wait;
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .upgrade-card h4 {

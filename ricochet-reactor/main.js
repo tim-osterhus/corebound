@@ -18,6 +18,11 @@ const requiredElements = {
   eventFeed: document.querySelector("#event-feed"),
   introOverlay: document.querySelector("#intro-overlay"),
   introButton: document.querySelector("#intro-button"),
+  upgradesList: document.querySelector("#upgrades-list"),
+  upgradesTier: document.querySelector("#upgrades-tier"),
+  upgradeOverlay: document.querySelector("#upgrade-overlay"),
+  upgradeWaveValue: document.querySelector("#upgrade-wave-value"),
+  upgradeCards: Array.from(document.querySelectorAll("[data-upgrade-card]")),
 };
 
 const ARENA_WIDTH = 960;
@@ -41,9 +46,17 @@ const ENEMY_PROJECTILE_SPEED = 240;
 const ENEMY_PROJECTILE_RADIUS = 6;
 const ENEMY_PROJECTILE_LIFETIME = 4.2;
 const PLAYER_CONTACT_INVULNERABILITY = 0.5;
-const WAVE_BREAK = 3.5;
 const BEST_SCORE_STORAGE_KEY = "millrace.ricochet-reactor.best-score";
 const INTRO_DISMISSED_STORAGE_KEY = "millrace.ricochet-reactor.intro-dismissed";
+const UPGRADE_RESUME_DELAY = 1.4;
+
+const BASE_PLAYER_STATS = {
+  speed: PLAYER_SPEED,
+  dashCooldown: DASH_COOLDOWN,
+  fireCooldown: FIRE_COOLDOWN,
+  shotBounces: SHOT_BOUNCES,
+  pickupRepair: PICKUP_REACTOR_REPAIR,
+};
 
 const ENEMY_SCORE_VALUES = {
   chaser: 100,
@@ -96,6 +109,57 @@ const ENEMY_ARCHETYPES = {
     reactorDamage: 8,
   },
 };
+
+const UPGRADE_DEFINITIONS = [
+  {
+    id: "thrusters",
+    title: "Vector Thrusters",
+    getDescription: (tier) => `Movement speed +${tier * 10}%.`,
+    apply(tier, stats) {
+      stats.speed = BASE_PLAYER_STATS.speed * (1 + tier * 0.1);
+    },
+  },
+  {
+    id: "dash-relay",
+    title: "Dash Relay",
+    getDescription: (tier) => `Dash cooldown ${tier * 12}% shorter.`,
+    apply(tier, stats) {
+      stats.dashCooldown = Math.max(0.55, BASE_PLAYER_STATS.dashCooldown * (1 - tier * 0.12));
+    },
+  },
+  {
+    id: "heat-sink",
+    title: "Heat Sink Bypass",
+    getDescription: (tier) => `Fire cycle ${tier * 12}% faster.`,
+    apply(tier, stats) {
+      stats.fireCooldown = Math.max(0.06, BASE_PLAYER_STATS.fireCooldown * (1 - tier * 0.12));
+    },
+  },
+  {
+    id: "prism-shell",
+    title: "Prism Shell",
+    getDescription: (tier) => `Ricochet count +${tier}.`,
+    apply(tier, stats) {
+      stats.shotBounces = BASE_PLAYER_STATS.shotBounces + tier;
+    },
+  },
+  {
+    id: "salvage-mesh",
+    title: "Salvage Mesh",
+    getDescription: (tier) => `Recovery cells restore +${tier * 3} integrity.`,
+    apply(tier, stats) {
+      stats.pickupRepair = BASE_PLAYER_STATS.pickupRepair + tier * 3;
+    },
+  },
+  {
+    id: "containment-weave",
+    title: "Containment Weave",
+    getDescription: (tier) => `Repair pulse restores ${Math.round(PICKUP_REACTOR_REPAIR * 0.75)} integrity on selection.`,
+    apply() {
+      // Immediate selection effect handled separately.
+    },
+  },
+];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -199,6 +263,7 @@ function createGame(elements) {
     score: 0,
     bestScore: loadBestScore(),
     introDismissed: false,
+    phase: "combat",
     pickups: [],
     pickupFlash: 0,
     pickupStatus: "No cells recovered yet",
@@ -234,6 +299,15 @@ function createGame(elements) {
     enemies: [],
     enemyProjectiles: [],
     lastShotAt: 0,
+    fireCooldown: BASE_PLAYER_STATS.fireCooldown,
+    shotBounceCount: BASE_PLAYER_STATS.shotBounces,
+    pickupRepairAmount: BASE_PLAYER_STATS.pickupRepair,
+    upgrades: {
+      tiers: {},
+      offered: [],
+      resumeTimer: 0,
+      selectedId: "",
+    },
   };
 
   persistBestScore(state.bestScore);
@@ -318,6 +392,204 @@ function createGame(elements) {
     });
   }
 
+  function getUpgradeTier(id) {
+    return state.upgrades.tiers[id] ?? 0;
+  }
+
+  function getUpgradeDefinition(id) {
+    return UPGRADE_DEFINITIONS.find((upgrade) => upgrade.id === id) ?? null;
+  }
+
+  function recalculateUpgradeStats() {
+    const nextStats = {
+      speed: BASE_PLAYER_STATS.speed,
+      dashCooldown: BASE_PLAYER_STATS.dashCooldown,
+      fireCooldown: BASE_PLAYER_STATS.fireCooldown,
+      shotBounces: BASE_PLAYER_STATS.shotBounces,
+      pickupRepair: BASE_PLAYER_STATS.pickupRepair,
+    };
+
+    for (const upgrade of UPGRADE_DEFINITIONS) {
+      const tier = getUpgradeTier(upgrade.id);
+      if (tier > 0) {
+        upgrade.apply(tier, nextStats);
+      }
+    }
+
+    state.player.speed = nextStats.speed;
+    state.fireCooldown = nextStats.fireCooldown;
+    state.shotBounceCount = nextStats.shotBounces;
+    state.pickupRepairAmount = nextStats.pickupRepair;
+    state.player.dashCooldown = Math.min(state.player.dashCooldown, nextStats.dashCooldown);
+    state.player.dashCooldownDuration = nextStats.dashCooldown;
+  }
+
+  function getUpgradeChoices() {
+    const pool = [...UPGRADE_DEFINITIONS];
+    const picks = [];
+
+    while (pool.length > 0 && picks.length < 3) {
+      const index = Math.floor(Math.random() * pool.length);
+      picks.push(pool.splice(index, 1)[0]);
+    }
+
+    return picks;
+  }
+
+  function hideUpgradeOverlay() {
+    elements.upgradeOverlay.hidden = true;
+    elements.upgradeOverlay.classList.remove("upgrade-visible");
+  }
+
+  function renderUpgradeOverlay(messageOverride = "") {
+    const upcomingWave = state.wave + 1;
+    elements.upgradeWaveValue.textContent = `Wave ${String(upcomingWave).padStart(2, "0")}`;
+
+    elements.upgradeCards.forEach((card, index) => {
+      const upgrade = state.upgrades.offered[index];
+      if (!upgrade) {
+        card.hidden = true;
+        card.disabled = true;
+        return;
+      }
+
+      const nextTier = getUpgradeTier(upgrade.id) + 1;
+      const kicker = card.querySelector(".upgrade-card-kicker");
+      const title = card.querySelector("h4");
+      const description = card.querySelector("p:last-child");
+
+      kicker.textContent = messageOverride || `Tier ${String(nextTier).padStart(2, "0")}`;
+      title.textContent = upgrade.title;
+      description.textContent = messageOverride || upgrade.getDescription(nextTier);
+      card.dataset.upgradeId = upgrade.id;
+      card.hidden = false;
+      card.disabled = state.phase !== "upgrade";
+    });
+
+    elements.upgradeOverlay.hidden = false;
+    elements.upgradeOverlay.classList.add("upgrade-visible");
+  }
+
+  function renderUpgradeHud() {
+    const activeUpgrades = UPGRADE_DEFINITIONS
+      .map((upgrade) => ({
+        ...upgrade,
+        tier: getUpgradeTier(upgrade.id),
+      }))
+      .filter((upgrade) => upgrade.tier > 0);
+
+    elements.upgradesTier.textContent = `Tier ${activeUpgrades.reduce((sum, upgrade) => sum + upgrade.tier, 0)}`;
+    elements.upgradesList.innerHTML = "";
+
+    if (activeUpgrades.length === 0) {
+      const emptyState = document.createElement("li");
+      emptyState.className = "upgrade-chip";
+      emptyState.textContent = "No upgrades installed";
+      elements.upgradesList.append(emptyState);
+
+      const pendingState = document.createElement("li");
+      pendingState.className = "upgrade-chip";
+      pendingState.textContent = "Wave rewards pending";
+      elements.upgradesList.append(pendingState);
+      return;
+    }
+
+    for (const upgrade of activeUpgrades) {
+      const item = document.createElement("li");
+      item.className = "upgrade-chip";
+      item.textContent = `${upgrade.title} T${upgrade.tier} - ${upgrade.getDescription(upgrade.tier)}`;
+      elements.upgradesList.append(item);
+    }
+  }
+
+  function mountDebugControls() {
+    const isLocalHost = ["127.0.0.1", "localhost"].includes(window.location.hostname);
+    if (!isLocalHost) {
+      return;
+    }
+
+    window.__RICOCHET_REACTOR_DEBUG__ = {
+      getSnapshot() {
+        return {
+          wave: state.wave,
+          phase: state.phase,
+          offered: state.upgrades.offered.map((upgrade) => upgrade.id),
+          tiers: { ...state.upgrades.tiers },
+          playerSpeed: state.player.speed,
+          fireCooldown: state.fireCooldown,
+          dashCooldown: state.player.dashCooldownDuration,
+          shotBounceCount: state.shotBounceCount,
+          pickupRepairAmount: state.pickupRepairAmount,
+        };
+      },
+      forceUpgradePhase() {
+        if (state.wave === 0) {
+          queueWave();
+        }
+        state.spawnQueue = [];
+        state.enemies = [];
+        state.enemyProjectiles = [];
+        beginUpgradeSelection();
+        updateHud();
+        drawArena();
+      },
+      chooseUpgrade(id) {
+        applyUpgradeSelection(id);
+        updateHud();
+        drawArena();
+      },
+      restart() {
+        restartGame();
+        updateHud();
+        drawArena();
+      },
+    };
+  }
+
+  function beginUpgradeSelection() {
+    state.phase = "upgrade";
+    state.firing = false;
+    state.keys.clear();
+    state.upgrades.resumeTimer = 0;
+    state.upgrades.selectedId = "";
+    state.upgrades.offered = getUpgradeChoices();
+    renderUpgradeOverlay();
+    setUiMessage(`Wave ${state.wave} clear. Choose a chamber mod for wave ${state.wave + 1}.`, "neutral", 999);
+  }
+
+  function finishUpgradeSelection() {
+    state.phase = "combat";
+    state.upgrades.resumeTimer = 0;
+    state.upgrades.selectedId = "";
+    state.upgrades.offered = [];
+    hideUpgradeOverlay();
+    queueWave();
+    setUiMessage(`Wave ${state.wave} breach in progress. Upgrade package installed.`, "neutral", 1.4);
+  }
+
+  function applyUpgradeSelection(id) {
+    const upgrade = getUpgradeDefinition(id);
+    if (!upgrade || state.phase !== "upgrade") {
+      return;
+    }
+
+    state.upgrades.tiers[id] = getUpgradeTier(id) + 1;
+    state.upgrades.selectedId = id;
+    state.upgrades.resumeTimer = UPGRADE_RESUME_DELAY;
+    state.phase = "upgrade-resume";
+
+    if (upgrade.id === "containment-weave") {
+      state.reactor.integrity = Math.min(REACTOR_MAX_INTEGRITY, state.reactor.integrity + Math.round(PICKUP_REACTOR_REPAIR * 0.75));
+      state.pickupFlash = 1;
+      state.pickupStatus = "Containment weave stabilized the reactor";
+    }
+
+    recalculateUpgradeStats();
+    renderUpgradeHud();
+    renderUpgradeOverlay("Installing");
+    setUiMessage(`${upgrade.title} installed. Wave ${state.wave + 1} resumes in ${UPGRADE_RESUME_DELAY.toFixed(1)}s.`, "neutral", 999);
+  }
+
   function syncBestScore() {
     if (state.score <= state.bestScore) {
       return;
@@ -392,7 +664,7 @@ function createGame(elements) {
     setUiMessage(`${ENEMY_ARCHETYPES[enemy.type].label} down. Keep the lane clear.`, "kill", 1.2);
 
     if (Math.random() <= (PICKUP_DROP_CHANCE[enemy.type] ?? 0)) {
-      spawnPickup(enemy.x, enemy.y, PICKUP_REACTOR_REPAIR);
+      spawnPickup(enemy.x, enemy.y, state.pickupRepairAmount);
     }
 
     if (enemy.type === "splitter") {
@@ -416,15 +688,24 @@ function createGame(elements) {
     state.enemies = [];
     state.enemyProjectiles = [];
     state.lastShotAt = 0;
+    state.phase = "combat";
     state.player.x = reactorX;
     state.player.y = reactorY + 120;
     state.player.health = PLAYER_MAX_HEALTH;
     state.player.dashCooldown = 0;
+    state.player.dashCooldownDuration = BASE_PLAYER_STATS.dashCooldown;
     state.player.dashTime = 0;
     state.player.hitFlash = 0;
     state.player.contactInvulnerability = 0;
     state.reactor.integrity = REACTOR_MAX_INTEGRITY;
     state.reactor.hitFlash = 0;
+    state.upgrades.tiers = {};
+    state.upgrades.offered = [];
+    state.upgrades.resumeTimer = 0;
+    state.upgrades.selectedId = "";
+    hideUpgradeOverlay();
+    recalculateUpgradeStats();
+    renderUpgradeHud();
     setUiMessage("Objective: defend the reactor, keep moving, and use dash to reopen your angle.", "neutral", 0);
     updateAim();
   }
@@ -472,7 +753,7 @@ function createGame(elements) {
   }
 
   function fireShot(now) {
-    if (state.gameOver || now - state.lastShotAt < FIRE_COOLDOWN) {
+    if (state.gameOver || state.phase !== "combat" || now - state.lastShotAt < state.fireCooldown) {
       return;
     }
 
@@ -487,7 +768,7 @@ function createGame(elements) {
       vx: directionX * SHOT_SPEED,
       vy: directionY * SHOT_SPEED,
       radius: SHOT_RADIUS,
-      bouncesLeft: SHOT_BOUNCES,
+      bouncesLeft: state.shotBounceCount,
       life: SHOT_LIFETIME,
       damage: 1,
     });
@@ -503,7 +784,7 @@ function createGame(elements) {
   }
 
   function tryDash() {
-    if (state.gameOver || state.player.dashCooldown > 0 || state.player.dashTime > 0) {
+    if (state.gameOver || state.phase !== "combat" || state.player.dashCooldown > 0 || state.player.dashTime > 0) {
       return;
     }
 
@@ -531,7 +812,7 @@ function createGame(elements) {
     state.player.dashVectorX = direction.x;
     state.player.dashVectorY = direction.y;
     state.player.dashTime = DASH_DURATION;
-    state.player.dashCooldown = DASH_COOLDOWN;
+    state.player.dashCooldown = state.player.dashCooldownDuration;
     createBurst(state.player.x, state.player.y, "rgba(93, 226, 255, 0.92)", 18, 0.22, 3);
     createSparkFan(state.player.x, state.player.y, "#5de2ff", 8, 200, 0.28);
     setUiMessage("Dash engaged. Reposition and reopen the ricochet lane.", "dash", 1);
@@ -588,6 +869,10 @@ function createGame(elements) {
         return;
       }
 
+      if (state.phase !== "combat") {
+        return;
+      }
+
       state.firing = true;
       fireShot(state.lastTime || 0);
     });
@@ -600,13 +885,29 @@ function createGame(elements) {
       dismissIntro();
     });
 
+    elements.upgradeCards.forEach((card) => {
+      card.addEventListener("click", () => {
+        if (card.dataset.upgradeId) {
+          applyUpgradeSelection(card.dataset.upgradeId);
+        }
+      });
+    });
+
     window.addEventListener("mouseup", () => {
       state.firing = false;
     });
   }
 
   function updateWaveState(dt) {
-    if (state.gameOver) {
+    if (state.gameOver || state.phase === "upgrade") {
+      return;
+    }
+
+    if (state.phase === "upgrade-resume") {
+      state.upgrades.resumeTimer = Math.max(0, state.upgrades.resumeTimer - dt);
+      if (state.upgrades.resumeTimer <= 0) {
+        finishUpgradeSelection();
+      }
       return;
     }
 
@@ -621,14 +922,31 @@ function createGame(elements) {
     }
 
     if (state.enemies.length === 0 && state.enemyProjectiles.length === 0) {
-      if (state.nextWaveTimer <= 0) {
-        state.nextWaveTimer = state.wave === 0 ? 2 : WAVE_BREAK;
+      if (state.wave === 0) {
+        state.nextWaveTimer -= dt;
+        if (state.nextWaveTimer <= 0) {
+          queueWave();
+        }
+        return;
       }
-      state.nextWaveTimer -= dt;
-      if (state.nextWaveTimer <= 0) {
-        queueWave();
-      }
+
+      beginUpgradeSelection();
+      return;
     }
+  }
+
+  function getUpgradeStatusText() {
+    if (state.phase === "upgrade") {
+      return `Select one upgrade for wave ${state.wave + 1}.`;
+    }
+    if (state.phase === "upgrade-resume") {
+      return `Upgrade installed. Wave ${state.wave + 1} resumes in ${Math.max(1, Math.ceil(state.upgrades.resumeTimer))}s.`;
+    }
+    return "";
+  }
+
+  function canSimulateCombat() {
+    return !state.gameOver && state.phase === "combat";
   }
 
   function updatePlayer(dt) {
@@ -648,7 +966,7 @@ function createGame(elements) {
       moveX += 1;
     }
 
-    if (!state.gameOver) {
+    if (canSimulateCombat()) {
       if (state.player.dashTime > 0) {
         const dashStep = (DASH_DISTANCE / DASH_DURATION) * dt;
         state.player.x += state.player.dashVectorX * dashStep;
@@ -663,7 +981,9 @@ function createGame(elements) {
 
     state.player.x = clamp(state.player.x, state.player.radius, ARENA_WIDTH - state.player.radius);
     state.player.y = clamp(state.player.y, state.player.radius, ARENA_HEIGHT - state.player.radius);
-    state.player.dashCooldown = Math.max(0, state.player.dashCooldown - dt);
+    if (canSimulateCombat()) {
+      state.player.dashCooldown = Math.max(0, state.player.dashCooldown - dt);
+    }
     state.player.contactInvulnerability = Math.max(0, state.player.contactInvulnerability - dt);
     state.player.hitFlash = Math.max(0, state.player.hitFlash - dt);
     state.reactor.hitFlash = Math.max(0, state.reactor.hitFlash - dt);
@@ -928,7 +1248,7 @@ function createGame(elements) {
     const liveThreats = state.enemies.length + state.enemyProjectiles.length;
     const turretCount = state.enemies.filter((enemy) => enemy.type === "turret").length;
     const pickupLabel = state.pickups.length > 0
-      ? `${state.pickups.length} cell${state.pickups.length === 1 ? "" : "s"} active / +${PICKUP_REACTOR_REPAIR} integrity`
+      ? `${state.pickups.length} cell${state.pickups.length === 1 ? "" : "s"} active / +${state.pickupRepairAmount} integrity`
       : state.pickupStatus;
     const integrityState = getIntegrityState();
     const eventText = state.uiMessage.timer > 0
@@ -939,8 +1259,10 @@ function createGame(elements) {
     elements.bootState.textContent = state.gameOver ? "Run failed" : state.wave === 0 ? "Booting" : `Wave ${state.wave}`;
     elements.statusMessage.textContent = state.gameOver
       ? `${state.endReason}. Press R or click the arena to restart.`
+      : state.phase === "upgrade" || state.phase === "upgrade-resume"
+        ? getUpgradeStatusText()
       : state.pickupFlash > 0
-        ? `Recovery cell secured. Reactor integrity restored by ${PICKUP_REACTOR_REPAIR}.`
+        ? `Recovery cell secured. Reactor integrity restored by ${state.pickupRepairAmount}.`
       : state.spawnQueue.length > 0
         ? `Wave ${state.wave} breach in progress. Hold the center and thin the queue.`
         : state.enemies.length > 0
@@ -955,6 +1277,8 @@ function createGame(elements) {
     elements.laneValue.textContent = `${state.shots.length} live ${state.shots.length === 1 ? "round" : "rounds"} / ${liveThreats} hostile traces`;
     elements.directiveValue.textContent = state.gameOver
       ? "Lock the restart control and reset for another score run"
+      : state.phase === "upgrade" || state.phase === "upgrade-resume"
+        ? "Combat paused. Lock in one chamber mod before the next breach."
       : state.pickups.length > 0
         ? "Sweep the recovery cells when the lane is clear to stabilize the reactor"
       : liveThreats > 0
@@ -962,6 +1286,8 @@ function createGame(elements) {
         : "Use the lull to reload your angle around the reactor";
     elements.arenaValue.textContent = state.gameOver
       ? `${state.endReason} | Score ${state.score} | Best ${state.bestScore}`
+      : state.phase === "upgrade" || state.phase === "upgrade-resume"
+        ? `Upgrade bay active | Upcoming wave ${state.wave + 1} | Rewards 3`
       : `Turrets ${turretCount} | Queue ${state.spawnQueue.length} | Next break ${state.enemies.length === 0 ? Math.max(0, Math.ceil(state.nextWaveTimer)) : 0}s`;
     elements.pickupValue.textContent = pickupLabel;
     elements.restartButton.hidden = !state.gameOver;
@@ -1143,14 +1469,16 @@ function createGame(elements) {
 
     updateWaveState(dt);
     updatePlayer(dt);
-    if (state.firing) {
+    if (state.firing && state.phase === "combat") {
       fireShot(now);
     }
-    updateShots(dt);
-    handleShotImpacts();
-    updateEnemies(dt);
-    updateEnemyProjectiles(dt);
-    updatePickups(dt);
+    if (state.phase === "combat") {
+      updateShots(dt);
+      handleShotImpacts();
+      updateEnemies(dt);
+      updateEnemyProjectiles(dt);
+      updatePickups(dt);
+    }
     updateEffects(dt);
 
     updateHud();
@@ -1161,6 +1489,7 @@ function createGame(elements) {
   resizeCanvas();
   bindEvents();
   restartGame();
+  mountDebugControls();
   if (state.introDismissed) {
     elements.introOverlay.hidden = true;
     elements.arenaCanvas.style.pointerEvents = "auto";
