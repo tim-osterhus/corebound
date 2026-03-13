@@ -9,9 +9,9 @@
       "slug": "corebound",
       "title": "Corebound",
       "status": "Alpha",
-      "version": "0.0.4",
-      "summary": "The flagship mining game is live as an early public build and will grow through steady versioned releases.",
-      "description": "Corebound is the first live title in the arcade. The current build is intentionally lean, and each new version will push the mining loop, feel, progression, and depth forward.",
+      "version": "0.0.5",
+      "summary": "Corebound v0.0.5 refreshes the dig with procedural caverns, hazard telegraphs, and steadier release-tracked progression.",
+      "description": "Corebound is the first live title in the arcade. This v0.0.5 update ships a procedural cavern refresh plus clearer vent and cave-in hazard messaging while keeping the mining loop lean and steadily versioned.",
       "cta_label": "Open game",
       "source_dir": "games/corebound"
     },
@@ -24,6 +24,16 @@
       "description": "Ricochet Reactor is an arcade prototype built around ricochet combat and reactor defense. This release adds a safe pre-run hold on load and restart, an explicit start action, a visible launch countdown with free repositioning, and a full reset of live threats and run upgrades before each new attempt.",
       "cta_label": "Open prototype",
       "source_dir": "games/ricochet-reactor"
+    },
+    {
+      "slug": "overcrank",
+      "title": "Overcrank",
+      "status": "Prototype",
+      "version": "0.0.1",
+      "summary": "Overcrank enters the arcade as an authored shell with a Millrace briefing frame, telemetry placeholders, and a staged machine-floor viewport ready for the first playable loop.",
+      "description": "Overcrank is a new industrial-action prototype in the Millrace arcade. Version 0.0.1 publishes the authored shell with release metadata, mission briefing, HUD placeholders, and a dedicated viewport scaffold for the future gameplay build.",
+      "cta_label": "Open prototype",
+      "source_dir": "games/overcrank"
     }
   ]
 }

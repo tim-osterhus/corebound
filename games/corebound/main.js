@@ -6,6 +6,21 @@ const BASE_MINE_COST = 4;
 const SAVE_KEY = "corebound-save-v1";
 const SURFACE_X = 5;
 const CAVERN_COUNT = 3;
+const HAZARD_TELEGRAPH_TURNS = 2;
+const HAZARD_TRIGGER_RADIUS = 1;
+
+const HAZARD_TYPES = {
+  vent: {
+    label: "Pressure vent",
+    pressureCost: 8,
+    telegraphText: "A pressure vent starts hissing nearby.",
+  },
+  caveIn: {
+    label: "Unstable cave-in",
+    pressureCost: 5,
+    telegraphText: "Loose rock shifts. A cave-in is forming.",
+  },
+};
 
 const RESOURCE_TYPES = {
   copper: { value: 4, label: "Copper shards" },
@@ -57,6 +72,8 @@ const elements = {
   pressureDetail: document.querySelector("#pressure-detail"),
   pressureFill: document.querySelector("#pressure-fill"),
   pressureBlock: document.querySelector("#pressure-block"),
+  hazardBadge: document.querySelector("#hazard-badge"),
+  hazardStatus: document.querySelector("#hazard-status"),
   cargoTotal: document.querySelector("#cargo-total"),
   cargoCopper: document.querySelector("#cargo-copper"),
   cargoAmber: document.querySelector("#cargo-amber"),
@@ -142,15 +159,23 @@ function currentMineCost() {
 
 function createRunState() {
   const maxPressure = currentMaxPressure();
+  const { grid, hazards } = createGrid();
   return {
-    grid: createGrid(),
+    grid,
+    hazards,
     player: { x: SURFACE_X, y: 0 },
     cargo: { copper: 0, amber: 0, iridium: 0 },
     pickups: [],
     pressure: maxPressure,
     maxPressure,
+    moveCount: 0,
     gameOver: false,
     statusMessage: "Mine downward, then return to the extractor to bank cargo.",
+    hazardStatus: {
+      tone: "stable",
+      badge: "Stable",
+      text: "No active hazard signatures yet. Procedural caverns can hide vents and cave-ins off the main shaft.",
+    },
     floatingFeedback: [],
     tileFeedback: [],
   };
@@ -170,7 +195,63 @@ function createGrid() {
   const caverns = carveCaverns(grid, route);
   seedRouteResources(grid, route, caverns);
   populateResources(grid);
-  return grid;
+  const hazards = createHazards(grid, route, caverns);
+  return { grid, hazards };
+}
+
+function createHazards(grid, route, caverns) {
+  const hazards = [];
+  const used = new Set([`${SURFACE_X},0`]);
+  const routeCandidates = route.filter((point) => point.y >= 2 && point.y <= HEIGHT - 2);
+  const cavernCandidates = caverns.map((cavern) => ({ x: cavern.x, y: cavern.y })).filter((point) => point.y >= 2);
+  const ventTargets = [0.28, 0.68];
+  const caveInTargets = [0.46, 0.82];
+
+  ventTargets.forEach((ratio) => {
+    const anchor = pickHazardAnchor(routeCandidates, used, ratio, () => true);
+    if (anchor) {
+      hazards.push(createHazard(anchor.x, anchor.y, "vent"));
+      used.add(`${anchor.x},${anchor.y}`);
+    }
+  });
+
+  caveInTargets.forEach((ratio) => {
+    const anchor = pickHazardAnchor(
+      [...routeCandidates, ...cavernCandidates],
+      used,
+      ratio,
+      (point) => getAdjacentRockTiles(grid, point.x, point.y).length > 0,
+    );
+    if (anchor) {
+      hazards.push(createHazard(anchor.x, anchor.y, "caveIn"));
+      used.add(`${anchor.x},${anchor.y}`);
+    }
+  });
+
+  return hazards;
+}
+
+function createHazard(x, y, type) {
+  return {
+    id: `${type}-${x}-${y}`,
+    x,
+    y,
+    type,
+    state: "idle",
+    countdown: 0,
+  };
+}
+
+function pickHazardAnchor(candidates, used, depthRatio, predicate) {
+  const targetY = Math.round((HEIGHT - 1) * depthRatio);
+  const ranked = candidates
+    .filter((point) => !used.has(`${point.x},${point.y}`) && predicate(point))
+    .sort((left, right) => {
+      const leftScore = Math.abs(left.y - targetY) + Math.abs(left.x - SURFACE_X) * 0.1;
+      const rightScore = Math.abs(right.y - targetY) + Math.abs(right.x - SURFACE_X) * 0.1;
+      return leftScore - rightScore;
+    });
+  return ranked[0] || null;
 }
 
 function carvePrimaryRoute(grid) {
@@ -335,6 +416,20 @@ function isSolidTile(grid, x, y) {
   return grid[y][x] === "rock";
 }
 
+function isWalkableTile(tile) {
+  return tile === "air" || tile === "extractor";
+}
+
+function getAdjacentRockTiles(grid, x, y) {
+  const adjacent = [
+    { x, y: y - 1 },
+    { x: x + 1, y },
+    { x, y: y + 1 },
+    { x: x - 1, y },
+  ];
+  return adjacent.filter((point) => isSolidTile(grid, point.x, point.y));
+}
+
 function setGridTile(grid, x, y, tile) {
   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
     return;
@@ -365,8 +460,16 @@ function pickupAt(x, y) {
   return state.pickups.find((pickup) => pickup.x === x && pickup.y === y) || null;
 }
 
+function removePickupAt(x, y) {
+  state.pickups = state.pickups.filter((pickup) => pickup.x !== x || pickup.y !== y);
+}
+
 function tileFeedbackAt(x, y) {
   return state.tileFeedback.find((feedback) => feedback.x === x && feedback.y === y) || null;
+}
+
+function hazardAt(x, y) {
+  return state.hazards.find((hazard) => hazard.x === x && hazard.y === y) || null;
 }
 
 function removeFeedback(collectionName, id) {
@@ -390,6 +493,10 @@ function addTileFeedback(x, y, kind) {
   window.setTimeout(() => removeFeedback("tileFeedback", id), 420);
 }
 
+function distanceBetween(x1, y1, x2, y2) {
+  return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+}
+
 function pulseElement(element, className, duration = 650) {
   element.classList.remove(className);
   void element.offsetWidth;
@@ -407,6 +514,20 @@ function bankedCurrency() {
   return saveState.bankedCurrency;
 }
 
+function setHazardStatus(text, tone = "stable") {
+  const config = {
+    stable: { badge: "Stable" },
+    warning: { badge: "Warning" },
+    impact: { badge: "Impact" },
+  };
+  const nextTone = config[tone] ? tone : "stable";
+  state.hazardStatus = {
+    tone: nextTone,
+    badge: config[nextTone].badge,
+    text,
+  };
+}
+
 function betweenRuns() {
   return state.gameOver || (state.player.x === SURFACE_X && state.player.y === 0 && totalCargo() === 0);
 }
@@ -420,6 +541,170 @@ function spendPressure(amount, reason, focusX = state.player.x, focusY = state.p
   if (state.pressure === 0) {
     triggerFailure();
   }
+}
+
+function advanceHazards() {
+  state.moveCount += 1;
+  const hazardMessages = [];
+  let hazardTone = "stable";
+
+  state.hazards.forEach((hazard) => {
+    if (hazard.state !== "telegraph") {
+      return;
+    }
+
+    hazard.countdown -= 1;
+    if (hazard.countdown <= 0) {
+      const resolution = resolveHazard(hazard);
+      if (resolution) {
+        hazardMessages.push(resolution.text);
+        hazardTone = resolution.tone;
+      }
+    }
+  });
+
+  state.hazards = state.hazards.filter((hazard) => hazard.state !== "resolved");
+  if (state.gameOver) {
+    return;
+  }
+
+  state.hazards.forEach((hazard) => {
+    if (hazard.state !== "idle") {
+      return;
+    }
+    if (distanceBetween(state.player.x, state.player.y, hazard.x, hazard.y) > HAZARD_TRIGGER_RADIUS) {
+      return;
+    }
+    hazard.state = "telegraph";
+    hazard.countdown = HAZARD_TELEGRAPH_TURNS;
+    hazardMessages.push(HAZARD_TYPES[hazard.type].telegraphText);
+    hazardTone = "warning";
+  });
+
+  if (hazardMessages.length > 0) {
+    state.statusMessage = hazardMessages.join(" ");
+    setHazardStatus(hazardMessages.join(" "), hazardTone);
+  }
+}
+
+function resolveHazard(hazard) {
+  let resolution = null;
+  if (hazard.type === "vent") {
+    resolution = resolveVentHazard(hazard);
+  } else if (hazard.type === "caveIn") {
+    resolution = resolveCaveInHazard(hazard);
+  }
+  hazard.state = "resolved";
+  return resolution;
+}
+
+function resolveVentHazard(hazard) {
+  addTileFeedback(hazard.x, hazard.y, "hazard");
+  addFloatingFeedback("Vent", hazard.x + 0.5, hazard.y + 0.5, "warning");
+
+  const isNearby = distanceBetween(state.player.x, state.player.y, hazard.x, hazard.y) <= HAZARD_TRIGGER_RADIUS;
+  if (isNearby) {
+    spendPressure(HAZARD_TYPES.vent.pressureCost, "damage", hazard.x, hazard.y);
+    return {
+      tone: "impact",
+      text: "A pressure vent erupts and scorches the rig hull.",
+    };
+  }
+
+  return {
+    tone: "stable",
+    text: "A pressure vent bursts harmlessly into an empty shaft.",
+  };
+}
+
+function resolveCaveInHazard(hazard) {
+  const collapseTarget = findSafeCaveInTarget(hazard);
+  let terrainMessage = "The cave-in shudders, but the extractor route holds.";
+  let tone = "stable";
+
+  if (collapseTarget) {
+    setTile(collapseTarget.x, collapseTarget.y, "rock");
+    removePickupAt(collapseTarget.x, collapseTarget.y);
+    addTileFeedback(collapseTarget.x, collapseTarget.y, "hazard");
+    terrainMessage = "An unstable cave-in seals a tunnel, but the return route stays open.";
+  } else {
+    const breachTarget = getAdjacentRockTiles(state.grid, hazard.x, hazard.y)[0];
+    if (breachTarget) {
+      setTile(breachTarget.x, breachTarget.y, "air");
+      addTileFeedback(breachTarget.x, breachTarget.y, "hazard");
+      terrainMessage = "The cave-in breaks sideways and opens a fresh bypass through the rock.";
+    }
+  }
+
+  addFloatingFeedback("Shift", hazard.x + 0.5, hazard.y + 0.5, "warning");
+  if (distanceBetween(state.player.x, state.player.y, hazard.x, hazard.y) <= HAZARD_TRIGGER_RADIUS) {
+    spendPressure(HAZARD_TYPES.caveIn.pressureCost, "damage", hazard.x, hazard.y);
+    tone = "impact";
+  }
+  return { tone, text: terrainMessage };
+}
+
+function findSafeCaveInTarget(hazard) {
+  const candidates = [
+    { x: hazard.x, y: hazard.y },
+    { x: hazard.x, y: hazard.y - 1 },
+    { x: hazard.x + 1, y: hazard.y },
+    { x: hazard.x, y: hazard.y + 1 },
+    { x: hazard.x - 1, y: hazard.y },
+  ];
+
+  return candidates.find((candidate) => {
+    if (candidate.x === SURFACE_X && candidate.y === 0) {
+      return false;
+    }
+    if (candidate.x === state.player.x && candidate.y === state.player.y) {
+      return false;
+    }
+    if (!isWalkableTile(getTile(candidate.x, candidate.y))) {
+      return false;
+    }
+    return pathToExtractorExists(state.grid, state.player, candidate);
+  }) || null;
+}
+
+function pathToExtractorExists(grid, start, blocked = null) {
+  const startKey = `${start.x},${start.y}`;
+  const queue = [{ x: start.x, y: start.y }];
+  const seen = new Set([startKey]);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current.x === SURFACE_X && current.y === 0) {
+      return true;
+    }
+
+    const adjacent = [
+      { x: current.x, y: current.y - 1 },
+      { x: current.x + 1, y: current.y },
+      { x: current.x, y: current.y + 1 },
+      { x: current.x - 1, y: current.y },
+    ];
+
+    adjacent.forEach((point) => {
+      if (point.x < 0 || point.x >= WIDTH || point.y < 0 || point.y >= HEIGHT) {
+        return;
+      }
+      if (blocked && point.x === blocked.x && point.y === blocked.y) {
+        return;
+      }
+      const key = `${point.x},${point.y}`;
+      if (seen.has(key)) {
+        return;
+      }
+      if (!isWalkableTile(grid[point.y][point.x])) {
+        return;
+      }
+      seen.add(key);
+      queue.push(point);
+    });
+  }
+
+  return false;
 }
 
 function collectPickup(x, y) {
@@ -444,6 +729,7 @@ function bankCargo() {
 
   if (haul === 0) {
     state.statusMessage = "Extractor sealed. Pressure refreshed, but cargo hold is empty.";
+    setHazardStatus("Surface systems clear. No active hazard telegraphs remain on this run.", "stable");
     addTileFeedback(SURFACE_X, 0, "bank");
     render();
     return;
@@ -452,6 +738,7 @@ function bankCargo() {
   saveState.bankedCurrency += haul;
   persistSave();
   state.statusMessage = `Banked ${haul} credits and refreshed hull pressure.`;
+  setHazardStatus("Extractor reset the rig. Banked credits and upgrades persist into the next launch.", "stable");
   addTileFeedback(SURFACE_X, 0, "bank");
   addFloatingFeedback(`+${haul} cr`, SURFACE_X + 0.5, 0.55, "bank");
   pulseElement(elements.bankedCard, "is-banked");
@@ -465,6 +752,7 @@ function triggerFailure() {
   elements.overlayCopy.textContent = "Unbanked cargo was lost. Banked currency and purchased upgrades persist.";
   elements.overlay.classList.remove("hidden");
   state.statusMessage = "Pressure collapsed. Restart to launch a fresh run.";
+  setHazardStatus("Run lost. Restart clears this run's hazards, but banked currency, upgrades, and briefing progress stay intact.", "impact");
 }
 
 function restartRun() {
@@ -511,6 +799,7 @@ function tryPurchaseUpgrade(upgradeId) {
     state.pressure = Math.min(state.pressure, state.maxPressure);
   }
   state.statusMessage = `${upgrade.label} upgraded to level ${saveState.upgrades[upgradeId]}.`;
+  setHazardStatus("Hangar systems recalibrated. Launching a fresh run will generate a new hazard layout.", "stable");
   addFloatingFeedback(`-${cost} cr`, SURFACE_X + 0.5, 0.55, "damage");
   pulseElement(elements.bankedCard, "is-banked");
   render();
@@ -547,6 +836,9 @@ function movePlayer(dx, dy) {
     addTileFeedback(nextX, nextY, "mine");
     addFloatingFeedback("Crack", nextX + 0.5, nextY + 0.5, "damage");
     spendPressure(currentMineCost(), "mine", nextX, nextY);
+    if (!state.gameOver) {
+      advanceHazards();
+    }
     render();
     return;
   }
@@ -562,6 +854,7 @@ function movePlayer(dx, dy) {
   if (getTile(nextX, nextY) === "extractor") {
     bankCargo();
   }
+  advanceHazards();
   render();
 }
 
@@ -621,6 +914,13 @@ function render() {
       const tile = document.createElement("div");
       const baseTile = getTile(x, y);
       tile.className = `tile tile-${baseTile}`;
+      const hazard = hazardAt(x, y);
+      if (hazard) {
+        tile.classList.add("tile-hazard", `tile-hazard-${hazard.type}`);
+        if (hazard.state === "telegraph") {
+          tile.classList.add("tile-hazard-telegraph", `tile-hazard-countdown-${hazard.countdown}`);
+        }
+      }
 
       const pickup = pickupAt(x, y);
       if (pickup) {
@@ -654,6 +954,12 @@ function render() {
   elements.cargoTotal.textContent = `${totalCargo()} units`;
   elements.message.textContent = state.statusMessage;
   elements.message.classList.toggle("is-emphasis", state.statusMessage.includes("Banked") || state.statusMessage.includes("Collected"));
+  elements.hazardBadge.textContent = state.hazardStatus.badge;
+  elements.hazardBadge.classList.toggle("is-warning", state.hazardStatus.tone === "warning");
+  elements.hazardBadge.classList.toggle("is-impact", state.hazardStatus.tone === "impact");
+  elements.hazardStatus.textContent = state.hazardStatus.text;
+  elements.hazardStatus.classList.toggle("is-warning", state.hazardStatus.tone === "warning");
+  elements.hazardStatus.classList.toggle("is-impact", state.hazardStatus.tone === "impact");
   renderUpgradePanel();
   renderFeedback();
 }

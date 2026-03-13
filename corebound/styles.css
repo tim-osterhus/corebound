@@ -21,6 +21,10 @@
   --extractor: #72f1c8;
   --player: #ff6a7c;
   --danger: #ff5d5d;
+  --vent: #7dd3fc;
+  --vent-glow: rgba(125, 211, 252, 0.4);
+  --cave-in: #f59e0b;
+  --cave-in-glow: rgba(245, 158, 11, 0.34);
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
 }
 
@@ -285,6 +289,7 @@ h2 {
 .stat-card,
 .cargo-panel,
 .upgrade-panel,
+.hazard-panel,
 .pressure-block,
 .legend {
   padding: 14px;
@@ -337,6 +342,47 @@ h2 {
 .cargo-total {
   align-self: center;
   font-size: 0.95rem;
+}
+
+.hazard-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.hazard-badge {
+  align-self: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(114, 241, 200, 0.16);
+  background: rgba(114, 241, 200, 0.08);
+  color: #bff5e6;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hazard-badge.is-warning {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.12);
+  color: #ffd898;
+}
+
+.hazard-badge.is-impact {
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.14);
+  color: #ffc2c2;
+}
+
+.hazard-status {
+  min-height: 3.3rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.hazard-status.is-warning,
+.hazard-status.is-impact {
+  color: var(--text);
 }
 
 .cargo-list {
@@ -529,6 +575,42 @@ h2 {
   border: 2px solid rgba(114, 241, 200, 0.9);
 }
 
+.tile-hazard::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+.tile-hazard-vent {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(125, 211, 252, 0.3), transparent 42%),
+    rgba(151, 214, 255, 0.14);
+}
+
+.tile-hazard-vent::before {
+  inset: 28% 32%;
+  border-radius: 999px 999px 45% 45%;
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.95), rgba(23, 50, 74, 0.25));
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.18);
+}
+
+.tile-hazard-caveIn {
+  background:
+    linear-gradient(180deg, rgba(79, 58, 32, 0.65), rgba(34, 24, 16, 0.9)),
+    rgba(151, 214, 255, 0.08);
+}
+
+.tile-hazard-caveIn::before {
+  inset: 26%;
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, transparent 0 42%, rgba(245, 158, 11, 0.96) 42% 58%, transparent 58% 100%),
+    linear-gradient(45deg, transparent 0 46%, rgba(255, 240, 202, 0.8) 46% 54%, transparent 54% 100%);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.16);
+}
+
 .tile-player::before,
 .tile-pickup::before {
   content: "";
@@ -557,6 +639,26 @@ h2 {
 
 .tile-feedback-bank {
   animation: extractorPulse 0.6s ease-out;
+}
+
+.tile-feedback-hazard {
+  animation: hazardPulse 0.5s ease-out;
+}
+
+.tile-hazard-telegraph {
+  animation: hazardWarning 0.8s ease-in-out infinite;
+}
+
+.tile-hazard-vent.tile-hazard-telegraph {
+  box-shadow: inset 0 0 0 2px var(--vent-glow);
+}
+
+.tile-hazard-caveIn.tile-hazard-telegraph {
+  box-shadow: inset 0 0 0 2px var(--cave-in-glow);
+}
+
+.tile-hazard-countdown-1 {
+  filter: saturate(1.2) brightness(1.15);
 }
 
 .feedback-layer {
@@ -594,6 +696,11 @@ h2 {
   color: white;
 }
 
+.floating-feedback.warning {
+  background: linear-gradient(180deg, var(--amber), #ffd98c);
+  color: #241408;
+}
+
 .is-banked {
   animation: statFlash 0.75s ease-out;
 }
@@ -609,10 +716,12 @@ h2 {
 .overlay {
   position: fixed;
   inset: 0;
+  z-index: 100;
   display: grid;
   place-items: center;
   padding: 24px;
   background: rgba(5, 10, 14, 0.72);
+  pointer-events: auto;
 }
 
 .overlay.hidden {
@@ -647,6 +756,17 @@ h2 {
 @keyframes extractorPulse {
   0% { box-shadow: inset 0 0 0 0 rgba(114, 241, 200, 0.5); }
   100% { box-shadow: inset 0 0 0 18px rgba(114, 241, 200, 0); }
+}
+
+@keyframes hazardPulse {
+  0% { transform: scale(1); box-shadow: inset 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { transform: scale(0.92); box-shadow: inset 0 0 0 10px rgba(245, 158, 11, 0.12); }
+  100% { transform: scale(1); box-shadow: inset 0 0 0 18px rgba(245, 158, 11, 0); }
+}
+
+@keyframes hazardWarning {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(0.94); filter: brightness(1.22); }
 }
 
 @keyframes floatUp {

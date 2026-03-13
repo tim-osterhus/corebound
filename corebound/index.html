@@ -6,7 +6,7 @@
     <title>Corebound | Millrace Arcade</title>
     <meta
       name="description"
-      content="Corebound is a playable mining run with destructible tiles, resource pickups, pressure management, banking, and restart flow."
+      content="Corebound v0.0.5 is a playable mining run with procedural caverns, refreshed hazard telegraphs, banking, and restart flow."
     >
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap" rel="stylesheet">
@@ -33,11 +33,11 @@
           <div class="hero-heading">
             <p class="eyebrow">Millrace Arcade</p>
             <h1>Corebound</h1>
-            <p class="lede">Dig downward, grab ore before pressure collapses, and bank your haul at the surface extractor.</p>
+            <p class="lede">Dig through procedural caverns, react to refreshed hazards, and bank your haul at the surface extractor before pressure collapses.</p>
           </div>
           <div class="hero-meta" aria-label="Release metadata">
             <span class="meta-pill status-pill">Alpha</span>
-            <span class="meta-pill version-pill">v0.0.4</span>
+            <span class="meta-pill version-pill">v0.0.5</span>
           </div>
         </div>
       </header>
@@ -75,6 +75,17 @@
             <div class="pressure-bar" aria-hidden="true">
               <div id="pressure-fill" class="pressure-fill"></div>
             </div>
+          </div>
+
+          <div class="hazard-panel">
+            <div class="cargo-header">
+              <div>
+                <p class="eyebrow">Hazard Feed</p>
+                <h2>Telegraphs and outcomes</h2>
+              </div>
+              <span id="hazard-badge" class="hazard-badge">Stable</span>
+            </div>
+            <p id="hazard-status" class="hazard-status" role="status" aria-live="polite"></p>
           </div>
 
           <div class="cargo-panel">
@@ -131,8 +142,8 @@
       <div class="overlay-card">
         <p class="eyebrow">First shift briefing</p>
         <h2>Mine, bank, upgrade</h2>
-        <p class="overlay-copy">Move with arrow keys or WASD. Dig through ore veins to expose pickups, step onto them to collect, then return to the surface extractor to bank credits before pressure hits zero.</p>
-        <p class="overlay-copy">Banked credits persist between runs and fund permanent upgrades. Losing pressure wipes unbanked cargo, so surface often.</p>
+        <p class="overlay-copy">Move with arrow keys or WASD. Each run carves a new shaft with side caverns, so mine deliberately, expose resource drops, then step onto them to collect before pressure runs out.</p>
+        <p class="overlay-copy">Watch the hazard feed for vent hisses and cave-in warnings. Banking at the surface extractor saves credits and upgrades forever, while a failed run only wipes unbanked cargo and run-specific hazards.</p>
         <button id="onboarding-dismiss" class="button" type="button">Launch drill</button>
       </div>
     </section>
