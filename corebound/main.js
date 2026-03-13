@@ -5,6 +5,7 @@ const BASE_MOVE_COST = 1;
 const BASE_MINE_COST = 4;
 const SAVE_KEY = "corebound-save-v1";
 const SURFACE_X = 5;
+const CAVERN_COUNT = 3;
 
 const RESOURCE_TYPES = {
   copper: { value: 4, label: "Copper shards" },
@@ -156,32 +157,197 @@ function createRunState() {
 }
 
 function createGrid() {
-  const grid = [];
-  for (let y = 0; y < HEIGHT; y += 1) {
-    const row = [];
-    for (let x = 0; x < WIDTH; x += 1) {
+  const grid = Array.from({ length: HEIGHT }, (_, y) => {
+    return Array.from({ length: WIDTH }, (_, x) => {
       if (y === 0) {
-        row.push(x === SURFACE_X ? "extractor" : "air");
+        return x === SURFACE_X ? "extractor" : "air";
+      }
+      return "rock";
+    });
+  });
+
+  const route = carvePrimaryRoute(grid);
+  const caverns = carveCaverns(grid, route);
+  seedRouteResources(grid, route, caverns);
+  populateResources(grid);
+  return grid;
+}
+
+function carvePrimaryRoute(grid) {
+  const route = [{ x: SURFACE_X, y: 0 }];
+  let x = SURFACE_X;
+
+  for (let y = 1; y < HEIGHT; y += 1) {
+    const previousX = x;
+    if (y > 1) {
+      const driftRoll = Math.random();
+      if (driftRoll < 0.36) {
+        x += -1;
+      } else if (driftRoll > 0.64) {
+        x += 1;
+      }
+      x = clamp(x, 1, WIDTH - 2);
+    }
+
+    setGridTile(grid, x, y, "air");
+    if (x !== previousX) {
+      const startX = Math.min(x, previousX);
+      const endX = Math.max(x, previousX);
+      for (let tunnelX = startX; tunnelX <= endX; tunnelX += 1) {
+        setGridTile(grid, tunnelX, y, "air");
+      }
+    }
+    route.push({ x, y });
+
+    if (y < HEIGHT - 1 && Math.random() < 0.4) {
+      const branchDirection = x <= SURFACE_X ? 1 : -1;
+      const branchX = clamp(x + branchDirection, 1, WIDTH - 2);
+      setGridTile(grid, branchX, y, "air");
+    }
+  }
+
+  return route;
+}
+
+function carveCaverns(grid, route) {
+  const caverns = [];
+  const usedRows = new Set();
+
+  for (let index = 0; index < CAVERN_COUNT; index += 1) {
+    let anchor = null;
+    let attempts = 0;
+    while (!anchor && attempts < 20) {
+      const routeIndex = randomInt(3, route.length - 2);
+      const candidate = route[routeIndex];
+      if (!usedRows.has(candidate.y)) {
+        anchor = candidate;
+        usedRows.add(candidate.y);
+      }
+      attempts += 1;
+    }
+
+    if (!anchor) {
+      continue;
+    }
+
+    const radiusX = randomInt(1, 2);
+    const radiusY = randomInt(1, 2);
+    const centerX = clamp(anchor.x + randomInt(-2, 2), 1, WIDTH - 2);
+    const centerY = clamp(anchor.y + randomInt(-1, 1), 2, HEIGHT - 2);
+
+    for (let y = centerY - radiusY; y <= centerY + radiusY; y += 1) {
+      for (let x = centerX - radiusX; x <= centerX + radiusX; x += 1) {
+        const normalizedX = (x - centerX) / (radiusX + 0.25);
+        const normalizedY = (y - centerY) / (radiusY + 0.25);
+        if (normalizedX * normalizedX + normalizedY * normalizedY <= 1) {
+          setGridTile(grid, x, y, "air");
+        }
+      }
+    }
+
+    carveTunnel(grid, anchor.x, anchor.y, centerX, centerY);
+    caverns.push({ x: centerX, y: centerY, radiusX, radiusY });
+  }
+
+  return caverns;
+}
+
+function carveTunnel(grid, startX, startY, endX, endY) {
+  let x = startX;
+  let y = startY;
+
+  while (x !== endX || y !== endY) {
+    setGridTile(grid, x, y, "air");
+    if (x !== endX && (y === endY || Math.random() < 0.5)) {
+      x += Math.sign(endX - x);
+    } else if (y !== endY) {
+      y += Math.sign(endY - y);
+    }
+  }
+
+  setGridTile(grid, endX, endY, "air");
+}
+
+function seedRouteResources(grid, route, caverns) {
+  route.forEach((point, index) => {
+    if (point.y === 0) {
+      return;
+    }
+
+    const direction = index % 2 === 0 ? 1 : -1;
+    const targetX = point.x + direction;
+    if (isSolidTile(grid, targetX, point.y)) {
+      setGridTile(grid, targetX, point.y, pickResourceForDepth(point.y, true));
+    }
+  });
+
+  caverns.forEach((cavern, index) => {
+    const resourceY = clamp(cavern.y, 1, HEIGHT - 1);
+    const leftX = cavern.x - cavern.radiusX - 1;
+    const rightX = cavern.x + cavern.radiusX + 1;
+    const targetX = index % 2 === 0 ? leftX : rightX;
+    if (isSolidTile(grid, targetX, resourceY)) {
+      setGridTile(grid, targetX, resourceY, pickResourceForDepth(resourceY, true));
+    }
+  });
+}
+
+function populateResources(grid) {
+  for (let y = 1; y < HEIGHT; y += 1) {
+    for (let x = 0; x < WIDTH; x += 1) {
+      if (!isSolidTile(grid, x, y)) {
         continue;
       }
 
-      const depthBias = y / HEIGHT;
-      const roll = ((x * 17 + y * 31) % 100) / 100;
-      let tile = "rock";
-      if (roll < 0.16 + depthBias * 0.18) {
-        tile = "copper";
+      if (Math.random() < resourceChanceForDepth(y)) {
+        setGridTile(grid, x, y, pickResourceForDepth(y, false));
       }
-      if (roll < 0.1 + depthBias * 0.14) {
-        tile = "amber";
-      }
-      if (roll < 0.05 + depthBias * 0.12) {
-        tile = "iridium";
-      }
-      row.push(tile);
     }
-    grid.push(row);
   }
-  return grid;
+}
+
+function resourceChanceForDepth(y) {
+  const depthRatio = y / (HEIGHT - 1);
+  return 0.16 + depthRatio * 0.32;
+}
+
+function pickResourceForDepth(y, boosted) {
+  const depthRatio = y / (HEIGHT - 1);
+  const copperWeight = Math.max(0.2, 1.35 - depthRatio * 0.9 + (boosted && depthRatio < 0.35 ? 0.45 : 0));
+  const amberWeight = 0.3 + depthRatio * 0.95 + (boosted && depthRatio >= 0.25 ? 0.2 : 0);
+  const iridiumWeight = 0.08 + depthRatio * depthRatio * 1.35 + (boosted && depthRatio >= 0.55 ? 0.3 : 0);
+  const totalWeight = copperWeight + amberWeight + iridiumWeight;
+  const roll = Math.random() * totalWeight;
+
+  if (roll < copperWeight) {
+    return "copper";
+  }
+  if (roll < copperWeight + amberWeight) {
+    return "amber";
+  }
+  return "iridium";
+}
+
+function isSolidTile(grid, x, y) {
+  if (x < 0 || x >= WIDTH || y <= 0 || y >= HEIGHT) {
+    return false;
+  }
+  return grid[y][x] === "rock";
+}
+
+function setGridTile(grid, x, y, tile) {
+  if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
+    return;
+  }
+  grid[y][x] = tile;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function getTile(x, y) {
