@@ -352,9 +352,11 @@ function createGame(elements) {
 
   function queueWave() {
     state.wave += 1;
-    const chasers = 2 + state.wave * 2;
-    const turrets = 1 + Math.floor(state.wave / 2);
-    const splitters = Math.max(1, Math.floor((state.wave + 1) / 2));
+    const isOpeningWave = state.wave === 1;
+    const isSecondWave = state.wave === 2;
+    const chasers = isOpeningWave ? 3 : 2 + state.wave * 2;
+    const turrets = state.wave >= 3 ? 1 + Math.floor(state.wave / 2) : 0;
+    const splitters = isOpeningWave ? 0 : isSecondWave ? 1 : Math.max(1, Math.floor((state.wave + 1) / 2));
     const queue = [];
 
     for (let index = 0; index < chasers; index += 1) {
