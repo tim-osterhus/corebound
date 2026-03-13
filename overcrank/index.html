@@ -6,14 +6,14 @@
     <title>Overcrank | Millrace Arcade</title>
     <meta
       name="description"
-      content="Overcrank is a Millrace arcade prototype shell with an industrial mission briefing, telemetry HUD, and gameplay viewport scaffold ready for the first loop."
+      content="Overcrank is a Millrace arcade climbing prototype where you wall kick up a machine shaft while a rising heat line chases the run."
     >
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="../../MillraceIconTransparent.png">
     <link rel="shortcut icon" type="image/png" href="../../MillraceIconTransparent.png">
     <link rel="apple-touch-icon" href="../../MillraceIconTransparent.png">
-    <link rel="stylesheet" href="styles.css?v=0.0.1">
+    <link rel="stylesheet" href="styles.css?v=0.0.2">
   </head>
   <body>
     <main class="shell">
@@ -33,11 +33,11 @@
           <div class="hero-block">
             <p class="eyebrow">Machine floor briefing</p>
             <h1>Overcrank</h1>
-            <p class="lede">Prime the line, watch the heat, and push the rig past the red without losing the room. This first release ships the mission shell, not the run itself.</p>
+            <p class="lede">Prime the line, watch the heat, and chain wall kicks up the shaft before the room flashes over. The first playable loop is live.</p>
           </div>
           <div class="hero-meta" aria-label="Release metadata">
             <span class="meta-pill status-pill">Prototype</span>
-            <span class="meta-pill version-pill">v0.0.1</span>
+            <span class="meta-pill version-pill">v0.0.2</span>
           </div>
         </div>
       </header>
@@ -55,7 +55,7 @@
           <article class="briefing-card">
             <p class="eyebrow">Primary directive</p>
             <h3>Keep the engine in the band.</h3>
-            <p class="briefing-copy">Overcrank is framed as a pressure-management run on a volatile machine floor. The authored shell sets the tone, telemetry labels, and playfield container for the first playable build.</p>
+            <p class="briefing-copy">Kick off the walls, keep the rig climbing, and never let the heat band catch your boots. This build focuses on the core chase loop and restart flow.</p>
           </article>
 
           <div class="hud-grid" aria-label="Placeholder HUD">
@@ -80,24 +80,24 @@
           <div class="readout">
             <div class="readout-row">
               <span>Run status</span>
-              <strong id="status-readout">Shell online</strong>
+              <strong id="status-readout">Awaiting ignition</strong>
             </div>
             <div class="readout-row">
               <span>Viewport binding</span>
-              <strong id="viewport-readout">Pending boot handshake</strong>
+              <strong id="viewport-readout">Press A/D or arrow keys to engage</strong>
             </div>
             <div class="readout-row">
               <span>Next milestone</span>
-              <strong id="milestone-readout" class="readout-emphasis">Gameplay loop integration</strong>
+              <strong id="milestone-readout" class="readout-emphasis">Climb above the heat band</strong>
             </div>
           </div>
 
           <section class="notes-panel" aria-label="Operator notes">
             <p class="eyebrow">Operator notes</p>
             <ul class="notes-list">
-              <li>Millrace shell and release metadata are live.</li>
-              <li>HUD labels and status fields are wired for future runtime updates.</li>
-              <li>The play surface is reserved for the upcoming overheat-management prototype.</li>
+              <li>Move with A/D or Left/Right. Jump with Space, W, or Up.</li>
+              <li>Touch a wall while falling to slide, then jump to wall kick away.</li>
+              <li>The heat line rises without mercy. Any contact ends the run.</li>
             </ul>
           </section>
         </section>
@@ -108,7 +108,7 @@
               <p class="eyebrow">Gameplay viewport</p>
               <h2>Machine floor</h2>
             </div>
-            <p id="status-message" class="status-message" role="status" aria-live="polite">Preparing placeholder systems.</p>
+            <p id="status-message" class="status-message" role="status" aria-live="polite">Stand by. One key press starts the climb.</p>
           </div>
 
           <div id="viewport-shell" class="viewport-shell">
@@ -118,22 +118,14 @@
               <span></span>
               <span></span>
             </div>
-            <div class="viewport-overlay">
-              <div class="viewport-copy">
-                <p class="eyebrow">Scaffold notice</p>
-                <h3>Gameplay container ready</h3>
-                <p>This shell reserves the main surface for the future interactive rig while keeping the page navigable, legible, and versioned today.</p>
-              </div>
-              <div class="viewport-pulse" aria-hidden="true">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-            <div id="game-viewport" class="game-viewport" aria-label="Overcrank gameplay viewport">
-              <div class="viewport-frame">
-                <p class="eyebrow">Runtime target</p>
-                <strong>Interactive systems will mount here.</strong>
+            <div id="game-viewport" class="game-viewport game-viewport-live" aria-label="Overcrank gameplay viewport">
+              <canvas id="game-canvas" class="game-canvas" width="360" height="640"></canvas>
+              <div id="game-overlay" class="game-overlay">
+                <div class="viewport-frame">
+                  <p id="overlay-eyebrow" class="eyebrow">Start run</p>
+                  <strong id="overlay-title">Ignite the rig</strong>
+                  <p id="overlay-copy" class="overlay-copy">Press Space, W, Up, A, D, or the arrow keys to start. Reach a wall, kick away, and stay above the heat line.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -141,6 +133,6 @@
       </section>
     </main>
 
-    <script src="main.js?v=0.0.1"></script>
+    <script src="main.js?v=0.0.2"></script>
   </body>
 </html>
