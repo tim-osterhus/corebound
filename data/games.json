@@ -29,9 +29,9 @@
       "slug": "overcrank",
       "title": "Overcrank",
       "status": "Prototype",
-      "version": "0.0.2",
-      "summary": "Overcrank now ships a playable climb loop with wall kicks, upward camera pressure, and a rising heat line that forces clean restarts.",
-      "description": "Overcrank is an industrial-action prototype in the Millrace arcade. Version 0.0.2 turns the shell into a live run with keyboard movement, jump and wall-kick climbing, vertical camera tracking, a rising heat threat, and a full restart flow after failure.",
+      "version": "0.0.3",
+      "summary": "Overcrank now grows into an endless hazard shaft with moving lifts, crumbling catwalks, steam vents, and coolant pickups that bend the heat chase.",
+      "description": "Overcrank is an industrial-action prototype in the Millrace arcade. Version 0.0.3 extends the climb into reusable shaft segments, adds distinct stable and crumbling platforms plus moving lifts, introduces telegraphed steam vents, and lets coolant pickups push back and slow the rising heat threat.",
       "cta_label": "Open prototype",
       "source_dir": "games/overcrank"
     }
