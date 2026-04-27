@@ -8,11 +8,11 @@ from scripts import build_arcade
 
 
 class BuildArcadeTests(unittest.TestCase):
-    def test_render_empty_baseline(self) -> None:
+    def test_render_empty_arcade(self) -> None:
         manifest = {
             "arcade": {
                 "status": "awaiting-first-game",
-                "summary": "Clean baseline.",
+                "summary": "Playable games soon.",
             },
             "games": [],
         }
@@ -20,9 +20,11 @@ class BuildArcadeTests(unittest.TestCase):
         rendered = build_arcade.render_index(manifest)
 
         self.assertIn("Millrace Arcade", rendered)
-        self.assertIn("No games are published", rendered)
-        self.assertIn("awaiting-first-game", rendered)
-        self.assertIn("Runtime", rendered)
+        self.assertIn("No playable builds are listed yet", rendered)
+        self.assertIn("Playable games soon.", rendered)
+        self.assertIn("Millrace", rendered)
+        self.assertNotIn("Lite", rendered)
+        self.assertNotIn("baseline", rendered.lower())
 
     def test_render_game_card_escapes_manifest_values(self) -> None:
         card = build_arcade.render_game_card(

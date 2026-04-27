@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "awaiting-first-game",
-    "summary": "A clean public arcade baseline for Millrace-generated browser games."
+    "summary": "Playable browser games from Millrace, starting with Corebound."
   },
   "games": []
 }

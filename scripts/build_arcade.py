@@ -40,8 +40,8 @@ def render_games(games: list[dict]) -> str:
     if not games:
         return """
         <div class="empty-state">
-          No games are published in this clean baseline yet. The first Millrace
-          run will either create a new game or queue a flagship Corebound slice.
+          No playable builds are listed yet. The first release will appear here
+          as a direct launch link.
         </div>
         """.strip()
     return "\n".join(render_game_card(game) for game in games)
@@ -51,10 +51,9 @@ def render_index(manifest: dict) -> str:
     games = manifest.get("games", [])
     arcade = manifest.get("arcade", {})
     game_count = len(games)
-    arcade_status = escape(arcade.get("status", "ready"))
-    arcade_summary = escape(arcade.get("summary", "Millrace arcade baseline."))
-    schema = escape(manifest.get("schema", 1))
+    arcade_summary = escape(arcade.get("summary", "Playable browser games from Millrace."))
     game_word = "game" if game_count == 1 else "games"
+    game_count_label = f"{game_count} {game_word}" if game_count else "coming soon"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -76,51 +75,44 @@ def render_index(manifest: dict) -> str:
         <span class="brand-name">Millrace</span>
         <span class="signal-pill">Arcade</span>
       </a>
-      <nav class="nav" aria-label="Public surfaces">
+      <nav class="nav" aria-label="Millrace surfaces">
         <a href="https://live.millrace.ai">Live</a>
-        <a href="https://lite.millrace.ai">Lite</a>
-        <a href="https://millrace.ai">Runtime</a>
+        <a href="https://millrace.ai">Millrace</a>
       </nav>
     </header>
 
-    <div class="meta-strip" aria-label="Arcade metadata">
-      <span>surface <strong>browser games</strong></span>
-      <span>status <strong>{arcade_status}</strong></span>
-      <span>count <strong>{game_count} {game_word}</strong></span>
-      <span>manifest <strong>schema {schema}</strong></span>
+    <div class="meta-strip" aria-label="Arcade overview">
+      <span>arcade <strong>browser games</strong></span>
+      <span>games <strong>{game_count_label}</strong></span>
+      <span>first release <strong>Corebound</strong></span>
     </div>
 
     <section class="hero">
       <div class="hero-copy">
-        <span class="hero-label">Public Game Surface</span>
+        <span class="hero-label">Arcade</span>
         <h1>Games built by a <em>runtime.</em></h1>
         <p>{arcade_summary}</p>
       </div>
       <aside class="panel status-panel">
-        <span class="panel-label">Baseline State</span>
-        <h2>Clean arcade shell ready for Millrace intake.</h2>
-        <p>The old generated catalog has been cleared. New entries should arrive through manual specs and recurring automatic prompts in the Millrace queue.</p>
+        <span class="panel-label">Corebound</span>
+        <h2>Corebound is first up.</h2>
+        <p>A mining game about depth, risk, and better machines. When the first playable build lands, it opens here.</p>
         <div class="readout">
-          <div class="readout-row"><span>Manual lane</span><span>Corebound flagship spec</span></div>
-          <div class="readout-row"><span>Auto lane</span><span>new game / improve game</span></div>
-          <div class="readout-row"><span>Verification</span><span>build script + smoke tests</span></div>
+          <div class="readout-row"><span>Corebound</span><span>mining + upgrades</span></div>
+          <div class="readout-row"><span>Arcade</span><span>playable in browser</span></div>
+          <div class="readout-row"><span>Drops</span><span>direct launch links</span></div>
         </div>
       </aside>
     </section>
 
     <section aria-labelledby="games-heading">
       <div class="section-head">
-        <h2 id="games-heading">Game Registry</h2>
-        <p>Each shipped game should be playable directly, carry release metadata, and keep implementation isolated to its own slug unless shared publishing code is required.</p>
+        <h2 id="games-heading">Games</h2>
       </div>
       <div class="game-grid">
 {render_games(games)}
       </div>
     </section>
-
-    <footer class="footer">
-      Millrace Arcade baseline. Commit generated index changes with manifest changes.
-    </footer>
   </main>
 </body>
 </html>
