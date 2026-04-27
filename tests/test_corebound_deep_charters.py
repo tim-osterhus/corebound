@@ -32,7 +32,7 @@ class CoreboundDeepCharterTests(unittest.TestCase):
         self.assertIn("effects: { cargoCapacity: -3, moveEnergy: 0.08 }", data)
         self.assertIn("archiveFragments: { surfaceRelay: 1 }", data)
         self.assertIn("archiveFragments: { deepLedger: 1 }", data)
-        self.assertIn("relayEffects: { scanRange: 1 }", data)
+        self.assertIn("relayEffects: { scanRange: 1, anchorCharges: 1 }", data)
         self.assertIn("relayEffects: { beaconCharges: 1, beaconReturnEfficiency: 0.08 }", data)
 
     def test_game_loop_tracks_selection_progress_completion_and_reward_seams(self) -> None:

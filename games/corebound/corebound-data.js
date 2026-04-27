@@ -4,7 +4,7 @@
   window.COREBOUND_DATA = {
     world: {
       width: 43,
-      depth: 110,
+      depth: 138,
       metersPerTile: 8,
       seed: 73129
     },
@@ -29,6 +29,7 @@
       beaconCharges: 0,
       beaconReturnEfficiency: 0,
       coolantCharges: 0,
+      anchorCharges: 0,
       utilityCooling: 0,
       charterDrillHeat: 0,
       returnEnergyPenalty: 0
@@ -162,6 +163,24 @@
         heat: 8,
         color: "#231f25",
         edge: "#7f6aa5"
+      },
+      choirSlate: {
+        label: "Choir slate",
+        hardness: 7,
+        energyCost: 20,
+        hullRisk: 6,
+        heat: 9,
+        color: "#171d1f",
+        edge: "#4aa897"
+      },
+      anchorRib: {
+        label: "Anchor rib",
+        hardness: 8,
+        energyCost: 23,
+        hullRisk: 7,
+        heat: 11,
+        color: "#191819",
+        edge: "#9b8f67"
       }
     },
     oreTypes: {
@@ -238,6 +257,24 @@
         minDepth: 90,
         refine: { alloy: 3, research: 4, relic: 2 },
         archive: { set: "deepLedger", fragments: 2 }
+      },
+      echoPearl: {
+        label: "Echo pearl",
+        value: 142,
+        weight: 3,
+        color: "#a7dfd1",
+        minDepth: 112,
+        refine: { research: 6, relic: 2 },
+        archive: { set: "voidChoir", fragments: 1 }
+      },
+      relayCore: {
+        label: "Relay core",
+        value: 168,
+        weight: 5,
+        color: "#d3c17a",
+        minDepth: 120,
+        refine: { alloy: 4, research: 5, relic: 3 },
+        archive: { set: "voidChoir", fragments: 2 }
       }
     },
     contracts: [
@@ -298,7 +335,7 @@
           summary: "Surface relay gains a brighter scan route.",
           resources: { research: 1 },
           archiveFragments: { surfaceRelay: 1 },
-          relayEffects: { scanRange: 1 }
+          relayEffects: { scanRange: 1, anchorCharges: 1 }
         }
       },
       {
@@ -346,6 +383,58 @@
         }
       }
     ],
+    routePlans: [
+      {
+        id: "standardLine",
+        label: "Standard line",
+        summary: "Balanced descent with no extra charter pressure.",
+        objective: {
+          kind: "depth",
+          label: "Chart a stable line to 96 m.",
+          target: 96,
+          unit: "m"
+        },
+        reward: {
+          resources: { credits: 28 }
+        },
+        effects: {}
+      },
+      {
+        id: "thermalSpiral",
+        label: "Thermal spiral",
+        summary: "A hotter late route that widens scan returns and assay value.",
+        requires: { charters: 1 },
+        objective: {
+          kind: "depth",
+          label: "Ride the spiral to 120 m.",
+          target: 120,
+          unit: "m"
+        },
+        reward: {
+          resources: { research: 2 },
+          archiveFragments: { deepLedger: 1 }
+        },
+        effects: { scanRange: 1, charterDrillHeat: 1, valueMultiplier: 0.08 }
+      },
+      {
+        id: "ledgerSpur",
+        label: "Ledger spur",
+        summary: "A charter-only branch toward the choir trench and relay cores.",
+        requiresCharter: "ledgerTitheCharter",
+        objective: {
+          kind: "ore",
+          ore: "relayCore",
+          label: "Extract 1 Relay core from the trench.",
+          target: 1,
+          unit: "core"
+        },
+        reward: {
+          resources: { alloy: 2, research: 2 },
+          archiveFragments: { voidChoir: 1 }
+        },
+        effects: { beaconCharges: 1, returnEnergyPenalty: 0.08, valueMultiplier: 0.12 }
+      }
+    ],
     archiveSets: [
       {
         id: "surfaceRelay",
@@ -367,6 +456,17 @@
           label: "Ledger routing",
           summary: "Future runs gain heat shielding and stronger assay value.",
           effects: { thermalShielding: 1, valueMultiplier: 0.05, archiveSignal: 1 }
+        }
+      },
+      {
+        id: "voidChoir",
+        label: "Void choir anchors",
+        summary: "Late-run echo plates let the relay pull rigs out of the trench.",
+        fragmentsRequired: 2,
+        unlock: {
+          label: "Anchor recall",
+          summary: "Future runs gain an extra charter recall charge for deep extraction.",
+          effects: { anchorCharges: 1, beaconReturnEfficiency: 0.06, archiveSignal: 1 }
         }
       }
     ],
@@ -430,6 +530,14 @@
         requiresRank: "sigilRelay",
         chargesStat: "coolantCharges",
         heatReduction: 18
+      },
+      {
+        id: "anchorRecall",
+        kind: "extraction",
+        label: "Anchor recall",
+        actionLabel: "recall",
+        summary: "Spend a charter anchor to pull the rig home with its cargo.",
+        chargesStat: "anchorCharges"
       }
     ],
     hazardTypes: {
@@ -468,6 +576,15 @@
         hullDamage: 3,
         energyDamage: 8,
         message: "Magnetic bloom bled charge from the cells."
+      },
+      gravityShear: {
+        label: "Gravity shear",
+        minDepth: 112,
+        color: "#d3c17a",
+        heat: 7,
+        hullDamage: 12,
+        energyDamage: 6,
+        message: "Gravity shear twisted the anchor line."
       }
     },
     upgradeCategories: {
@@ -632,6 +749,14 @@
         terrain: [["pressureGlass", 2], ["machineRib", 3], ["coreRind", 3], ["thermalBasalt", 1]],
         ores: [["prismMarrow", 0.06], ["archiveShard", 0.05], ["coreMote", 0.04]],
         hazards: [["pressureFault", 0.07], ["magneticBloom", 0.05], ["heatFissure", 0.04]]
+      },
+      {
+        name: "choir trench",
+        from: 111,
+        to: 138,
+        terrain: [["machineRib", 2], ["coreRind", 2], ["choirSlate", 3], ["anchorRib", 2]],
+        ores: [["archiveShard", 0.04], ["coreMote", 0.05], ["echoPearl", 0.05], ["relayCore", 0.035]],
+        hazards: [["pressureFault", 0.06], ["magneticBloom", 0.04], ["gravityShear", 0.06]]
       }
     ]
   };

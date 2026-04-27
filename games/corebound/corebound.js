@@ -26,6 +26,9 @@
     charterStatus: document.getElementById("charter-status"),
     charterProgress: document.getElementById("charter-progress"),
     charters: document.getElementById("charter-list"),
+    routeStatus: document.getElementById("route-status"),
+    routeProgress: document.getElementById("route-progress"),
+    routes: document.getElementById("route-list"),
     archiveStatus: document.getElementById("archive-status"),
     archiveList: document.getElementById("archive-list"),
     facilityStatus: document.getElementById("facility-status"),
@@ -77,6 +80,11 @@
     runCharterId: null,
     completedCharters: {},
     charterProgress: {},
+    activeRouteId: "standardLine",
+    runRouteId: null,
+    routeProgress: {},
+    routeCompletions: {},
+    routeRunsFiled: {},
     archiveProgress: {},
     utilityUses: {},
     beacons: [],
@@ -204,6 +212,7 @@
       beaconCharges: DATA.rig.beaconCharges,
       beaconReturnEfficiency: DATA.rig.beaconReturnEfficiency,
       coolantCharges: DATA.rig.coolantCharges,
+      anchorCharges: DATA.rig.anchorCharges,
       utilityCooling: DATA.rig.utilityCooling,
       charterDrillHeat: DATA.rig.charterDrillHeat,
       returnEnergyPenalty: DATA.rig.returnEnergyPenalty
@@ -251,6 +260,11 @@
       applyStatEffects(stats, activeCharter.constraint.effects);
     }
 
+    const activeRoute = runRoute();
+    if (activeRoute && activeRoute.effects) {
+      applyStatEffects(stats, activeRoute.effects);
+    }
+
     stats.repairDiscount = Math.min(0.75, stats.repairDiscount);
     stats.cargoCapacity = Math.max(4, Math.floor(stats.cargoCapacity));
     stats.maxHull = Math.max(30, Math.floor(stats.maxHull));
@@ -261,6 +275,7 @@
     stats.scanRange = Math.max(1, Math.floor(stats.scanRange));
     stats.beaconCharges = Math.max(0, Math.floor(stats.beaconCharges));
     stats.coolantCharges = Math.max(0, Math.floor(stats.coolantCharges));
+    stats.anchorCharges = Math.max(0, Math.floor(stats.anchorCharges || 0));
     stats.beaconReturnEfficiency = Math.max(0, Math.min(0.65, stats.beaconReturnEfficiency));
     stats.utilityCooling = Math.max(0, stats.utilityCooling);
     stats.charterDrillHeat = Math.max(0, stats.charterDrillHeat || 0);
@@ -299,6 +314,7 @@
   function surfaceService(message) {
     state.docked = true;
     state.runCharterId = null;
+    state.runRouteId = null;
     state.energy = rigStats().maxEnergy;
     state.heat = 0;
     setMessage(message || "Surface lock reached. Settle cargo, repair, or relaunch.");
@@ -530,6 +546,7 @@
       beaconCharges: "beacon charge",
       beaconReturnEfficiency: "beacon return",
       coolantCharges: "coolant charge",
+      anchorCharges: "anchor recall",
       utilityCooling: "coolant strength"
     };
     const parts = [];
@@ -580,6 +597,134 @@
 
   function visibleCharter() {
     return runCharter() || selectedCharter();
+  }
+
+  function routeById(routeId) {
+    return (DATA.routePlans || []).find((entry) => entry.id === routeId) || null;
+  }
+
+  function selectedRoute() {
+    return routeById(state.activeRouteId);
+  }
+
+  function runRoute() {
+    return routeById(state.runRouteId);
+  }
+
+  function visibleRoute() {
+    return runRoute() || selectedRoute();
+  }
+
+  function routePlanUnlocked(route) {
+    if (!route) {
+      return false;
+    }
+    if (route.requires && !reputationRequirementsMet(route.requires)) {
+      return false;
+    }
+    if (route.requiresCharter && !state.completedCharters[route.requiresCharter]) {
+      return false;
+    }
+    return true;
+  }
+
+  function routeRequirementLabel(route) {
+    if (!route || routePlanUnlocked(route)) {
+      return "open";
+    }
+    if (route.requiresCharter) {
+      const charter = charterById(route.requiresCharter);
+      return charter ? `requires ${charter.label}` : "requires filed charter";
+    }
+    const requires = route.requires || {};
+    const parts = [];
+    if (requires.contracts) {
+      parts.push(`${requires.contracts} contract${requires.contracts === 1 ? "" : "s"}`);
+    }
+    if (requires.charters) {
+      parts.push(`${requires.charters} charter${requires.charters === 1 ? "" : "s"}`);
+    }
+    if (requires.archiveSets) {
+      parts.push(`${requires.archiveSets} archive set${requires.archiveSets === 1 ? "" : "s"}`);
+    }
+    return parts.length ? `requires ${parts.join(" / ")}` : "locked";
+  }
+
+  function routeProgressValue(route) {
+    const objective = route.objective || {};
+    return Math.min(objective.target || 0, state.routeProgress[route.id] || 0);
+  }
+
+  function routeProgressLabel(route) {
+    const objective = route.objective || {};
+    const value = routeProgressValue(route);
+    if (objective.unit === "m") {
+      return `${Math.floor(value)} / ${objective.target} m`;
+    }
+    return `${value} / ${objective.target} ${objective.unit}`;
+  }
+
+  function rewardRoute(route) {
+    const before = rigStats();
+    const reward = route.reward || {};
+    if (reward.resources) {
+      addResources(reward.resources);
+    }
+    const unlocked = applyArchiveFragments(reward.archiveFragments || {});
+    const after = rigStats();
+    state.hull = Math.min(after.maxHull, state.hull + Math.max(0, after.maxHull - before.maxHull));
+    state.energy = Math.min(after.maxEnergy, state.energy + Math.max(0, after.maxEnergy - before.maxEnergy));
+    return unlocked;
+  }
+
+  function completeRunRoute(route) {
+    if (state.routeRunsFiled[route.id] === state.runNumber) {
+      return;
+    }
+    state.routeRunsFiled[route.id] = state.runNumber;
+    state.routeCompletions[route.id] = (state.routeCompletions[route.id] || 0) + 1;
+    const unlocked = rewardRoute(route);
+    const unlockText = unlocked.length ? ` Archive unlock: ${unlocked.join(", ")}.` : "";
+    setMessage(`${route.label} route logged. Reward ${formatContractReward(route.reward)}.${unlockText}`);
+  }
+
+  function updateRouteProgress() {
+    const route = runRoute();
+    if (!route || state.routeRunsFiled[route.id] === state.runNumber) {
+      return;
+    }
+
+    const objective = route.objective || {};
+    let value = state.routeProgress[route.id] || 0;
+    if (objective.kind === "depth") {
+      value = Math.max(value, state.player.y * DATA.world.metersPerTile);
+    } else if (objective.kind === "ore") {
+      const oreCount = state.cargo.filter((oreKey) => oreKey === objective.ore).length;
+      value = Math.max(value, oreCount);
+    }
+
+    state.routeProgress[route.id] = Math.min(objective.target, value);
+    if (state.routeProgress[route.id] >= objective.target) {
+      completeRunRoute(route);
+    }
+  }
+
+  function selectRoutePlan(routeId) {
+    if (state.player.y !== 0 || !state.docked) {
+      setMessage("Late routes can be selected only at surface lock.");
+      return;
+    }
+
+    const route = routeById(routeId);
+    if (!route || !routePlanUnlocked(route)) {
+      setMessage(route ? `${route.label} ${routeRequirementLabel(route)}.` : "Route plan unavailable.");
+      return;
+    }
+
+    state.activeRouteId = route.id;
+    setMessage(`${route.label} selected. ${route.summary}`);
+    updateHud();
+    render();
   }
 
   function contractProgressValue(contract) {
@@ -868,6 +1013,18 @@
     return true;
   }
 
+  function triggerAnchorRecall(utility) {
+    const depth = state.player.y * DATA.world.metersPerTile;
+    if (depth < 64) {
+      setMessage(`${utility.label} waits for deep-route tension.`);
+      return false;
+    }
+
+    const cargoText = state.cargo.length ? `${state.cargo.length} cargo held` : "hold empty";
+    returnToSurface(`Anchor recall hauled the rig from ${depth} m with ${cargoText}.`);
+    return true;
+  }
+
   function useUtility(utilityId) {
     const utility = utilityById(utilityId);
     if (!utility) {
@@ -895,6 +1052,8 @@
       used = deployRouteBeacon(utility);
     } else if (utility.id === "coolantBurst") {
       used = triggerCoolantBurst(utility);
+    } else if (utility.id === "anchorRecall") {
+      used = triggerAnchorRecall(utility);
     }
 
     if (!used) {
@@ -1094,6 +1253,8 @@
     }
 
     state.runCharterId = state.activeCharterId;
+    state.runRouteId = state.activeRouteId;
+    state.routeProgress[state.runRouteId] = 0;
     const stats = rigStats();
     state.docked = false;
     state.runNumber += 1;
@@ -1104,13 +1265,18 @@
     state.beacons = [];
     const charter = runCharter();
     const contract = activeContract();
-    if (charter && contract) {
-      setMessage(`Run ${state.runNumber} launched for ${contract.label} / Deep Charter: ${charter.label}.`);
-    } else if (charter) {
-      setMessage(`Run ${state.runNumber} launched under Deep Charter: ${charter.label}.`);
-    } else {
-      setMessage(contract ? `Run ${state.runNumber} launched for ${contract.label}.` : `Run ${state.runNumber} launched.`);
+    const route = runRoute();
+    const assignments = [];
+    if (contract) {
+      assignments.push(contract.label);
     }
+    if (charter) {
+      assignments.push(`Deep Charter: ${charter.label}`);
+    }
+    if (route) {
+      assignments.push(`Route: ${route.label}`);
+    }
+    setMessage(assignments.length ? `Run ${state.runNumber} launched for ${assignments.join(" / ")}.` : `Run ${state.runNumber} launched.`);
     updateHud();
     render();
     return true;
@@ -1126,6 +1292,7 @@
     setMessage(`${ore.label} loaded into hold.`);
     updateContractProgress();
     updateCharterProgress();
+    updateRouteProgress();
     return true;
   }
 
@@ -1218,6 +1385,7 @@
     state.player.y = targetY;
     updateContractProgress();
     updateCharterProgress();
+    updateRouteProgress();
 
     if (state.player.y === 0) {
       surfaceService("Surface lock reached. Settle cargo, repair, or relaunch.");
@@ -1404,6 +1572,56 @@
     }
   }
 
+  function renderRoutePanel() {
+    if (!hud.routes || !hud.routeStatus || !hud.routeProgress) {
+      return;
+    }
+
+    const route = visibleRoute();
+    const inField = state.player.y > 0 && !state.docked;
+    const atSurface = state.player.y === 0 && state.docked;
+    if (route) {
+      hud.routeStatus.textContent = inField ? "underway" : "selected";
+      hud.routeProgress.textContent = `${route.label}: ${routeProgressLabel(route)}. ${route.summary}`;
+    } else {
+      hud.routeStatus.textContent = "open";
+      hud.routeProgress.textContent = "Choose a late-run line before launch.";
+    }
+
+    hud.routes.replaceChildren();
+    for (const entry of DATA.routePlans || []) {
+      const unlocked = routePlanUnlocked(entry);
+      const active = state.activeRouteId === entry.id || state.runRouteId === entry.id;
+      const completions = state.routeCompletions[entry.id] || 0;
+      const item = document.createElement("li");
+      item.className = `route-row${active ? " active" : ""}${completions ? " complete" : ""}`;
+
+      const copy = document.createElement("div");
+      const status = document.createElement("span");
+      const label = document.createElement("strong");
+      const summary = document.createElement("small");
+      status.textContent = !unlocked
+        ? routeRequirementLabel(entry)
+        : active
+          ? routeProgressLabel(entry)
+          : completions
+            ? `${completions} logged`
+            : `Reward ${formatContractReward(entry.reward)}`;
+      label.textContent = entry.label;
+      summary.textContent = `${entry.objective.label} ${entry.summary}`;
+      copy.append(status, label, summary);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = !unlocked ? "locked" : active ? "active" : "route";
+      button.disabled = !unlocked || active || !atSurface;
+      button.addEventListener("click", () => selectRoutePlan(entry.id));
+
+      item.append(copy, button);
+      hud.routes.append(item);
+    }
+  }
+
   function renderArchivePanel() {
     if (!hud.archiveList || !hud.archiveStatus) {
       return;
@@ -1509,7 +1727,9 @@
     hud.alloy.textContent = `alloy ${state.resources.alloy}`;
     hud.research.textContent = `research ${state.resources.research}`;
     hud.relic.textContent = `relic ${state.resources.relic}`;
-    hud.state.textContent = state.docked ? "surface dock" : `run ${state.runNumber} / ${bandForDepth(state.player.y).name}`;
+    const route = runRoute();
+    const routeLabel = route ? ` / ${route.label}` : "";
+    hud.state.textContent = state.docked ? "surface dock" : `run ${state.runNumber} / ${bandForDepth(state.player.y).name}${routeLabel}`;
 
     const counts = oreCounts();
     hud.ores.replaceChildren();
@@ -1534,6 +1754,7 @@
     updateActionButtons();
     renderContractPanel();
     renderCharterPanel();
+    renderRoutePanel();
     renderArchivePanel();
     renderFacilityPanel();
     renderUpgradeList();
