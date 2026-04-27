@@ -23,6 +23,9 @@
     contractStatus: document.getElementById("contract-status"),
     contractProgress: document.getElementById("contract-progress"),
     contracts: document.getElementById("contract-list"),
+    charterStatus: document.getElementById("charter-status"),
+    charterProgress: document.getElementById("charter-progress"),
+    charters: document.getElementById("charter-list"),
     archiveStatus: document.getElementById("archive-status"),
     archiveList: document.getElementById("archive-list"),
     facilityStatus: document.getElementById("facility-status"),
@@ -70,6 +73,10 @@
     activeContractId: null,
     completedContracts: {},
     contractProgress: {},
+    activeCharterId: null,
+    runCharterId: null,
+    completedCharters: {},
+    charterProgress: {},
     archiveProgress: {},
     utilityUses: {},
     beacons: [],
@@ -197,7 +204,9 @@
       beaconCharges: DATA.rig.beaconCharges,
       beaconReturnEfficiency: DATA.rig.beaconReturnEfficiency,
       coolantCharges: DATA.rig.coolantCharges,
-      utilityCooling: DATA.rig.utilityCooling
+      utilityCooling: DATA.rig.utilityCooling,
+      charterDrillHeat: DATA.rig.charterDrillHeat,
+      returnEnergyPenalty: DATA.rig.returnEnergyPenalty
     };
 
     for (const upgrade of DATA.upgrades) {
@@ -231,7 +240,22 @@
       }
     }
 
+    for (const charter of DATA.deepCharters || []) {
+      if (state.completedCharters[charter.id] && charter.reward && charter.reward.relayEffects) {
+        applyStatEffects(stats, charter.reward.relayEffects);
+      }
+    }
+
+    const activeCharter = runCharter();
+    if (activeCharter && activeCharter.constraint && activeCharter.constraint.effects) {
+      applyStatEffects(stats, activeCharter.constraint.effects);
+    }
+
     stats.repairDiscount = Math.min(0.75, stats.repairDiscount);
+    stats.cargoCapacity = Math.max(4, Math.floor(stats.cargoCapacity));
+    stats.maxHull = Math.max(30, Math.floor(stats.maxHull));
+    stats.maxEnergy = Math.max(35, Math.floor(stats.maxEnergy));
+    stats.maxHeat = Math.max(30, Math.floor(stats.maxHeat));
     stats.moveEnergy = Math.max(0.25, stats.moveEnergy);
     stats.coolingRate = Math.max(1, stats.coolingRate);
     stats.scanRange = Math.max(1, Math.floor(stats.scanRange));
@@ -239,6 +263,8 @@
     stats.coolantCharges = Math.max(0, Math.floor(stats.coolantCharges));
     stats.beaconReturnEfficiency = Math.max(0, Math.min(0.65, stats.beaconReturnEfficiency));
     stats.utilityCooling = Math.max(0, stats.utilityCooling);
+    stats.charterDrillHeat = Math.max(0, stats.charterDrillHeat || 0);
+    stats.returnEnergyPenalty = Math.max(0, Math.min(0.65, stats.returnEnergyPenalty || 0));
     return stats;
   }
 
@@ -272,6 +298,7 @@
 
   function surfaceService(message) {
     state.docked = true;
+    state.runCharterId = null;
     state.energy = rigStats().maxEnergy;
     state.heat = 0;
     setMessage(message || "Surface lock reached. Settle cargo, repair, or relaunch.");
@@ -384,6 +411,10 @@
     return Object.keys(state.completedContracts).length;
   }
 
+  function completedCharterCount() {
+    return Object.keys(state.completedCharters).length;
+  }
+
   function completedArchiveSetCount() {
     let count = 0;
     for (const archiveSet of DATA.archiveSets || []) {
@@ -396,7 +427,9 @@
 
   function reputationRequirementsMet(requirements) {
     const needed = requirements || {};
-    return completedContractCount() >= (needed.contracts || 0) && completedArchiveSetCount() >= (needed.archiveSets || 0);
+    return completedContractCount() >= (needed.contracts || 0)
+      && completedCharterCount() >= (needed.charters || 0)
+      && completedArchiveSetCount() >= (needed.archiveSets || 0);
   }
 
   function reputationRankFor(track) {
@@ -491,8 +524,62 @@
     return parts.join(" / ") || "filed";
   }
 
+  function formatRelayEffects(effects) {
+    const labels = {
+      scanRange: "scan range",
+      beaconCharges: "beacon charge",
+      beaconReturnEfficiency: "beacon return",
+      coolantCharges: "coolant charge",
+      utilityCooling: "coolant strength"
+    };
+    const parts = [];
+    for (const key of Object.keys(effects || {})) {
+      const amount = effects[key];
+      if (!amount) {
+        continue;
+      }
+      const prefix = amount > 0 ? "+" : "";
+      parts.push(`${labels[key] || key} ${prefix}${amount}`);
+    }
+    return parts.join(" / ");
+  }
+
+  function formatCharterReward(reward) {
+    const parts = [];
+    const resources = reward && reward.resources ? reward.resources : {};
+    const resourceSummary = formatAmounts(resources);
+    if (resourceSummary !== "settled") {
+      parts.push(resourceSummary);
+    }
+    const archiveSummary = archiveFragmentSummary(reward && reward.archiveFragments ? reward.archiveFragments : {});
+    if (archiveSummary) {
+      parts.push(`archive ${archiveSummary}`);
+    }
+    const relaySummary = formatRelayEffects(reward && reward.relayEffects ? reward.relayEffects : {});
+    if (relaySummary) {
+      parts.push(`relay ${relaySummary}`);
+    }
+    return parts.join(" / ") || "charter standing";
+  }
+
   function activeContract() {
     return (DATA.contracts || []).find((entry) => entry.id === state.activeContractId) || null;
+  }
+
+  function charterById(charterId) {
+    return (DATA.deepCharters || []).find((entry) => entry.id === charterId) || null;
+  }
+
+  function selectedCharter() {
+    return charterById(state.activeCharterId);
+  }
+
+  function runCharter() {
+    return charterById(state.runCharterId);
+  }
+
+  function visibleCharter() {
+    return runCharter() || selectedCharter();
   }
 
   function contractProgressValue(contract) {
@@ -505,6 +592,84 @@
       return `${Math.floor(value)} / ${contract.target} m`;
     }
     return `${value} / ${contract.target} ${contract.unit}`;
+  }
+
+  function charterProgressValue(charter) {
+    const objective = charter.objective || {};
+    return Math.min(objective.target || 0, state.charterProgress[charter.id] || 0);
+  }
+
+  function charterProgressLabel(charter) {
+    const objective = charter.objective || {};
+    const value = charterProgressValue(charter);
+    if (objective.unit === "m") {
+      return `${Math.floor(value)} / ${objective.target} m`;
+    }
+    return `${value} / ${objective.target} ${objective.unit}`;
+  }
+
+  function rewardCharter(charter) {
+    const before = rigStats();
+    const reward = charter.reward || {};
+    if (reward.resources) {
+      addResources(reward.resources);
+    }
+    const unlocked = applyArchiveFragments(reward.archiveFragments || {});
+    const after = rigStats();
+    state.hull = Math.min(after.maxHull, state.hull + Math.max(0, after.maxHull - before.maxHull));
+    state.energy = Math.min(after.maxEnergy, state.energy + Math.max(0, after.maxEnergy - before.maxEnergy));
+    return unlocked;
+  }
+
+  function completeRunCharter(charter) {
+    state.completedCharters[charter.id] = true;
+    state.activeCharterId = null;
+    const unlocked = rewardCharter(charter);
+    const unlockText = unlocked.length ? ` Archive unlock: ${unlocked.join(", ")}.` : "";
+    setMessage(`${charter.label} filed. Reward ${formatCharterReward(charter.reward)}.${unlockText}`);
+  }
+
+  function updateCharterProgress() {
+    const charter = runCharter();
+    if (!charter || state.completedCharters[charter.id]) {
+      return;
+    }
+
+    const objective = charter.objective || {};
+    let value = state.charterProgress[charter.id] || 0;
+    if (objective.kind === "depth") {
+      value = Math.max(value, state.player.y * DATA.world.metersPerTile);
+    } else if (objective.kind === "ore") {
+      const oreCount = state.cargo.filter((oreKey) => oreKey === objective.ore).length;
+      value = Math.max(value, oreCount);
+    }
+
+    state.charterProgress[charter.id] = Math.min(objective.target, value);
+    if (state.charterProgress[charter.id] >= objective.target) {
+      completeRunCharter(charter);
+    }
+  }
+
+  function acceptCharter(charterId) {
+    if (state.player.y !== 0 || !state.docked) {
+      setMessage("Deep Charters can be signed only at surface lock.");
+      return;
+    }
+    if (state.activeCharterId) {
+      setMessage("Finish the active Deep Charter before taking another.");
+      return;
+    }
+
+    const charter = charterById(charterId);
+    if (!charter || state.completedCharters[charter.id]) {
+      return;
+    }
+
+    state.activeCharterId = charter.id;
+    state.charterProgress[charter.id] = 0;
+    setMessage(`${charter.label} accepted. ${charter.constraint.label}: ${charter.constraint.summary}`);
+    updateHud();
+    render();
   }
 
   function applyArchiveFragments(fragments) {
@@ -928,6 +1093,7 @@
       return false;
     }
 
+    state.runCharterId = state.activeCharterId;
     const stats = rigStats();
     state.docked = false;
     state.runNumber += 1;
@@ -936,7 +1102,15 @@
     state.hull = Math.min(stats.maxHull, state.hull);
     state.utilityUses = {};
     state.beacons = [];
-    setMessage(activeContract() ? `Run ${state.runNumber} launched for ${activeContract().label}.` : `Run ${state.runNumber} launched.`);
+    const charter = runCharter();
+    const contract = activeContract();
+    if (charter && contract) {
+      setMessage(`Run ${state.runNumber} launched for ${contract.label} / Deep Charter: ${charter.label}.`);
+    } else if (charter) {
+      setMessage(`Run ${state.runNumber} launched under Deep Charter: ${charter.label}.`);
+    } else {
+      setMessage(contract ? `Run ${state.runNumber} launched for ${contract.label}.` : `Run ${state.runNumber} launched.`);
+    }
     updateHud();
     render();
     return true;
@@ -951,6 +1125,7 @@
     state.cargo.push(oreKey);
     setMessage(`${ore.label} loaded into hold.`);
     updateContractProgress();
+    updateCharterProgress();
     return true;
   }
 
@@ -970,7 +1145,7 @@
     }
 
     state.energy = Math.max(0, state.energy - cost);
-    const heatDamage = addHeat((terrain.heat || 0) + pressure);
+    const heatDamage = addHeat((terrain.heat || 0) + pressure + stats.charterDrillHeat);
     const hullRisk = Math.max(0, terrain.hullRisk + pressure - stats.hullRiskReduction);
     if (hullRisk && hash(x, y, 83) < hullRisk * 0.045) {
       state.hull = Math.max(0, state.hull - hullRisk * 4);
@@ -1026,6 +1201,9 @@
       const pressureCost = pressureTier(targetY) * 0.08;
       const stats = rigStats();
       let moveCost = dy < 0 ? (stats.moveEnergy + pressureCost) * 0.45 : stats.moveEnergy + pressureCost;
+      if (dy < 0 && stats.returnEnergyPenalty) {
+        moveCost *= 1 + stats.returnEnergyPenalty;
+      }
       if (dy < 0 && nearRouteBeacon(targetX, targetY)) {
         moveCost *= Math.max(0.4, 1 - stats.beaconReturnEfficiency);
       }
@@ -1039,6 +1217,7 @@
     state.player.x = targetX;
     state.player.y = targetY;
     updateContractProgress();
+    updateCharterProgress();
 
     if (state.player.y === 0) {
       surfaceService("Surface lock reached. Settle cargo, repair, or relaunch.");
@@ -1178,6 +1357,53 @@
     }
   }
 
+  function renderCharterPanel() {
+    if (!hud.charters || !hud.charterStatus || !hud.charterProgress) {
+      return;
+    }
+
+    const charter = visibleCharter();
+    const inField = state.player.y > 0 && !state.docked;
+    const atSurface = state.player.y === 0 && state.docked;
+    if (charter) {
+      const complete = !!state.completedCharters[charter.id];
+      hud.charterStatus.textContent = complete ? "filed" : inField ? "underway" : "armed";
+      hud.charterProgress.textContent = `${charter.label}: ${charterProgressLabel(charter)}. ${charter.constraint.label}: ${charter.constraint.summary}`;
+    } else {
+      const completedCount = Object.keys(state.completedCharters).length;
+      hud.charterStatus.textContent = completedCount ? `${completedCount} filed` : "open";
+      hud.charterProgress.textContent = completedCount
+        ? "Filed charters now feed archive and Survey relay support."
+        : "Choose an expedition charter before launch.";
+    }
+
+    hud.charters.replaceChildren();
+    for (const entry of DATA.deepCharters || []) {
+      const completed = !!state.completedCharters[entry.id];
+      const active = state.activeCharterId === entry.id || state.runCharterId === entry.id;
+      const item = document.createElement("li");
+      item.className = `charter-row${active ? " active" : ""}${completed ? " complete" : ""}`;
+
+      const copy = document.createElement("div");
+      const status = document.createElement("span");
+      const label = document.createElement("strong");
+      const summary = document.createElement("small");
+      status.textContent = completed ? "Filed" : active ? charterProgressLabel(entry) : `Reward ${formatCharterReward(entry.reward)}`;
+      label.textContent = entry.label;
+      summary.textContent = `${entry.objective.label} Pressure: ${entry.constraint.summary} Reward: ${entry.reward.summary}`;
+      copy.append(status, label, summary);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = completed ? "filed" : active ? "active" : "charter";
+      button.disabled = completed || active || !atSurface || !!state.activeCharterId;
+      button.addEventListener("click", () => acceptCharter(entry.id));
+
+      item.append(copy, button);
+      hud.charters.append(item);
+    }
+  }
+
   function renderArchivePanel() {
     if (!hud.archiveList || !hud.archiveStatus) {
       return;
@@ -1228,12 +1454,13 @@
     const track = primaryReputationTrack();
     const rank = reputationRankFor(track);
     const contractsFiled = completedContractCount();
+    const chartersFiled = completedCharterCount();
     const archiveFiled = completedArchiveSetCount();
     const inField = state.player.y > 0 && !state.docked;
 
     hud.facilityStatus.textContent = rank ? rank.label : "offline";
     hud.facilityProgress.textContent = rank
-      ? `${track.label}: ${contractsFiled} contracts / ${archiveFiled} archive sets. ${rank.summary}`
+      ? `${track.label}: ${contractsFiled} contracts / ${chartersFiled} charters / ${archiveFiled} archive sets. ${rank.summary}`
       : "Relay records are unavailable.";
     hud.utilities.replaceChildren();
 
@@ -1306,6 +1533,7 @@
 
     updateActionButtons();
     renderContractPanel();
+    renderCharterPanel();
     renderArchivePanel();
     renderFacilityPanel();
     renderUpgradeList();

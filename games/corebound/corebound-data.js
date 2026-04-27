@@ -29,7 +29,9 @@
       beaconCharges: 0,
       beaconReturnEfficiency: 0,
       coolantCharges: 0,
-      utilityCooling: 0
+      utilityCooling: 0,
+      charterDrillHeat: 0,
+      returnEnergyPenalty: 0
     },
     economy: {
       resources: {
@@ -273,6 +275,74 @@
         unit: "fragment",
         reward: {
           resources: { alloy: 2, research: 2 }
+        }
+      }
+    ],
+    deepCharters: [
+      {
+        id: "siltLineCharter",
+        label: "Silt line charter",
+        summary: "Run the upper seam under sealed reserve cells.",
+        objective: {
+          kind: "depth",
+          label: "Touch 80 m before recall.",
+          target: 80,
+          unit: "m"
+        },
+        constraint: {
+          label: "Reserve seal",
+          summary: "Launch energy is reduced and climbing draws extra charge.",
+          effects: { maxEnergy: -12, returnEnergyPenalty: 0.12 }
+        },
+        reward: {
+          summary: "Surface relay gains a brighter scan route.",
+          resources: { research: 1 },
+          archiveFragments: { surfaceRelay: 1 },
+          relayEffects: { scanRange: 1 }
+        }
+      },
+      {
+        id: "thermalTraceCharter",
+        label: "Thermal trace charter",
+        summary: "Carry a heat recorder through the sealed shelf.",
+        objective: {
+          kind: "depth",
+          label: "Reach 128 m while the recorder is armed.",
+          target: 128,
+          unit: "m"
+        },
+        constraint: {
+          label: "Recorder drag",
+          summary: "Every drilled block runs hotter until the charter is filed.",
+          effects: { charterDrillHeat: 2, thermalShielding: -1 }
+        },
+        reward: {
+          summary: "Survey relay stages stronger coolant for future launches.",
+          resources: { research: 2 },
+          relayEffects: { coolantCharges: 1, utilityCooling: 6 }
+        }
+      },
+      {
+        id: "ledgerTitheCharter",
+        label: "Ledger tithe charter",
+        summary: "Reserve hold space for machine-era catalog plates.",
+        objective: {
+          kind: "ore",
+          ore: "saltglass",
+          label: "Load 2 Saltglass samples for catalog routing.",
+          target: 2,
+          unit: "samples"
+        },
+        constraint: {
+          label: "Catalog crate",
+          summary: "Cargo space is tighter and movement costs rise.",
+          effects: { cargoCapacity: -3, moveEnergy: 0.08 }
+        },
+        reward: {
+          summary: "Deep ledger archive and route beacons improve future returns.",
+          resources: { alloy: 1, research: 1 },
+          archiveFragments: { deepLedger: 1 },
+          relayEffects: { beaconCharges: 1, beaconReturnEfficiency: 0.08 }
         }
       }
     ],

@@ -150,7 +150,7 @@ h1 {
   min-width: 0;
   padding: 12px;
   display: grid;
-  grid-template-rows: auto auto auto auto auto minmax(150px, 1fr) auto auto;
+  grid-template-rows: auto auto auto auto auto auto minmax(150px, 1fr) auto auto;
   gap: 12px;
 }
 
@@ -163,6 +163,7 @@ h1 {
 .readout,
 .resource-ledger,
 .contract-panel,
+.charter-panel,
 .archive-panel,
 .facility-panel,
 .surface-panel,
@@ -187,6 +188,7 @@ h1 {
 
 .resource-ledger,
 .contract-panel,
+.charter-panel,
 .archive-panel,
 .facility-panel,
 .surface-panel {
@@ -196,6 +198,7 @@ h1 {
 }
 
 .contract-panel,
+.charter-panel,
 .archive-panel,
 .facility-panel {
   min-height: 0;
@@ -271,6 +274,7 @@ h1 {
 }
 
 #contract-list,
+#charter-list,
 #archive-list,
 #utility-list {
   list-style: none;
@@ -281,6 +285,7 @@ h1 {
 }
 
 .contract-row,
+.charter-row,
 .archive-row,
 .utility-row {
   display: grid;
@@ -291,7 +296,8 @@ h1 {
   background: rgba(7, 10, 12, 0.36);
 }
 
-.contract-row {
+.contract-row,
+.charter-row {
   grid-template-columns: minmax(0, 1fr) 68px;
   align-items: center;
 }
@@ -302,16 +308,19 @@ h1 {
 }
 
 .contract-row.active,
+.charter-row.active,
 .archive-row.unlocked,
 .utility-row.ready {
   border-color: rgba(71, 224, 195, 0.34);
 }
 
-.contract-row.complete {
+.contract-row.complete,
+.charter-row.complete {
   border-color: rgba(131, 168, 198, 0.32);
 }
 
 .contract-row div,
+.charter-row div,
 .archive-row div,
 .utility-row div {
   min-width: 0;
@@ -321,6 +330,8 @@ h1 {
 
 .contract-row span,
 .contract-row small,
+.charter-row span,
+.charter-row small,
 .archive-row span,
 .archive-row small,
 .utility-row span,
@@ -331,6 +342,7 @@ h1 {
 }
 
 .contract-row strong,
+.charter-row strong,
 .archive-row strong,
 .utility-row strong {
   color: var(--ink);
@@ -339,12 +351,14 @@ h1 {
 }
 
 .contract-row small,
+.charter-row small,
 .archive-row small,
 .utility-row small {
   overflow-wrap: anywhere;
 }
 
 .contract-row button,
+.charter-row button,
 .utility-row button {
   min-width: 0;
   min-height: 30px;
@@ -359,6 +373,7 @@ h1 {
 }
 
 .contract-row button:disabled,
+.charter-row button:disabled,
 .utility-row button:disabled {
   border-color: var(--line);
   color: var(--dim);
@@ -553,7 +568,7 @@ h1 {
   }
 
   .hud {
-    grid-template-rows: auto auto auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto auto auto auto auto;
   }
 }
 
