@@ -107,6 +107,44 @@ class BuildArcadeTests(unittest.TestCase):
         self.assertIn('href="games/signal-runner/"', rendered)
         self.assertNotIn("Snapshots", rendered)
 
+    def test_render_index_uses_corebound_release_metadata(self) -> None:
+        rendered = build_arcade.render_index(
+            {
+                "arcade": {"summary": "Corebound is live."},
+                "games": [
+                    {
+                        "slug": "corebound",
+                        "title": "Corebound",
+                        "version": "0.2.0",
+                        "status": "playable",
+                        "summary": "Descend, file contracts, open archives, and route home.",
+                        "release": {
+                            "label": "v0.2.0 continuity",
+                            "copy": "Contracts, archive sigils, relay reputation, scanner sweeps, route beacons, and coolant support extend progression beyond ore profit.",
+                        },
+                        "snapshot": {
+                            "status": "deferred",
+                            "version": "0.2.0",
+                            "reason": "Working-tree content is not commit-backed yet.",
+                        },
+                        "path": "games/corebound/",
+                    }
+                ],
+            }
+        )
+
+        self.assertIn("Corebound is live.", rendered)
+        self.assertIn("games <strong>1 game</strong>", rendered)
+        self.assertIn("playable / v0.2.0", rendered)
+        self.assertIn("Corebound is playable.", rendered)
+        self.assertIn("Descend, file contracts, open archives, and route home.", rendered)
+        self.assertIn("v0.2.0 continuity", rendered)
+        self.assertIn("Contracts, archive sigils, relay reputation", rendered)
+        self.assertIn("Snapshot deferred", rendered)
+        self.assertIn("Working-tree content is not commit-backed yet.", rendered)
+        self.assertIn('href="games/corebound/"', rendered)
+        self.assertNotIn("No playable builds are listed yet", rendered)
+
     def test_build_writes_index_from_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

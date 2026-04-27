@@ -63,6 +63,39 @@ def render_version_snapshots(game: dict) -> str:
     """.rstrip()
 
 
+def render_snapshot_deferral(game: dict) -> str:
+    snapshot = game.get("snapshot")
+    if not isinstance(snapshot, dict) or snapshot.get("status") != "deferred":
+        return ""
+
+    title = escape(game.get("title", game.get("slug", "Untitled Game")))
+    version = escape(snapshot.get("version", game.get("version", "pending")))
+    reason = escape(snapshot.get("reason", "Snapshot is deferred until a commit-backed release can be stamped."))
+    return f"""
+          <div class="snapshot-deferral" aria-label="{title} snapshot continuity">
+            <span class="snapshot-heading">Snapshot deferred</span>
+            <p><strong>v{version}</strong> {reason}</p>
+          </div>
+    """.rstrip()
+
+
+def render_release_note(game: dict) -> str:
+    release = game.get("release")
+    if not isinstance(release, dict):
+        return ""
+
+    label = escape(release.get("label", f"v{game.get('version', '0.0.0')} release"))
+    copy = escape(release.get("copy", release.get("summary", "")))
+    if not copy:
+        return ""
+    return f"""
+          <div class="release-note">
+            <span>{label}</span>
+            <p>{copy}</p>
+          </div>
+    """.rstrip()
+
+
 def render_game_card(game: dict) -> str:
     title = escape(game.get("title", game.get("slug", "Untitled Game")))
     slug = escape(game.get("slug", "unknown"))
@@ -71,13 +104,17 @@ def render_game_card(game: dict) -> str:
     summary = escape(game.get("summary", "No summary provided."))
     path = escape(game.get("path", f"games/{slug}/"))
     snapshots = render_version_snapshots(game)
+    snapshot_deferral = render_snapshot_deferral(game)
+    release_note = render_release_note(game)
     return f"""
         <article class="game-card">
           <span class="signal-pill">{status} / v{version}</span>
           <h3>{title}</h3>
           <p>{summary}</p>
+{release_note}
           <a href="{path}">Open {slug}</a>
 {snapshots}
+{snapshot_deferral}
         </article>
     """.strip()
 
@@ -91,6 +128,52 @@ def render_games(games: list[dict]) -> str:
         </div>
         """.strip()
     return "\n".join(render_game_card(game) for game in games)
+
+
+def find_featured_game(games: list[dict], slug: str = "corebound") -> dict | None:
+    for game in games:
+        if isinstance(game, dict) and game.get("slug") == slug:
+            return game
+    return None
+
+
+def render_status_panel(games: list[dict]) -> str:
+    featured = find_featured_game(games)
+    if not featured:
+        return """
+      <aside class="panel status-panel">
+        <span class="panel-label">Corebound</span>
+        <h2>Corebound is first up.</h2>
+        <p>A mining game about depth, risk, and better machines. When the first playable build lands, it opens here.</p>
+        <div class="readout">
+          <div class="readout-row"><span>Corebound</span><span>mining + upgrades</span></div>
+          <div class="readout-row"><span>Arcade</span><span>playable in browser</span></div>
+          <div class="readout-row"><span>Drops</span><span>direct launch links</span></div>
+        </div>
+      </aside>
+        """.rstrip()
+
+    title = escape(featured.get("title", "Corebound"))
+    version = escape(featured.get("version", "0.0.0"))
+    status = escape(featured.get("status", "playable"))
+    summary = escape(featured.get("summary", "Corebound is playable in the arcade."))
+    path = escape(featured.get("path", "games/corebound/"))
+    release = featured.get("release") if isinstance(featured.get("release"), dict) else {}
+    release_label = escape(release.get("label", f"v{version} release"))
+    return f"""
+      <aside class="panel status-panel">
+        <span class="panel-label">{status} / v{version}</span>
+        <h2>{title} is playable.</h2>
+        <p>{summary}</p>
+{render_release_note(featured)}
+        <div class="readout">
+          <div class="readout-row"><span>Status</span><span>{status}</span></div>
+          <div class="readout-row"><span>Version</span><span>v{version}</span></div>
+          <div class="readout-row"><span>Release</span><span>{release_label}</span></div>
+          <div class="readout-row"><span>Launch</span><span><a href="{path}">{path}</a></span></div>
+        </div>
+      </aside>
+    """.rstrip()
 
 
 def render_index(manifest: dict) -> str:
@@ -139,16 +222,7 @@ def render_index(manifest: dict) -> str:
         <h1>Games built by a <em>runtime.</em></h1>
         <p>{arcade_summary}</p>
       </div>
-      <aside class="panel status-panel">
-        <span class="panel-label">Corebound</span>
-        <h2>Corebound is first up.</h2>
-        <p>A mining game about depth, risk, and better machines. When the first playable build lands, it opens here.</p>
-        <div class="readout">
-          <div class="readout-row"><span>Corebound</span><span>mining + upgrades</span></div>
-          <div class="readout-row"><span>Arcade</span><span>playable in browser</span></div>
-          <div class="readout-row"><span>Drops</span><span>direct launch links</span></div>
-        </div>
-      </aside>
+{render_status_panel(games)}
     </section>
 
     <section aria-labelledby="games-heading">

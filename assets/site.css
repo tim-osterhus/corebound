@@ -299,6 +299,27 @@ a {
   line-height: 1.65;
 }
 
+.release-note {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  border-left: 2px solid rgba(78, 224, 207, 0.66);
+  background: rgba(78, 224, 207, 0.06);
+}
+
+.release-note span {
+  color: var(--signal);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.release-note p {
+  margin: 0;
+}
+
 .game-card > a {
   display: inline-flex;
   margin-top: 18px;
@@ -311,6 +332,12 @@ a {
 }
 
 .snapshot-list {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule-strong);
+}
+
+.snapshot-deferral {
   margin-top: 18px;
   padding-top: 14px;
   border-top: 1px dashed var(--rule-strong);
@@ -376,6 +403,17 @@ a {
 
 .snapshot-commit {
   color: var(--text-secondary);
+}
+
+.snapshot-deferral p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.snapshot-deferral strong {
+  color: var(--text-primary);
 }
 
 .empty-state {

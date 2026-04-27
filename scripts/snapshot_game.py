@@ -96,6 +96,48 @@ def upsert_version(game: dict, entry: dict) -> None:
     game["versions"] = [entry, *filtered]
 
 
+def clear_matching_deferral(game: dict, version: str) -> None:
+    snapshot = game.get("snapshot")
+    if (
+        isinstance(snapshot, dict)
+        and snapshot.get("status") == "deferred"
+        and snapshot.get("version") == version
+    ):
+        game.pop("snapshot")
+
+
+def defer_snapshot(
+    *,
+    slug: str,
+    version: str | None = None,
+    label: str | None = None,
+    summary: str | None = None,
+    reason: str | None = None,
+    rebuild_index: bool = True,
+) -> dict:
+    manifest = load_manifest()
+    game = find_game(manifest, slug)
+    version = version or str(game.get("version") or "").strip()
+    if not version:
+        raise ValueError("Provide --version or set the game version in data/games.json.")
+
+    entry = {
+        "status": "deferred",
+        "version": version,
+        "reason": reason or "Snapshot is deferred until a commit-backed release can be stamped.",
+    }
+    if label:
+        entry["label"] = label
+    if summary:
+        entry["summary"] = summary
+
+    game["snapshot"] = entry
+    write_manifest(manifest)
+    if rebuild_index:
+        build_arcade.build()
+    return entry
+
+
 def create_snapshot(
     *,
     slug: str,
@@ -135,6 +177,7 @@ def create_snapshot(
         entry["commit"] = commit_value
 
     upsert_version(game, entry)
+    clear_matching_deferral(game, version)
     write_manifest(manifest)
     if rebuild_index:
         build_arcade.build()
@@ -149,6 +192,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--summary", help="Player-facing release summary.")
     parser.add_argument("--released-at", help="Release date, usually YYYY-MM-DD. Defaults to today in UTC.")
     parser.add_argument("--commit", help="Git commit hash to store with the snapshot. Defaults to current HEAD.")
+    parser.add_argument("--defer", action="store_true", help="Record a truthful snapshot deferral without copying files.")
+    parser.add_argument("--reason", help="Reason shown when --defer records snapshot continuity.")
     parser.add_argument("--force", action="store_true", help="Replace an existing snapshot for the same version.")
     parser.add_argument("--skip-build", action="store_true", help="Update files without rebuilding index.html.")
     return parser.parse_args()
@@ -156,6 +201,20 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if args.defer:
+        if args.commit or args.released_at or args.force:
+            raise SystemExit("--defer cannot be combined with --commit, --released-at, or --force.")
+        entry = defer_snapshot(
+            slug=args.slug,
+            version=args.version,
+            label=args.label,
+            summary=args.summary,
+            reason=args.reason,
+            rebuild_index=not args.skip_build,
+        )
+        print(f"Snapshot {entry['version']} deferred: {entry['reason']}")
+        return
+
     entry = create_snapshot(
         slug=args.slug,
         version=args.version,

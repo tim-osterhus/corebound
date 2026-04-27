@@ -59,6 +59,86 @@ class SnapshotGameTests(unittest.TestCase):
             self.assertEqual("0.2.0", versions[0]["version"])
             self.assertEqual("Drillworks", versions[0]["label"])
 
+    def test_create_snapshot_clears_matching_deferral(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data_dir = root / "data"
+            game_dir = root / "games" / "corebound"
+            data_dir.mkdir()
+            game_dir.mkdir(parents=True)
+            (game_dir / "index.html").write_text("<!doctype html>Corebound", encoding="utf-8")
+            manifest_path = data_dir / "games.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "games": [
+                            {
+                                "slug": "corebound",
+                                "title": "Corebound",
+                                "version": "0.2.0",
+                                "path": "games/corebound/",
+                                "snapshot": {
+                                    "status": "deferred",
+                                    "version": "0.2.0",
+                                    "reason": "Working-tree release.",
+                                },
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(snapshot_game, "ROOT", root), mock.patch.object(
+                snapshot_game, "MANIFEST_PATH", manifest_path
+            ), mock.patch.object(snapshot_game.build_arcade, "build"):
+                snapshot_game.create_snapshot(slug="corebound", commit="abcdef", rebuild_index=False)
+
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertNotIn("snapshot", manifest["games"][0])
+
+    def test_defer_snapshot_records_no_commit_or_release_stamp(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data_dir = root / "data"
+            data_dir.mkdir()
+            manifest_path = data_dir / "games.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "games": [
+                            {
+                                "slug": "corebound",
+                                "title": "Corebound",
+                                "version": "0.2.0",
+                                "path": "games/corebound/",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(snapshot_game, "ROOT", root), mock.patch.object(
+                snapshot_game, "MANIFEST_PATH", manifest_path
+            ), mock.patch.object(snapshot_game.build_arcade, "build") as build:
+                entry = snapshot_game.defer_snapshot(
+                    slug="corebound",
+                    label="Continuity",
+                    summary="Working tree release.",
+                    reason="Uncommitted working-tree content.",
+                )
+
+            self.assertEqual("deferred", entry["status"])
+            self.assertEqual("0.2.0", entry["version"])
+            self.assertEqual("Continuity", entry["label"])
+            self.assertNotIn("commit", entry)
+            self.assertNotIn("releasedAt", entry)
+            build.assert_called_once()
+
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(entry, manifest["games"][0]["snapshot"])
+
     def test_existing_snapshot_requires_force(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
