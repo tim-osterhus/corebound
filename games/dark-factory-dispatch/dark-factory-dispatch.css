@@ -138,7 +138,7 @@ select {
 
 .escalation-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   padding: 0 0 14px;
 }
@@ -226,6 +226,11 @@ select {
 
 .factory-grid {
   display: grid;
+  grid-template-areas:
+    "lanes grid grid"
+    "lanes queue contracts"
+    "lanes upgrades jobs"
+    "controls controls log";
   grid-template-columns: minmax(360px, 1.6fr) minmax(280px, 0.85fr) minmax(300px, 0.9fr);
   gap: 12px;
   align-items: start;
@@ -260,18 +265,39 @@ select {
 }
 
 .lane-panel {
-  grid-row: span 3;
+  grid-area: lanes;
 }
 
-.contract-panel,
-.upgrade-panel,
-.job-panel,
-.controls-panel,
+.grid-panel {
+  grid-area: grid;
+}
+
+.queue-panel {
+  grid-area: queue;
+}
+
+.contract-panel {
+  grid-area: contracts;
+}
+
+.upgrade-panel {
+  grid-area: upgrades;
+}
+
+.job-panel {
+  grid-area: jobs;
+}
+
+.controls-panel {
+  grid-area: controls;
+}
+
 .log-panel {
-  grid-column: span 1;
+  grid-area: log;
 }
 
 .lane-board,
+.grid-siege-board,
 .job-catalog,
 .contract-board,
 .upgrade-board,
@@ -287,7 +313,15 @@ select {
   gap: 10px;
 }
 
+.grid-siege-board {
+  display: grid;
+  gap: 10px;
+}
+
 .lane-card,
+.grid-summary,
+.grid-sector-card,
+.grid-directive-card,
 .queue-item,
 .job-card,
 .contract-card,
@@ -302,6 +336,95 @@ select {
   gap: 10px;
   min-height: 170px;
   padding: 12px;
+}
+
+.grid-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.grid-summary > span,
+.grid-directive-card > span {
+  display: block;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid rgba(133, 145, 139, 0.28);
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.grid-sector-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.grid-sector-card,
+.grid-directive-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.grid-sector-card[data-powered="false"],
+.grid-directive-card[data-audit="active"],
+.grid-directive-card[data-audit="failed"] {
+  border-color: rgba(215, 184, 103, 0.72);
+  background: rgba(215, 184, 103, 0.055);
+}
+
+.grid-sector-card[data-isolated="true"],
+.grid-sector-card[data-blackout="true"] {
+  border-color: rgba(214, 96, 77, 0.75);
+}
+
+.grid-sector-title,
+.grid-directive-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.grid-sector-title strong,
+.grid-directive-title strong {
+  min-width: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.grid-sector-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.grid-sector-meta span {
+  padding: 6px;
+  border: 1px solid rgba(133, 145, 139, 0.28);
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.grid-actions,
+.directive-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.grid-actions button,
+.directive-actions button {
+  min-height: 2.1rem;
+  font-size: 0.68rem;
 }
 
 .lane-card[data-overdrive="true"] {
@@ -606,11 +729,13 @@ select {
 
 @media (max-width: 1100px) {
   .factory-grid {
+    grid-template-areas:
+      "lanes lanes"
+      "grid grid"
+      "queue contracts"
+      "upgrades jobs"
+      "controls log";
     grid-template-columns: 1fr 1fr;
-  }
-
-  .lane-panel {
-    grid-column: 1 / -1;
   }
 
   .resource-strip {
@@ -619,6 +744,10 @@ select {
 
   .escalation-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid-sector-list {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -637,6 +766,15 @@ select {
   }
 
   .factory-grid {
+    grid-template-areas:
+      "lanes"
+      "grid"
+      "queue"
+      "contracts"
+      "upgrades"
+      "jobs"
+      "controls"
+      "log";
     grid-template-columns: 1fr;
   }
 
@@ -645,13 +783,17 @@ select {
   }
 
   .escalation-strip,
-  .control-selects {
+  .control-selects,
+  .grid-summary,
+  .grid-sector-meta {
     grid-template-columns: 1fr;
   }
 
   .button-grid,
   .lane-actions,
   .queue-actions,
+  .grid-actions,
+  .directive-actions,
   .contract-reward,
   .job-io {
     grid-template-columns: 1fr;

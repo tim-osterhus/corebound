@@ -1615,6 +1615,7 @@ const DarkFactoryDispatch = (() => {
 
   function gridSurfaceState(state) {
     const grid = state.grid;
+    const directive = auditDirectiveDefinition(state);
     return {
       release: grid.release,
       pressure: grid.pressure,
@@ -1634,17 +1635,26 @@ const DarkFactoryDispatch = (() => {
       audit: {
         status: grid.audit.status,
         directiveId: grid.audit.directiveId,
+        name: directive ? directive.name : titleCase(grid.audit.directiveId),
         dueTick: grid.audit.dueTick,
         deferrals: grid.audit.deferrals,
+        queued: grid.audit.queued,
+        completed: grid.audit.completed,
+        failures: grid.audit.failures,
+        repairCost: directive ? clone(directive.repairCost) : {},
+        deferCost: directive ? clone(directive.deferCost) : {},
       },
       sectors: grid.sectors.map((sector) => ({
         id: sector.id,
         name: sector.name,
         laneId: sector.laneId,
+        laneName: byId(state.lanes, sector.laneId)?.name || titleCase(sector.laneId),
+        connectedTo: sector.connectedTo.slice(),
         route: sector.route,
         isolated: sector.isolated,
         powered: sector.powered,
         blackoutLockedUntil: sector.blackoutLockedUntil,
+        blackoutCount: sector.blackoutCount,
         reserveDraws: sector.reserveDraws,
       })),
       choices: clone(grid.choices),
@@ -1759,6 +1769,7 @@ const DarkFactoryDispatch = (() => {
       runChip: document.getElementById("run-chip"),
       resources: document.getElementById("resource-readouts"),
       escalation: document.getElementById("escalation-surface"),
+      grid: document.getElementById("grid-siege-board"),
       lanes: document.getElementById("lane-board"),
       queue: document.getElementById("queue-list"),
       contracts: document.getElementById("contract-board"),
@@ -1883,12 +1894,35 @@ const DarkFactoryDispatch = (() => {
       currentState = purchaseUpgrade(currentState, button.dataset.upgrade);
       render(currentState);
     });
+    dom.grid.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) {
+        return;
+      }
+      if (button.dataset.action === "grid-route") {
+        currentState = routePowerToSector(currentState, button.dataset.sector, button.dataset.route);
+      }
+      if (button.dataset.action === "grid-isolate") {
+        currentState = isolateGridSector(currentState, button.dataset.sector, button.dataset.isolated !== "true");
+      }
+      if (button.dataset.action === "grid-reserve") {
+        currentState = authorizeReserveDraw(currentState, button.dataset.sector);
+      }
+      if (button.dataset.action === "audit-defer") {
+        currentState = deferAuditDirective(currentState);
+      }
+      if (button.dataset.action === "audit-resolve") {
+        currentState = resolveAuditDirective(currentState);
+      }
+      render(currentState);
+    });
   }
 
   function render(state) {
     dom.runChip.textContent = `shift ${String(state.restart.run).padStart(2, "0")} / d${state.campaign.demand} / ${state.run.status} / t${state.tick}`;
     renderResources(state);
     renderEscalationSurface(state);
+    renderGridSiege(state);
     renderLanes(state);
     renderQueue(state);
     renderContracts(state);
@@ -1933,6 +1967,75 @@ const DarkFactoryDispatch = (() => {
         <span>Grid Siege</span>
         <strong>pressure ${surface.grid.pressure}/${surface.grid.threshold} / reserve ${surface.grid.reserve.available}</strong>
         <p>audit ${surface.grid.audit.status} / blackout ${surface.grid.blackout.events} / load ${surface.grid.load}</p>
+      </article>
+    `;
+  }
+
+  function renderGridSiege(state) {
+    const surface = gridSurfaceState(state);
+    const activeSector = surface.blackout.activeSectorId
+      ? surface.sectors.find((sector) => sector.id === surface.blackout.activeSectorId)
+      : null;
+    const blackoutDetail = activeSector
+      ? `${activeSector.name} lock t${activeSector.blackoutLockedUntil}`
+      : `${surface.blackout.status} / ${surface.blackout.events} events`;
+    const auditActive = surface.audit.status === "active";
+    const repairDisabled = !auditActive || !canPay(state.resources, surface.audit.repairCost);
+    const deferDisabled = !auditActive || !canPay(state.resources, surface.audit.deferCost);
+
+    dom.grid.innerHTML = `
+      <div class="grid-summary" data-grid="summary">
+        <span>pressure ${surface.pressure}/${surface.threshold}</span>
+        <span>load ${surface.load} / blackout ${blackoutDetail}</span>
+        <span>reserve ${surface.reserve.available}/${surface.reserve.capacity} / debt ${surface.reserve.debt}</span>
+        <span>audit ${surface.audit.status}${surface.audit.dueTick === null ? "" : ` / due t${surface.audit.dueTick}`}</span>
+      </div>
+      <div class="grid-sector-list" data-grid="sectors">
+        ${surface.sectors.map((sector) => {
+          const definition = gridSectorDefinition(sector.id);
+          const priorityCost = definition && definition.priority ? { power: definition.priority.powerCost || 0 } : {};
+          const isolateCost = definition && definition.isolate ? { stability: definition.isolate.stabilityCost || 0 } : {};
+          const locked = sector.blackoutLockedUntil !== null;
+          const priorityDisabled = sector.route === "priority" || sector.isolated || !canPay(state.resources, priorityCost);
+          const balancedDisabled = sector.route === "balanced" || sector.isolated;
+          const isolateDisabled = !sector.isolated && !canPay(state.resources, isolateCost);
+          const reserveDisabled = surface.reserve.available <= 0;
+          const sectorStatus = sector.isolated
+            ? "isolated"
+            : locked ? `lock t${sector.blackoutLockedUntil}` : sector.powered ? "powered" : "dark";
+          return `
+            <article class="grid-sector-card" data-sector="${sector.id}" data-powered="${sector.powered ? "true" : "false"}" data-isolated="${sector.isolated ? "true" : "false"}" data-blackout="${locked ? "true" : "false"}">
+              <div class="grid-sector-title">
+                <strong>${sector.name}</strong>
+                <span class="status-pill">${sectorStatus}</span>
+              </div>
+              <div class="grid-sector-meta">
+                <span>${sector.laneName}</span>
+                <span>route ${sector.route}</span>
+                <span>link ${sector.connectedTo.map(titleCase).join(" / ")}</span>
+                <span>reserve ${sector.reserveDraws} / blackout ${sector.blackoutCount}</span>
+              </div>
+              <div class="grid-actions">
+                <button type="button" data-action="grid-route" data-sector="${sector.id}" data-route="priority" ${priorityDisabled ? "disabled" : ""}>priority</button>
+                <button type="button" data-action="grid-route" data-sector="${sector.id}" data-route="balanced" ${balancedDisabled ? "disabled" : ""}>balance</button>
+                <button type="button" data-action="grid-isolate" data-sector="${sector.id}" data-isolated="${sector.isolated ? "true" : "false"}" ${isolateDisabled ? "disabled" : ""}>${sector.isolated ? "restore" : "isolate"}</button>
+                <button type="button" data-action="grid-reserve" data-sector="${sector.id}" ${reserveDisabled ? "disabled" : ""}>reserve</button>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+      <article class="grid-directive-card" data-grid="directive" data-audit="${surface.audit.status}">
+        <div class="grid-directive-title">
+          <strong>${surface.audit.name}</strong>
+          <span class="status-pill">${surface.audit.status}</span>
+        </div>
+        <span>repair ${formatBundle(surface.audit.repairCost)} / defer ${formatBundle(surface.audit.deferCost)}</span>
+        <span>queued ${surface.audit.queued ? "yes" : "no"} / deferrals ${surface.audit.deferrals} / cleared ${surface.audit.completed} / failed ${surface.audit.failures}</span>
+        <div class="directive-actions">
+          <button type="button" data-action="audit-resolve" ${repairDisabled ? "disabled" : ""}>repair</button>
+          <button type="button" data-action="audit-defer" ${deferDisabled ? "disabled" : ""}>defer</button>
+        </div>
       </article>
     `;
   }
