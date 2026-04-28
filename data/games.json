@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "live",
-    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's Escalation Shift, and Void Prospector's v0.1.0 Survey Ladder sortie."
+    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.2.0 Grid Siege, and Void Prospector's v0.1.0 Survey Ladder sortie."
   },
   "games": [
     {
@@ -71,16 +71,24 @@
     {
       "slug": "dark-factory-dispatch",
       "title": "Dark Factory Dispatch",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "status": "playable",
-      "summary": "Run a compact machine-intelligence factory through escalating shifts with emergency coolant-diversion orders, queue policy choices, lane overdrive calls, persistent restart pressure, and upgrade decisions between shifts.",
+      "summary": "Run a compact machine-intelligence factory through Grid Siege shifts with facility power routing, reserve batteries, blackout lockouts, audit relay directives, emergency coolant-diversion orders, lane overdrive calls, persistent restart scars, and upgrade decisions between shifts.",
       "path": "games/dark-factory-dispatch/",
       "thumbnail": "games/dark-factory-dispatch/assets/arcade-title-card.png",
       "release": {
-        "label": "v0.1.0 Escalation Shift",
-        "copy": "Escalation Shift expands the dispatch floor with multi-shift demand scaling, persistent restart ledger carryover, emergency coolant-diversion contracts, emergency-first queue policy, and lane overdrive decisions layered onto the original three-lane factory board."
+        "label": "v0.2.0 Grid Siege",
+        "copy": "Grid Siege adds a facility power-grid layer to the dispatch floor: route priority power, isolate threatened sectors, draw reserve batteries, and resolve or defer Reserve Ledger Audit directives while blackout pressure and carryover scars reshape the Escalation Shift emergency queue and lane overdrive loop."
       },
       "versions": [
+        {
+          "version": "0.2.0",
+          "path": "games/dark-factory-dispatch/versions/0.2.0/",
+          "releasedAt": "2026-04-28",
+          "label": "v0.2.0 Grid Siege",
+          "summary": "Facility power routing, reserve batteries, blackout lockouts, Reserve Ledger Audit directives, and carryover grid scars publish on top of Escalation Shift's emergency queue and lane overdrive loop.",
+          "commit": "e8529bdd885a22e9451a765dd8b293190a8de9f9"
+        },
         {
           "version": "0.1.0",
           "path": "games/dark-factory-dispatch/versions/0.1.0/",

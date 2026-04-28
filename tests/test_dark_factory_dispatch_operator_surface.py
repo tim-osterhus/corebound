@@ -23,6 +23,7 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
 
         for token in (
             'id="escalation-surface"',
+            'aria-label="Campaign and Grid Siege status"',
             'id="grid-siege-board"',
             'id="queue-policy-select"',
             "Queue policy",
