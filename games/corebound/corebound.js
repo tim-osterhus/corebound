@@ -58,6 +58,90 @@
   };
 
   const startingCellX = Math.floor(DATA.world.width / 2);
+  const ASSET_DATA = DATA.assets || { images: {} };
+  const assetImages = {};
+
+  function loadAssetImages() {
+    const images = ASSET_DATA.images || {};
+    for (const assetId of Object.keys(images)) {
+      const asset = images[assetId];
+      const image = new Image();
+      assetImages[assetId] = { image, loaded: false, failed: false };
+      image.addEventListener("load", () => {
+        assetImages[assetId].loaded = true;
+        render();
+      });
+      image.addEventListener("error", () => {
+        assetImages[assetId].failed = true;
+      });
+      image.src = asset.path;
+    }
+  }
+
+  function loadedAsset(assetId) {
+    const entry = assetImages[assetId];
+    return entry && entry.loaded ? entry.image : null;
+  }
+
+  function assetInfo(assetId) {
+    return (ASSET_DATA.images && ASSET_DATA.images[assetId]) || null;
+  }
+
+  function assetPath(assetId) {
+    const asset = assetInfo(assetId);
+    return asset ? asset.path : "";
+  }
+
+  function atlasSlotInfo(assetId, slot) {
+    const asset = assetInfo(assetId) || {};
+    return {
+      slot,
+      sourceX: slot * (asset.frameWidth || 64),
+      sourceY: asset.sourceY || 0,
+      width: asset.frameWidth || 64,
+      height: asset.frameHeight || 64
+    };
+  }
+
+  function drawAtlasSlot(assetId, slot, screenX, screenY, size) {
+    const image = loadedAsset(assetId);
+    if (!image || slot === undefined || slot === null) {
+      return false;
+    }
+
+    const frame = atlasSlotInfo(assetId, slot);
+    ctx.drawImage(
+      image,
+      frame.sourceX,
+      frame.sourceY,
+      frame.width,
+      frame.height,
+      screenX,
+      screenY,
+      size,
+      size
+    );
+    return true;
+  }
+
+  function makeAtlasIcon(assetId, slot, label, className) {
+    const icon = document.createElement("span");
+    const asset = assetInfo(assetId);
+    icon.className = className ? `asset-icon ${className}` : "asset-icon";
+    icon.setAttribute("role", "img");
+    icon.setAttribute("aria-label", label);
+    if (!asset || slot === undefined || slot === null) {
+      icon.classList.add("asset-icon-empty");
+      return icon;
+    }
+
+    const displaySize = 32;
+    const scale = displaySize / (asset.frameWidth || 64);
+    icon.style.backgroundImage = `url("${asset.path}")`;
+    icon.style.backgroundSize = `${(asset.width || 64) * scale}px ${(asset.height || 64) * scale}px`;
+    icon.style.backgroundPosition = `${-slot * (asset.frameWidth || 64) * scale}px ${-(asset.sourceY || 0) * scale}px`;
+    return icon;
+  }
 
   const state = {
     grid: [],
@@ -73,6 +157,7 @@
       velocityY: 0,
       cameraX: 0,
       cameraY: 0,
+      animTime: 0,
       lastFrame: null
     },
     input: {
@@ -1677,7 +1762,9 @@
       const owned = !!state.installedUpgrades[upgrade.id];
       const item = document.createElement("li");
       item.className = owned ? "upgrade-row installed" : "upgrade-row";
+      item.dataset.rigModule = upgrade.rigModule || upgrade.category;
 
+      const icon = makeAtlasIcon("upgrades.research_atlas", upgrade.iconSlot, upgrade.label, "upgrade-icon");
       const copy = document.createElement("div");
       const category = document.createElement("span");
       const label = document.createElement("strong");
@@ -1693,7 +1780,7 @@
       button.disabled = owned || !atSurface || !canAfford(upgrade.cost);
       button.addEventListener("click", () => purchaseUpgrade(upgrade.id));
 
-      item.append(copy, button);
+      item.append(icon, copy, button);
       hud.upgrades.append(item);
     }
   }
@@ -1709,7 +1796,9 @@
       const owned = !!state.installedResearch[project.id];
       const item = document.createElement("li");
       item.className = owned ? "upgrade-row research-row installed" : "upgrade-row research-row";
+      item.dataset.rigModule = project.rigModule || "research";
 
+      const icon = makeAtlasIcon("upgrades.research_atlas", project.iconSlot, project.label, "upgrade-icon");
       const copy = document.createElement("div");
       const category = document.createElement("span");
       const label = document.createElement("strong");
@@ -1725,7 +1814,7 @@
       button.disabled = owned || !atSurface || !canAfford(project.cost);
       button.addEventListener("click", () => purchaseResearch(project.id));
 
-      item.append(copy, button);
+      item.append(icon, copy, button);
       hud.researchList.append(item);
     }
   }
@@ -1986,17 +2075,19 @@
     const oreKeys = Object.keys(counts);
     if (!oreKeys.length) {
       const empty = document.createElement("li");
+      empty.className = "ore-empty";
       empty.innerHTML = "<span>hold clear</span><strong>0</strong>";
       hud.ores.append(empty);
     } else {
       for (const oreKey of oreKeys) {
         const ore = DATA.oreTypes[oreKey];
         const item = document.createElement("li");
+        const icon = makeAtlasIcon("readables.ore_hazard_atlas", (ASSET_DATA.oreIcons || {})[oreKey], ore.label, "ore-icon");
         const label = document.createElement("span");
         const amount = document.createElement("strong");
         label.textContent = ore.label;
         amount.textContent = `x${counts[oreKey]}`;
-        item.append(label, amount);
+        item.append(icon, label, amount);
         hud.ores.append(item);
       }
     }
@@ -2019,24 +2110,118 @@
     render();
   }
 
+  function terrainTextureId(terrainKey) {
+    return (ASSET_DATA.terrainTextures || {})[terrainKey] || null;
+  }
+
+  function drawSurfaceCell(screenX, screenY, size, worldX) {
+    const launchContext = worldX === startingCellX ? loadedAsset("surface.launch_shaft_context") : null;
+    const facilities = loadedAsset("surface.facilities_panel");
+    if (launchContext) {
+      ctx.drawImage(launchContext, 0, 0, launchContext.width, launchContext.height, screenX, screenY, size, size);
+    } else if (facilities) {
+      const sourceWidth = facilities.width / 8;
+      const sourceX = (((worldX % 8) + 8) % 8) * sourceWidth;
+      ctx.drawImage(facilities, sourceX, 0, sourceWidth, facilities.height, screenX, screenY, size, size);
+    } else {
+      ctx.fillStyle = "#11191b";
+      ctx.fillRect(screenX, screenY, size, size);
+    }
+
+    ctx.fillStyle = "rgba(5, 7, 8, 0.2)";
+    ctx.fillRect(screenX, screenY, size, size);
+    ctx.strokeStyle = worldX === startingCellX ? "rgba(71, 224, 195, 0.72)" : "rgba(71, 224, 195, 0.32)";
+    ctx.strokeRect(screenX + 1, screenY + 1, size - 2, size - 2);
+    if (worldX === startingCellX) {
+      ctx.fillStyle = "rgba(71, 224, 195, 0.2)";
+      ctx.fillRect(screenX + size * 0.42, screenY + size * 0.08, size * 0.16, size * 0.84);
+    }
+  }
+
+  function drawTextureTile(cell, screenX, screenY, size, worldX, worldY) {
+    const terrain = DATA.terrainTypes[cell.terrain];
+    const image = loadedAsset(terrainTextureId(cell.terrain));
+
+    ctx.fillStyle = terrain.color;
+    ctx.fillRect(screenX, screenY, size, size);
+    if (image) {
+      ctx.save();
+      ctx.globalAlpha = 0.68;
+      ctx.drawImage(image, 0, 0, image.width, image.height, screenX, screenY, size, size);
+      ctx.restore();
+      ctx.fillStyle = "rgba(5, 7, 8, 0.22)";
+      ctx.fillRect(screenX, screenY, size, size);
+    }
+
+    ctx.strokeStyle = terrain.edge;
+    ctx.strokeRect(screenX + 1, screenY + 1, size - 2, size - 2);
+
+    const grain = hash(worldX, worldY, 101);
+    ctx.fillStyle = `rgba(231, 240, 236, ${0.04 + grain * 0.07})`;
+    ctx.fillRect(screenX + size * 0.18, screenY + size * 0.2, size * 0.2, size * 0.08);
+  }
+
+  function drawReadableIcon(kind, key, screenX, screenY, size) {
+    const slotMap = kind === "ore" ? ASSET_DATA.oreIcons : ASSET_DATA.hazardIcons;
+    const slot = slotMap ? slotMap[key] : null;
+    return drawAtlasSlot("readables.ore_hazard_atlas", slot, screenX, screenY, size);
+  }
+
   function drawHazardMark(cell, screenX, screenY, size) {
     if (!cell.hazard) {
       return;
     }
 
     const hazard = DATA.hazardTypes[cell.hazard];
+    const iconSize = size * 0.42;
+    const iconX = screenX + size * 0.29;
+    const iconY = screenY + size * 0.5;
+
+    ctx.fillStyle = "rgba(5, 7, 8, 0.66)";
+    ctx.fillRect(iconX - size * 0.06, iconY - size * 0.04, iconSize + size * 0.12, iconSize + size * 0.08);
+    if (!drawReadableIcon("hazard", cell.hazard, iconX, iconY, iconSize)) {
+      ctx.fillStyle = hazard.color;
+      ctx.fillRect(screenX + size * 0.14, screenY + size * 0.78, size * 0.72, Math.max(2, size * 0.07));
+    }
     ctx.fillStyle = hazard.color;
-    ctx.fillRect(screenX + size * 0.14, screenY + size * 0.78, size * 0.72, Math.max(2, size * 0.07));
+    ctx.fillRect(screenX + size * 0.14, screenY + size * 0.84, size * 0.72, Math.max(2, size * 0.06));
     ctx.strokeStyle = "rgba(5, 7, 8, 0.72)";
-    ctx.strokeRect(screenX + size * 0.14, screenY + size * 0.78, size * 0.72, Math.max(2, size * 0.07));
+    ctx.strokeRect(screenX + size * 0.14, screenY + size * 0.84, size * 0.72, Math.max(2, size * 0.06));
+  }
+
+  function drawOreMark(cell, screenX, screenY, size) {
+    const ore = DATA.oreTypes[cell.ore];
+    const cx = screenX + size / 2;
+    const cy = screenY + size * 0.43;
+    const iconSize = size * 0.58;
+    const iconX = cx - iconSize / 2;
+    const iconY = cy - iconSize / 2;
+
+    ctx.fillStyle = "rgba(5, 7, 8, 0.68)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.34, 0, Math.PI * 2);
+    ctx.fill();
+    if (!drawReadableIcon("ore", cell.ore, iconX, iconY, iconSize)) {
+      const r = size * 0.2;
+      ctx.fillStyle = ore.color;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r, cy);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.strokeStyle = ore.color;
+    ctx.lineWidth = Math.max(1, Math.floor(size * 0.04));
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.33, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   function drawCell(cell, screenX, screenY, size, worldX, worldY) {
     if (cell.kind === "surface") {
-      ctx.fillStyle = "#11191b";
-      ctx.fillRect(screenX, screenY, size, size);
-      ctx.strokeStyle = "rgba(71, 224, 195, 0.4)";
-      ctx.strokeRect(screenX + 1, screenY + 1, size - 2, size - 2);
+      drawSurfaceCell(screenX, screenY, size, worldX);
       return;
     }
 
@@ -2049,39 +2234,18 @@
       return;
     }
 
-    const terrain = DATA.terrainTypes[cell.terrain];
-    ctx.fillStyle = terrain.color;
-    ctx.fillRect(screenX, screenY, size, size);
-    ctx.strokeStyle = terrain.edge;
-    ctx.strokeRect(screenX + 1, screenY + 1, size - 2, size - 2);
-
-    const grain = hash(worldX, worldY, 101);
-    ctx.fillStyle = `rgba(231, 240, 236, ${0.04 + grain * 0.07})`;
-    ctx.fillRect(screenX + size * 0.18, screenY + size * 0.2, size * 0.2, size * 0.08);
+    drawTextureTile(cell, screenX, screenY, size, worldX, worldY);
 
     if (!cell.ore) {
       drawHazardMark(cell, screenX, screenY, size);
       return;
     }
 
-    const ore = DATA.oreTypes[cell.ore];
-    const cx = screenX + size / 2;
-    const cy = screenY + size / 2;
-    const r = size * 0.2;
-    ctx.fillStyle = ore.color;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - r);
-    ctx.lineTo(cx + r, cy);
-    ctx.lineTo(cx, cy + r);
-    ctx.lineTo(cx - r, cy);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "rgba(5, 7, 8, 0.7)";
-    ctx.stroke();
+    drawOreMark(cell, screenX, screenY, size);
     drawHazardMark(cell, screenX, screenY, size);
   }
 
-  function drawRig(screenX, screenY, size) {
+  function drawPrimitiveRig(screenX, screenY, size) {
     const inset = size * 0.16;
     ctx.fillStyle = "#47e0c3";
     ctx.fillRect(screenX + inset, screenY + inset, size - inset * 2, size - inset * 2);
@@ -2099,6 +2263,114 @@
     } else {
       ctx.fillRect(screenX + size * 0.06, screenY + size * 0.4, size * 0.22, size * 0.2);
     }
+  }
+
+  function installedRigModules() {
+    const modules = new Set();
+    for (const upgrade of DATA.upgrades || []) {
+      if (state.installedUpgrades[upgrade.id] && upgrade.rigModule) {
+        modules.add(upgrade.rigModule);
+      }
+    }
+    for (const project of DATA.researchProjects || []) {
+      if (state.installedResearch[project.id] && project.rigModule) {
+        modules.add(project.rigModule);
+      }
+    }
+
+    const stats = rigStats();
+    if (stats.beaconCharges > 0) {
+      modules.add("beacon");
+    }
+    if (stats.coolantCharges > 0 || stats.utilityCooling > 0) {
+      modules.add("coolant");
+    }
+    if (stats.anchorCharges > 0) {
+      modules.add("anchor");
+    }
+    return modules;
+  }
+
+  function drawRigFeedback(screenX, screenY, size) {
+    const modules = installedRigModules();
+    if (!modules.size) {
+      return;
+    }
+
+    const facing = state.player.facing;
+    ctx.save();
+    ctx.lineWidth = Math.max(1, Math.floor(size * 0.05));
+    if (modules.has("plating") || modules.has("sheath")) {
+      ctx.strokeStyle = modules.has("sheath") ? "rgba(71, 224, 195, 0.92)" : "rgba(231, 240, 236, 0.82)";
+      ctx.strokeRect(screenX + size * 0.12, screenY + size * 0.12, size * 0.76, size * 0.76);
+    }
+    if (modules.has("cells") || modules.has("coolant") || modules.has("thermal")) {
+      ctx.fillStyle = modules.has("coolant") ? "#83a8c6" : "#47e0c3";
+      ctx.fillRect(screenX + size * 0.18, screenY + size * 0.22, size * 0.12, size * 0.16);
+      ctx.fillRect(screenX + size * 0.7, screenY + size * 0.22, size * 0.12, size * 0.16);
+    }
+    if (modules.has("cargo") || modules.has("refinery") || modules.has("archive")) {
+      ctx.strokeStyle = modules.has("archive") ? "#d7d0a8" : "#d5a649";
+      ctx.strokeRect(screenX + size * 0.24, screenY + size * 0.58, size * 0.52, size * 0.18);
+    }
+    if (modules.has("scanner") || modules.has("beacon") || modules.has("anchor")) {
+      ctx.strokeStyle = modules.has("anchor") ? "#d5a649" : "#47e0c3";
+      ctx.beginPath();
+      ctx.arc(screenX + size * 0.5, screenY + size * 0.42, size * 0.45, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (modules.has("skids") || modules.has("lift")) {
+      ctx.strokeStyle = "#83a8c6";
+      ctx.beginPath();
+      ctx.moveTo(screenX + size * 0.16, screenY + size * 0.86);
+      ctx.lineTo(screenX + size * 0.84, screenY + size * 0.86);
+      ctx.stroke();
+    }
+    if (modules.has("drill")) {
+      ctx.fillStyle = "#d5a649";
+      if (facing[1] > 0) {
+        ctx.fillRect(screenX + size * 0.37, screenY + size * 0.78, size * 0.26, size * 0.18);
+      } else if (facing[1] < 0) {
+        ctx.fillRect(screenX + size * 0.37, screenY + size * 0.04, size * 0.26, size * 0.18);
+      } else if (facing[0] > 0) {
+        ctx.fillRect(screenX + size * 0.78, screenY + size * 0.37, size * 0.18, size * 0.26);
+      } else {
+        ctx.fillRect(screenX + size * 0.04, screenY + size * 0.37, size * 0.18, size * 0.26);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawRig(screenX, screenY, size) {
+    const image = loadedAsset("rig.mantis_motion_strip");
+    if (!image) {
+      drawPrimitiveRig(screenX, screenY, size);
+      drawRigFeedback(screenX, screenY, size);
+      return;
+    }
+
+    const asset = assetInfo("rig.mantis_motion_strip") || {};
+    const frameWidth = asset.frameWidth || 80;
+    const frameHeight = asset.frameHeight || 80;
+    const frameCount = Math.max(1, Math.floor((asset.width || image.width) / frameWidth));
+    const moving = Math.hypot(state.motion.velocityX, state.motion.velocityY) > 0.05;
+    const frame = moving ? Math.floor(state.motion.animTime * 9) % frameCount : 0;
+    const destSize = size * 1.18;
+    const destX = screenX - size * 0.09;
+    const destY = screenY - size * 0.12;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(71, 224, 195, 0.28)";
+    ctx.shadowBlur = size * 0.16;
+    if (state.player.facing[0] < 0) {
+      ctx.translate(destX + destSize, destY);
+      ctx.scale(-1, 1);
+      ctx.drawImage(image, frame * frameWidth, 0, frameWidth, frameHeight, 0, 0, destSize, destSize);
+    } else {
+      ctx.drawImage(image, frame * frameWidth, 0, frameWidth, frameHeight, destX, destY, destSize, destSize);
+    }
+    ctx.restore();
+    drawRigFeedback(screenX, screenY, size);
   }
 
   function drawBeaconMark(screenX, screenY, size) {
@@ -2131,6 +2403,7 @@
     const offsetY = (cameraY - startY) * size;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
     ctx.fillStyle = "#050708";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -2216,6 +2489,7 @@
   });
 
   window.addEventListener("resize", resizeCanvas);
+  loadAssetImages();
   generateWorld();
   updateHud();
   resizeCanvas();
@@ -2223,6 +2497,7 @@
     const lastFrame = state.motion.lastFrame || timestamp;
     const dt = Math.min(0.06, Math.max(0, (timestamp - lastFrame) / 1000));
     state.motion.lastFrame = timestamp;
+    state.motion.animTime += dt;
     updateMotion(dt);
     updateCamera(dt);
     render();

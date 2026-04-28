@@ -27,23 +27,23 @@
       <aside class="hud" aria-label="Rig telemetry">
         <div class="meter-grid">
           <div class="readout">
-            <span>Depth</span>
+            <span class="meter-label"><i class="hud-icon hud-icon-depth" aria-hidden="true"></i>Depth</span>
             <strong id="depth-readout">0 m</strong>
           </div>
           <div class="readout">
-            <span>Cargo</span>
+            <span class="meter-label"><i class="hud-icon hud-icon-cargo" aria-hidden="true"></i>Cargo</span>
             <strong id="cargo-readout">0 / 12</strong>
           </div>
           <div class="readout">
-            <span>Hull</span>
+            <span class="meter-label"><i class="hud-icon hud-icon-hull" aria-hidden="true"></i>Hull</span>
             <strong id="hull-readout">100%</strong>
           </div>
           <div class="readout">
-            <span>Energy</span>
+            <span class="meter-label"><i class="hud-icon hud-icon-energy" aria-hidden="true"></i>Energy</span>
             <strong id="energy-readout">100%</strong>
           </div>
           <div class="readout">
-            <span>Heat</span>
+            <span class="meter-label"><i class="hud-icon hud-icon-heat" aria-hidden="true"></i>Heat</span>
             <strong id="heat-readout">0 / 100</strong>
           </div>
           <div class="readout">
@@ -110,6 +110,9 @@
         </div>
 
         <div class="surface-panel" aria-label="Surface services">
+          <div class="surface-scene" aria-hidden="true">
+            <img src="assets/surface/surface-facilities-panel.png" alt="" />
+          </div>
           <div class="surface-actions">
             <button type="button" id="sell-cargo">sell</button>
             <button type="button" id="refine-cargo">refine</button>

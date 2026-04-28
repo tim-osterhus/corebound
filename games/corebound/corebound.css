@@ -188,6 +188,43 @@ h1 {
   color: var(--ink);
 }
 
+.readout .meter-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  flex: 0 0 auto;
+  background-image: url("assets/hud/hud-icon-atlas.png");
+  background-size: 90px 18px;
+  background-repeat: no-repeat;
+  image-rendering: auto;
+}
+
+.hud-icon-hull {
+  background-position: 0 0;
+}
+
+.hud-icon-energy {
+  background-position: -18px 0;
+}
+
+.hud-icon-heat {
+  background-position: -36px 0;
+}
+
+.hud-icon-cargo {
+  background-position: -54px 0;
+}
+
+.hud-icon-depth {
+  background-position: -72px 0;
+}
+
 .resource-ledger,
 .contract-panel,
 .charter-panel,
@@ -210,8 +247,23 @@ h1 {
 
 .surface-panel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 9px;
+}
+
+.surface-scene {
+  border: 1px solid rgba(71, 224, 195, 0.2);
+  background: #071011;
+  aspect-ratio: 4 / 1;
+  min-height: 52px;
+  overflow: hidden;
+}
+
+.surface-scene img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .ledger-head,
@@ -258,11 +310,16 @@ h1 {
 }
 
 #ore-list li {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
   gap: 8px;
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+#ore-list li.ore-empty {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 #ore-list strong {
@@ -461,7 +518,7 @@ h1 {
 
 .upgrade-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 74px;
+  grid-template-columns: 34px minmax(0, 1fr) 74px;
   gap: 8px;
   align-items: center;
   border: 1px solid var(--line);
@@ -472,6 +529,30 @@ h1 {
 
 .upgrade-row.installed {
   border-color: rgba(71, 224, 195, 0.34);
+}
+
+.asset-icon {
+  width: 32px;
+  height: 32px;
+  display: block;
+  align-self: center;
+  justify-self: center;
+  border: 1px solid rgba(71, 224, 195, 0.18);
+  background-color: rgba(5, 7, 8, 0.72);
+  background-repeat: no-repeat;
+}
+
+.asset-icon-empty {
+  background-image: linear-gradient(135deg, rgba(71, 224, 195, 0.16), transparent);
+}
+
+.upgrade-row.installed .asset-icon {
+  border-color: rgba(71, 224, 195, 0.62);
+  box-shadow: 0 0 0 1px rgba(71, 224, 195, 0.18), 0 0 18px rgba(71, 224, 195, 0.14);
+}
+
+.ore-icon {
+  border-color: rgba(213, 166, 73, 0.2);
 }
 
 .research-row {

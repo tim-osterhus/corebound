@@ -90,6 +90,101 @@
         }
       }
     },
+    assets: {
+      sourceManifest: "assets/asset-manifest.json",
+      images: {
+        "rig.mantis_motion_strip": {
+          path: "assets/rig/mantis-rig-motion-strip.png",
+          width: 320,
+          height: 80,
+          frameWidth: 80,
+          frameHeight: 80,
+          sourceY: 0
+        },
+        "surface.facilities_panel": {
+          path: "assets/surface/surface-facilities-panel.png",
+          width: 640,
+          height: 160
+        },
+        "surface.launch_shaft_context": {
+          path: "assets/surface/launch-shaft-context.png",
+          width: 320,
+          height: 320
+        },
+        "terrain.loam_gritstone_tile": {
+          path: "assets/terrain/loam-gritstone-tile.png",
+          width: 128,
+          height: 128
+        },
+        "terrain.basalt_core_tile": {
+          path: "assets/terrain/basalt-core-tile.png",
+          width: 128,
+          height: 128
+        },
+        "terrain.pressure_glass_tile": {
+          path: "assets/terrain/pressure-glass-tile.png",
+          width: 128,
+          height: 128
+        },
+        "readables.ore_hazard_atlas": {
+          path: "assets/readables/ore-hazard-atlas.png",
+          width: 384,
+          height: 128,
+          frameWidth: 64,
+          frameHeight: 64,
+          sourceY: 32
+        },
+        "hud.icon_atlas": {
+          path: "assets/hud/hud-icon-atlas.png",
+          width: 320,
+          height: 64,
+          frameWidth: 64,
+          frameHeight: 64,
+          sourceY: 0
+        },
+        "upgrades.research_atlas": {
+          path: "assets/upgrades/upgrade-research-atlas.png",
+          width: 512,
+          height: 128,
+          frameWidth: 64,
+          frameHeight: 64,
+          sourceY: 32
+        }
+      },
+      terrainTextures: {
+        loam: "terrain.loam_gritstone_tile",
+        gritstone: "terrain.loam_gritstone_tile",
+        ironClay: "terrain.loam_gritstone_tile",
+        basaltLock: "terrain.basalt_core_tile",
+        thermalBasalt: "terrain.basalt_core_tile",
+        machineRib: "terrain.basalt_core_tile",
+        coreRind: "terrain.basalt_core_tile",
+        anchorRib: "terrain.basalt_core_tile",
+        pressureGlass: "terrain.pressure_glass_tile",
+        shaleFault: "terrain.pressure_glass_tile",
+        choirSlate: "terrain.pressure_glass_tile"
+      },
+      oreIcons: {
+        copperSeed: 0,
+        nickelBloom: 0,
+        emberFossil: 0,
+        saltglass: 1,
+        vaporCrystal: 1,
+        archiveShard: 1,
+        echoPearl: 1,
+        cobaltThread: 2,
+        prismMarrow: 2,
+        coreMote: 2,
+        relayCore: 2
+      },
+      hazardIcons: {
+        heatFissure: 3,
+        gasVent: 4,
+        pressureFault: 5,
+        magneticBloom: 5,
+        gravityShear: 5
+      }
+    },
     terrainTypes: {
       loam: {
         label: "Loam plate",
@@ -611,6 +706,8 @@
         category: "drill",
         label: "Torque coupling",
         summary: "cut cost -2",
+        iconSlot: 0,
+        rigModule: "drill",
         cost: { credits: 120, alloy: 4 },
         effects: { drillCostReduction: 2 }
       },
@@ -619,6 +716,8 @@
         category: "hull",
         label: "Lattice plating",
         summary: "hull +30",
+        iconSlot: 3,
+        rigModule: "plating",
         cost: { credits: 110, alloy: 5 },
         effects: { maxHull: 30, hullRiskReduction: 1 }
       },
@@ -627,6 +726,8 @@
         category: "energy",
         label: "Reserve cells",
         summary: "energy +24",
+        iconSlot: 6,
+        rigModule: "cells",
         cost: { credits: 95, alloy: 2 },
         effects: { maxEnergy: 24 }
       },
@@ -635,6 +736,8 @@
         category: "cargo",
         label: "Ribbed hold",
         summary: "cargo +6",
+        iconSlot: 1,
+        rigModule: "cargo",
         cost: { credits: 105, alloy: 3 },
         effects: { cargoCapacity: 6 }
       },
@@ -643,6 +746,8 @@
         category: "scanner",
         label: "Assay lens",
         summary: "sale value +15%",
+        iconSlot: 2,
+        rigModule: "scanner",
         cost: { credits: 80, research: 2 },
         effects: { valueMultiplier: 0.15 }
       },
@@ -651,6 +756,8 @@
         category: "refinery",
         label: "Fine baffles",
         summary: "refine yield +1",
+        iconSlot: 4,
+        rigModule: "refinery",
         cost: { credits: 90, alloy: 3, research: 1 },
         effects: { refineryBonus: 1 }
       },
@@ -659,6 +766,8 @@
         category: "survival",
         label: "Coolant veins",
         summary: "heat +24 / cooling +2",
+        iconSlot: 6,
+        rigModule: "coolant",
         cost: { credits: 135, alloy: 4, research: 2 },
         effects: { maxHeat: 24, coolingRate: 2 }
       },
@@ -667,6 +776,8 @@
         category: "mobility",
         label: "Pressure skids",
         summary: "move cost -0.18",
+        iconSlot: 5,
+        rigModule: "skids",
         cost: { credits: 150, alloy: 6 },
         effects: { moveEnergy: -0.18 }
       },
@@ -675,6 +786,8 @@
         category: "survival",
         label: "Hazard sheath",
         summary: "hazard damage -1",
+        iconSlot: 3,
+        rigModule: "sheath",
         cost: { credits: 170, alloy: 5, research: 4 },
         effects: { hazardMitigation: 1, thermalShielding: 1 }
       },
@@ -683,6 +796,8 @@
         category: "cargo",
         label: "Relic clamp",
         summary: "cargo +4 / sale +10%",
+        iconSlot: 7,
+        rigModule: "archive",
         cost: { credits: 120, relic: 1 },
         effects: { cargoCapacity: 4, valueMultiplier: 0.1 }
       }
@@ -692,6 +807,8 @@
         id: "thermalCartography",
         label: "Thermal cartography",
         summary: "heat shield +2",
+        iconSlot: 6,
+        rigModule: "thermal",
         cost: { research: 5 },
         effects: { thermalShielding: 2 }
       },
@@ -699,6 +816,8 @@
         id: "faultPatterning",
         label: "Fault patterning",
         summary: "pressure risk -1",
+        iconSlot: 3,
+        rigModule: "plating",
         cost: { research: 8, relic: 1 },
         effects: { pressureMitigation: 1, hullRiskReduction: 1 }
       },
@@ -706,6 +825,8 @@
         id: "ventChemistry",
         label: "Vent chemistry",
         summary: "hazard damage -2",
+        iconSlot: 3,
+        rigModule: "sheath",
         cost: { research: 11 },
         effects: { hazardMitigation: 2 }
       },
@@ -713,6 +834,8 @@
         id: "resonantLift",
         label: "Resonant lift",
         summary: "move cost -0.12 / cooling +1",
+        iconSlot: 5,
+        rigModule: "lift",
         cost: { research: 10, relic: 2 },
         effects: { moveEnergy: -0.12, coolingRate: 1 }
       }
