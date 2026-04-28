@@ -33,6 +33,7 @@
       utilityCooling: 0,
       charterDrillHeat: 0,
       returnEnergyPenalty: 0,
+      drillPower: 1,
       motion: {
         maxSpeed: 4.2,
         acceleration: 11.5,
@@ -40,6 +41,17 @@
         velocityDecay: 7.5,
         tapImpulse: 1.35,
         cameraFollow: 8.5
+      },
+      drillContact: {
+        minSeconds: 0.22,
+        baseSeconds: 0.12,
+        hardnessSeconds: 0.18,
+        pressureSeconds: 0.12,
+        cargoLoadSeconds: 0.16,
+        maxSeconds: 3.4,
+        heatPerSecond: 0.18,
+        energyPressure: 0.16,
+        feedbackTick: 0.24
       }
     },
     economy: {
@@ -709,7 +721,7 @@
         iconSlot: 0,
         rigModule: "drill",
         cost: { credits: 120, alloy: 4 },
-        effects: { drillCostReduction: 2 }
+        effects: { drillCostReduction: 2, drillPower: 0.4 }
       },
       {
         id: "hullLattice",

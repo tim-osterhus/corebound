@@ -164,6 +164,8 @@
       held: {},
       lastVector: [0, 1]
     },
+    drillContact: null,
+    completedDrillCell: null,
     cargo: [],
     resources: {
       credits: 0,
@@ -315,7 +317,8 @@
       anchorCharges: DATA.rig.anchorCharges,
       utilityCooling: DATA.rig.utilityCooling,
       charterDrillHeat: DATA.rig.charterDrillHeat,
-      returnEnergyPenalty: DATA.rig.returnEnergyPenalty
+      returnEnergyPenalty: DATA.rig.returnEnergyPenalty,
+      drillPower: DATA.rig.drillPower
     };
 
     for (const upgrade of DATA.upgrades) {
@@ -380,6 +383,7 @@
     stats.utilityCooling = Math.max(0, stats.utilityCooling);
     stats.charterDrillHeat = Math.max(0, stats.charterDrillHeat || 0);
     stats.returnEnergyPenalty = Math.max(0, Math.min(0.65, stats.returnEnergyPenalty || 0));
+    stats.drillPower = Math.max(0.35, stats.drillPower || 0);
     return stats;
   }
 
@@ -414,6 +418,20 @@
       velocityDecay: 7,
       tapImpulse: 1.2,
       cameraFollow: 8
+    };
+  }
+
+  function drillContactSettings() {
+    return DATA.rig.drillContact || {
+      minSeconds: 0.25,
+      baseSeconds: 0.15,
+      hardnessSeconds: 0.2,
+      pressureSeconds: 0.12,
+      cargoLoadSeconds: 0.1,
+      maxSeconds: 3.5,
+      heatPerSecond: 0.15,
+      energyPressure: 0.1,
+      feedbackTick: 0.25
     };
   }
 
@@ -489,6 +507,10 @@
     state.input.held = {};
   }
 
+  function clearDrillContact() {
+    state.drillContact = null;
+  }
+
   function centerSurfaceDock() {
     state.player.x = startingCellX;
     state.player.y = 0;
@@ -502,6 +524,8 @@
     state.energy = rigStats().maxEnergy;
     state.heat = 0;
     clearHeldInput();
+    clearDrillContact();
+    state.completedDrillCell = null;
     syncMotionToPlayer(true);
     setMessage(message || "Surface lock reached. Settle cargo, repair, or relaunch.");
     updateHud();
@@ -1482,11 +1506,244 @@
     return true;
   }
 
+  function drillCompletionCost(targetY, terrain, stats) {
+    const pressure = pressureTier(targetY);
+    return Math.max(1, terrain.energyCost + pressure - stats.drillCostReduction);
+  }
+
+  function drillContactDuration(targetY, terrain, stats) {
+    const settings = drillContactSettings();
+    const pressure = pressureTier(targetY);
+    const loadRatio = clamp(cargoLoad() / stats.cargoCapacity, 0, 1);
+    const rawDuration = settings.baseSeconds
+      + terrain.hardness * settings.hardnessSeconds
+      + pressure * settings.pressureSeconds
+      + loadRatio * settings.cargoLoadSeconds;
+    const poweredDuration = rawDuration / stats.drillPower;
+    return clamp(poweredDuration, settings.minSeconds, settings.maxSeconds);
+  }
+
+  function sameDrillTarget(contact, targetX, targetY, dx, dy) {
+    return contact
+      && contact.targetX === targetX
+      && contact.targetY === targetY
+      && contact.dx === dx
+      && contact.dy === dy;
+  }
+
+  function completedDrillMatches(targetX, targetY) {
+    return state.completedDrillCell
+      && state.completedDrillCell.x === targetX
+      && state.completedDrillCell.y === targetY;
+  }
+
+  function solidDrillCandidate(dx, dy) {
+    if (!dx && !dy) {
+      return null;
+    }
+
+    const targetX = state.player.x + dx;
+    const targetY = state.player.y + dy;
+    const cell = cellAt(targetX, targetY);
+    if (!cell || cell.kind !== "solid") {
+      return null;
+    }
+
+    return { targetX, targetY, dx, dy, cell };
+  }
+
+  function drillIntentVector() {
+    const input = activeInputVector();
+    if (input[0] || input[1]) {
+      return input;
+    }
+
+    const motion = state.motion;
+    const speed = Math.hypot(motion.velocityX, motion.velocityY);
+    if (speed < 0.18) {
+      return [0, 0];
+    }
+
+    if (Math.abs(motion.velocityX) >= Math.abs(motion.velocityY)) {
+      return [Math.sign(motion.velocityX), 0];
+    }
+    return [0, Math.sign(motion.velocityY)];
+  }
+
+  function startDrillContact(targetX, targetY, dx, dy, cell) {
+    if (sameDrillTarget(state.drillContact, targetX, targetY, dx, dy)) {
+      return state.drillContact;
+    }
+
+    const stats = rigStats();
+    const terrain = DATA.terrainTypes[cell.terrain];
+    const pressure = pressureTier(targetY);
+    const contact = {
+      targetX,
+      targetY,
+      dx,
+      dy,
+      direction: [dx, dy],
+      terrainKey: cell.terrain,
+      terrainLabel: terrain.label,
+      hardness: terrain.hardness,
+      pressure,
+      progress: 0,
+      required: drillContactDuration(targetY, terrain, stats),
+      completionCost: drillCompletionCost(targetY, terrain, stats),
+      feedbackPulse: 0,
+      lastFeedbackStep: -1,
+      completed: false
+    };
+    state.drillContact = contact;
+    setMessage(`${terrain.label} resists. Hold contact to cut.`);
+    return contact;
+  }
+
+  function drillContactReady(contact, cell) {
+    const stats = rigStats();
+    const terrain = DATA.terrainTypes[cell.terrain];
+    contact.completionCost = drillCompletionCost(contact.targetY, terrain, stats);
+    if (state.energy < contact.completionCost) {
+      returnToSurface("Reserve power low. Surface winch engaged.");
+      return false;
+    }
+
+    if (cell.ore && cargoLoad() + DATA.oreTypes[cell.ore].weight > stats.cargoCapacity) {
+      setMessage(`${DATA.oreTypes[cell.ore].label} blocked by full cargo.`);
+      return false;
+    }
+    return true;
+  }
+
+  function setMotionAgainstDrillContact(contact) {
+    const ratio = contact.required ? clamp(contact.progress / contact.required, 0, 1) : 0;
+    const buzz = Math.sin(state.motion.animTime * 42 + contact.targetX * 3 + contact.targetY) * 0.012;
+    const compression = 0.08 + ratio * 0.11 + buzz;
+    state.motion.worldX = state.player.x + contact.dx * compression;
+    state.motion.worldY = state.player.y + contact.dy * compression;
+    if (contact.dx) {
+      state.motion.velocityX = 0;
+      state.motion.velocityY = approachZero(state.motion.velocityY, 0.08);
+    }
+    if (contact.dy) {
+      state.motion.velocityY = 0;
+      state.motion.velocityX = approachZero(state.motion.velocityX, 0.08);
+    }
+  }
+
+  function applyDrillContactPressure(contact, cell, dt) {
+    const settings = drillContactSettings();
+    const stats = rigStats();
+    const terrain = DATA.terrainTypes[cell.terrain];
+    const pressure = pressureTier(contact.targetY);
+    const heat = ((terrain.heat || 0) + pressure + stats.charterDrillHeat) * settings.heatPerSecond * dt;
+    const energyDraw = Math.max(0, (terrain.energyCost + pressure) * settings.energyPressure * dt);
+
+    if (heat > 0) {
+      addHeat(heat);
+    }
+    if (energyDraw > 0) {
+      state.energy = Math.max(0, state.energy - energyDraw);
+    }
+
+    if (state.energy <= 0 || state.hull <= 0) {
+      returnToSurface(state.hull <= 0 ? "Emergency casing recall fired." : "Reserve power low. Surface winch engaged.");
+      return false;
+    }
+    return true;
+  }
+
+  function completeDrillContact(contact) {
+    const targetX = contact.targetX;
+    const targetY = contact.targetY;
+    const cell = cellAt(targetX, targetY);
+    if (!cell || cell.kind !== "solid") {
+      clearDrillContact();
+      return false;
+    }
+
+    contact.completed = true;
+    if (!drillBlock(targetX, targetY, cell)) {
+      clearDrillContact();
+      updateHud();
+      return false;
+    }
+
+    state.completedDrillCell = { x: targetX, y: targetY };
+    clearDrillContact();
+    const entered = enterCell(targetX, targetY, contact.dx, contact.dy);
+    state.completedDrillCell = null;
+    if (entered && !state.docked) {
+      state.motion.worldX = state.player.x;
+      state.motion.worldY = state.player.y;
+    }
+    updateHud();
+    return entered;
+  }
+
+  function advanceDrillContact(targetX, targetY, dx, dy, dt) {
+    if (state.player.y === 0 && state.docked) {
+      if (dy <= 0 || !launchRun()) {
+        return true;
+      }
+    }
+
+    const cell = cellAt(targetX, targetY);
+    if (!cell || cell.kind !== "solid") {
+      if (sameDrillTarget(state.drillContact, targetX, targetY, dx, dy)) {
+        clearDrillContact();
+      }
+      return false;
+    }
+
+    const contact = startDrillContact(targetX, targetY, dx, dy, cell);
+    setMotionAgainstDrillContact(contact);
+    if (!drillContactReady(contact, cell)) {
+      updateHud();
+      return true;
+    }
+
+    if (dt > 0) {
+      contact.progress = Math.min(contact.required, contact.progress + dt);
+      contact.feedbackPulse += dt;
+      const settings = drillContactSettings();
+      const step = Math.floor((contact.progress / contact.required) * 4);
+      if (contact.feedbackPulse >= settings.feedbackTick || step > contact.lastFeedbackStep) {
+        contact.feedbackPulse = 0;
+        contact.lastFeedbackStep = step;
+        const percent = Math.min(99, Math.max(1, Math.round((contact.progress / contact.required) * 100)));
+        setMessage(`${contact.terrainLabel} bite ${percent}% / hardness ${contact.hardness} / pressure ${contact.pressure}.`);
+      }
+      if (!applyDrillContactPressure(contact, cell, dt)) {
+        return true;
+      }
+    }
+
+    updateHud();
+    if (contact.progress >= contact.required) {
+      completeDrillContact(contact);
+    }
+    return true;
+  }
+
+  function updateDrillContact(dt) {
+    const intent = drillIntentVector();
+    const candidate = solidDrillCandidate(intent[0], intent[1]);
+    if (!candidate) {
+      if (state.drillContact) {
+        clearDrillContact();
+      }
+      return false;
+    }
+    return advanceDrillContact(candidate.targetX, candidate.targetY, candidate.dx, candidate.dy, dt);
+  }
+
   function drillBlock(x, y, cell) {
     const stats = rigStats();
     const terrain = DATA.terrainTypes[cell.terrain];
     const pressure = pressureTier(y);
-    const cost = Math.max(1, terrain.energyCost + pressure - stats.drillCostReduction);
+    const cost = drillCompletionCost(y, terrain, stats);
     if (state.energy < cost) {
       returnToSurface("Reserve power low. Surface winch engaged.");
       return false;
@@ -1538,13 +1795,11 @@
       return false;
     }
 
-    let drilled = false;
+    let drilled = completedDrillMatches(targetX, targetY);
     if (cell.kind === "solid") {
-      if (!drillBlock(targetX, targetY, cell)) {
-        updateHud();
-        return false;
-      }
-      drilled = true;
+      advanceDrillContact(targetX, targetY, dx, dy, 0);
+      updateHud();
+      return false;
     }
 
     if (targetY > 0 && cell.kind !== "solid") {
@@ -1693,6 +1948,9 @@
 
     applyMotionInput(dt);
     const motion = state.motion;
+    if (updateDrillContact(dt)) {
+      return;
+    }
     if (Math.abs(motion.velocityX) < 0.001 && Math.abs(motion.velocityY) < 0.001) {
       return;
     }
@@ -1712,7 +1970,15 @@
         }
       }
 
-      const entered = enterCell(state.player.x + dx, state.player.y + dy, dx, dy);
+      const targetX = state.player.x + dx;
+      const targetY = state.player.y + dy;
+      const targetCell = cellAt(targetX, targetY);
+      if (targetCell && targetCell.kind === "solid") {
+        advanceDrillContact(targetX, targetY, dx, dy, dt);
+        return;
+      }
+
+      const entered = enterCell(targetX, targetY, dx, dy);
       if (!entered) {
         stopMotionAtCell(dx, dy);
         return;
@@ -2161,6 +2427,56 @@
     ctx.fillRect(screenX + size * 0.18, screenY + size * 0.2, size * 0.2, size * 0.08);
   }
 
+  function drillContactForCell(worldX, worldY) {
+    const contact = state.drillContact;
+    if (!contact || contact.targetX !== worldX || contact.targetY !== worldY) {
+      return null;
+    }
+    return contact;
+  }
+
+  function drawDrillContactFeedback(contact, screenX, screenY, size) {
+    const ratio = contact.required ? clamp(contact.progress / contact.required, 0, 1) : 0;
+    const cx = screenX + size * 0.5;
+    const cy = screenY + size * 0.5;
+    const pulse = 0.5 + Math.sin(state.motion.animTime * 34) * 0.5;
+    const barWidth = size * 0.7;
+    const barHeight = Math.max(2, size * 0.07);
+    const barX = screenX + size * 0.15;
+    const barY = screenY + size * 0.82;
+
+    ctx.save();
+    ctx.fillStyle = "rgba(5, 7, 8, 0.72)";
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    ctx.fillStyle = "rgba(71, 224, 195, 0.86)";
+    ctx.fillRect(barX, barY, Math.max(2, barWidth * ratio), barHeight);
+    ctx.strokeStyle = "rgba(231, 240, 236, 0.42)";
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+    ctx.strokeStyle = "rgba(231, 240, 236, 0.56)";
+    ctx.lineWidth = Math.max(1, size * 0.035);
+    for (let index = 0; index < 4; index += 1) {
+      const angle = index * Math.PI * 0.5 + ratio * 1.4;
+      const inner = size * (0.08 + ratio * 0.08);
+      const outer = size * (0.22 + ratio * 0.18);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+      ctx.lineTo(cx + Math.cos(angle + 0.18) * outer, cy + Math.sin(angle + 0.18) * outer);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = `rgba(213, 166, 73, ${0.25 + pulse * 0.45})`;
+    const sparkX = cx - contact.dx * size * 0.2 + Math.sin(state.motion.animTime * 51) * size * 0.08;
+    const sparkY = cy - contact.dy * size * 0.2 + Math.cos(state.motion.animTime * 47) * size * 0.08;
+    ctx.fillRect(sparkX, sparkY, Math.max(2, size * 0.08), Math.max(2, size * 0.08));
+
+    ctx.strokeStyle = "rgba(71, 224, 195, 0.28)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * (0.26 + ratio * 0.18), -Math.PI * 0.5, -Math.PI * 0.5 + Math.PI * 2 * ratio);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawReadableIcon(kind, key, screenX, screenY, size) {
     const slotMap = kind === "ore" ? ASSET_DATA.oreIcons : ASSET_DATA.hazardIcons;
     const slot = slotMap ? slotMap[key] : null;
@@ -2238,11 +2554,19 @@
 
     if (!cell.ore) {
       drawHazardMark(cell, screenX, screenY, size);
+      const contact = drillContactForCell(worldX, worldY);
+      if (contact) {
+        drawDrillContactFeedback(contact, screenX, screenY, size);
+      }
       return;
     }
 
     drawOreMark(cell, screenX, screenY, size);
     drawHazardMark(cell, screenX, screenY, size);
+    const contact = drillContactForCell(worldX, worldY);
+    if (contact) {
+      drawDrillContactFeedback(contact, screenX, screenY, size);
+    }
   }
 
   function drawPrimitiveRig(screenX, screenY, size) {
@@ -2341,6 +2665,20 @@
     ctx.restore();
   }
 
+  function drillContactRigJitter(size) {
+    const contact = state.drillContact;
+    if (!contact) {
+      return { x: 0, y: 0 };
+    }
+
+    const ratio = contact.required ? clamp(contact.progress / contact.required, 0, 1) : 0;
+    const shake = Math.sin(state.motion.animTime * 58) * size * (0.015 + ratio * 0.018);
+    return {
+      x: -contact.dx * size * 0.05 + (contact.dy ? shake : 0),
+      y: -contact.dy * size * 0.05 + (contact.dx ? shake : 0)
+    };
+  }
+
   function drawRig(screenX, screenY, size) {
     const image = loadedAsset("rig.mantis_motion_strip");
     if (!image) {
@@ -2431,7 +2769,12 @@
 
     const rigScreenX = originX + (state.motion.worldX - cameraX) * size;
     const rigScreenY = originY + (state.motion.worldY - cameraY) * size;
-    drawRig(rigScreenX, rigScreenY, size);
+    if (state.drillContact) {
+      const contactJitter = drillContactRigJitter(size);
+      drawRig(rigScreenX + contactJitter.x, rigScreenY + contactJitter.y, size);
+    } else {
+      drawRig(rigScreenX, rigScreenY, size);
+    }
     ctx.restore();
 
     ctx.strokeStyle = "rgba(71, 224, 195, 0.22)";
