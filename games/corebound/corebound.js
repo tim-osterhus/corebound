@@ -7,12 +7,17 @@
   const hud = {
     depth: document.getElementById("depth-readout"),
     cargo: document.getElementById("cargo-readout"),
+    cargoMeter: document.getElementById("cargo-meter-fill"),
     hull: document.getElementById("hull-readout"),
+    hullMeter: document.getElementById("hull-meter-fill"),
     energy: document.getElementById("energy-readout"),
+    energyMeter: document.getElementById("energy-meter-fill"),
     heat: document.getElementById("heat-readout"),
+    heatMeter: document.getElementById("heat-meter-fill"),
     pressure: document.getElementById("pressure-readout"),
     serviceContext: document.getElementById("service-context"),
     warning: document.getElementById("warning-readout"),
+    warningStrip: document.querySelector(".warning-strip"),
     banked: document.getElementById("banked-readout"),
     alloy: document.getElementById("alloy-readout"),
     research: document.getElementById("research-readout"),
@@ -458,19 +463,19 @@
   function serviceContextLabel() {
     if (state.docked && state.player.y === 0) {
       if (state.cargo.length > 0) {
-        return "surface: settle cargo";
+        return "settle cargo";
       }
       if (state.hull < rigStats().maxHull) {
-        return "surface: rig bay";
+        return "rig bay";
       }
-      return "surface: launch ready";
+      return "launch ready";
     }
 
     if (state.drillContact) {
       const cell = cellAt(state.drillContact.targetX, state.drillContact.targetY);
       if (cell && cell.terrain) {
         const terrain = DATA.terrainTypes[cell.terrain];
-        return terrain ? `drilling: ${terrain.label}` : "drilling";
+        return terrain ? `drill: ${terrain.label}` : "drilling";
       }
       return "drilling";
     }
@@ -998,6 +1003,17 @@
       return "rising";
     }
     return "crush";
+  }
+
+  function meterPercent(value, max) {
+    return Math.round(clamp(value / Math.max(1, max), 0, 1) * 100);
+  }
+
+  function setMeterFill(element, value, max) {
+    if (!element) {
+      return;
+    }
+    element.style.width = `${meterPercent(value, max)}%`;
   }
 
   function coolRig(multiplier) {
@@ -2920,15 +2936,23 @@
     const load = cargoLoad();
     hud.depth.textContent = `${depth} m`;
     hud.cargo.textContent = `${load} / ${stats.cargoCapacity}`;
-    hud.hull.textContent = `${Math.round(state.hull)} / ${stats.maxHull}`;
-    hud.energy.textContent = `${Math.round(state.energy)} / ${stats.maxEnergy}`;
-    hud.heat.textContent = `${Math.round(state.heat)} / ${stats.maxHeat}`;
+    hud.hull.textContent = `${meterPercent(state.hull, stats.maxHull)}%`;
+    hud.energy.textContent = `${meterPercent(state.energy, stats.maxEnergy)}%`;
+    hud.heat.textContent = `${meterPercent(state.heat, stats.maxHeat)}%`;
+    setMeterFill(hud.cargoMeter, load, stats.cargoCapacity);
+    setMeterFill(hud.hullMeter, state.hull, stats.maxHull);
+    setMeterFill(hud.energyMeter, state.energy, stats.maxEnergy);
+    setMeterFill(hud.heatMeter, state.heat, stats.maxHeat);
     hud.pressure.textContent = pressureLabel(state.player.y);
     if (hud.serviceContext) {
       hud.serviceContext.textContent = serviceContextLabel();
     }
     if (hud.warning) {
-      hud.warning.textContent = warningLabel(stats, load);
+      const warning = warningLabel(stats, load);
+      hud.warning.textContent = warning;
+      if (hud.warningStrip) {
+        hud.warningStrip.dataset.warningState = warning === "clear" ? "clear" : "alert";
+      }
     }
     hud.banked.textContent = `credits ${state.resources.credits}`;
     hud.alloy.textContent = `alloy ${state.resources.alloy}`;

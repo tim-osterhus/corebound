@@ -43,34 +43,38 @@
             >menu</button>
           </div>
 
-          <div class="meter-grid">
-            <div class="readout">
+          <div class="meter-grid" aria-label="Rig status meters">
+            <div class="readout readout-depth">
               <span class="meter-label"><i class="hud-icon hud-icon-depth" aria-hidden="true"></i>Depth</span>
               <strong id="depth-readout">0 m</strong>
             </div>
-            <div class="readout">
+            <div class="readout readout-cargo">
               <span class="meter-label"><i class="hud-icon hud-icon-cargo" aria-hidden="true"></i>Cargo</span>
               <strong id="cargo-readout">0 / 12</strong>
+              <span class="meter-track" aria-hidden="true"><span id="cargo-meter-fill"></span></span>
             </div>
-            <div class="readout">
+            <div class="readout readout-hull">
               <span class="meter-label"><i class="hud-icon hud-icon-hull" aria-hidden="true"></i>Hull</span>
               <strong id="hull-readout">100%</strong>
+              <span class="meter-track" aria-hidden="true"><span id="hull-meter-fill"></span></span>
             </div>
-            <div class="readout">
+            <div class="readout readout-energy">
               <span class="meter-label"><i class="hud-icon hud-icon-energy" aria-hidden="true"></i>Energy</span>
               <strong id="energy-readout">100%</strong>
+              <span class="meter-track" aria-hidden="true"><span id="energy-meter-fill"></span></span>
             </div>
-            <div class="readout">
+            <div class="readout readout-heat">
               <span class="meter-label"><i class="hud-icon hud-icon-heat" aria-hidden="true"></i>Heat</span>
-              <strong id="heat-readout">0 / 100</strong>
+              <strong id="heat-readout">0%</strong>
+              <span class="meter-track" aria-hidden="true"><span id="heat-meter-fill"></span></span>
             </div>
-            <div class="readout">
-              <span>Pressure</span>
+            <div class="readout readout-pressure">
+              <span class="meter-label"><i class="hud-status-dot" aria-hidden="true"></i>Pressure</span>
               <strong id="pressure-readout">clear</strong>
             </div>
           </div>
 
-          <div class="objective-panel" aria-label="Current objective">
+          <div class="objective-panel objective-chip" aria-label="Current objective">
             <div class="panel-head">
               <span>Objective</span>
               <strong id="objective-status">first run</strong>
@@ -81,11 +85,11 @@
           </div>
 
           <div class="hud-context-strip" aria-label="Action context and warnings">
-            <div>
+            <div class="context-strip">
               <span>Context</span>
-              <strong id="service-context">surface dock</strong>
+              <strong id="service-context">launch ready</strong>
             </div>
-            <div>
+            <div class="warning-strip" data-warning-state="clear">
               <span>Warning</span>
               <strong id="warning-readout">clear</strong>
             </div>

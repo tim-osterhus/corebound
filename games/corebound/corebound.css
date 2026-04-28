@@ -166,9 +166,15 @@ h1 {
   top: 10px;
   left: 10px;
   z-index: 5;
-  width: min(440px, calc(100% - 20px));
+  width: min(680px, calc(100% - 20px));
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1.8fr) minmax(150px, 0.7fr);
+  grid-template-areas:
+    "top top"
+    "meters meters"
+    "objective context"
+    "log context";
+  gap: 5px;
   pointer-events: none;
 }
 
@@ -177,6 +183,7 @@ h1 {
 }
 
 .hud-topline {
+  grid-area: top;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 42px;
   gap: 6px;
@@ -208,7 +215,7 @@ h1 {
   white-space: nowrap;
   border-color: var(--line-hot);
   color: var(--signal);
-  padding: 8px 9px;
+  padding: 7px 8px;
   background: rgba(7, 16, 17, 0.82);
 }
 
@@ -230,17 +237,21 @@ h1 {
 }
 
 .meter-grid {
+  grid-area: meters;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
 }
 
 .readout {
-  min-height: 48px;
-  padding: 7px;
+  min-height: 34px;
+  padding: 5px 6px;
   display: grid;
-  align-content: space-between;
-  background: rgba(7, 10, 12, 0.74);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 3px;
+  align-items: center;
+  gap: 3px 6px;
+  background: rgba(7, 10, 12, 0.68);
 }
 
 .readout strong {
@@ -248,24 +259,28 @@ h1 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--ink);
+  text-align: right;
 }
 
 .readout .meter-label {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .hud-icon {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   display: inline-block;
   flex: 0 0 auto;
   background-image: url("assets/hud/hud-icon-atlas.png");
-  background-size: 90px 18px;
+  background-size: 75px 15px;
   background-repeat: no-repeat;
   image-rendering: auto;
 }
@@ -275,25 +290,67 @@ h1 {
 }
 
 .hud-icon-energy {
-  background-position: -18px 0;
+  background-position: -15px 0;
 }
 
 .hud-icon-heat {
-  background-position: -36px 0;
+  background-position: -30px 0;
 }
 
 .hud-icon-cargo {
-  background-position: -54px 0;
+  background-position: -45px 0;
 }
 
 .hud-icon-depth {
-  background-position: -72px 0;
+  background-position: -60px 0;
+}
+
+.hud-status-dot {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  flex: 0 0 auto;
+  border: 1px solid var(--line-hot);
+  background: rgba(71, 224, 195, 0.24);
+}
+
+.meter-track {
+  grid-column: 1 / -1;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(32, 48, 51, 0.7);
+}
+
+.meter-track span {
+  width: 0;
+  height: 100%;
+  display: block;
+  background: var(--signal);
+  transition: width 120ms ease;
+}
+
+.readout-hull .meter-track span {
+  background: var(--blue);
+}
+
+.readout-heat .meter-track span {
+  background: var(--warning);
+}
+
+.readout-pressure {
+  grid-template-rows: auto;
 }
 
 .objective-panel {
-  max-width: 440px;
+  grid-area: objective;
+  max-width: none;
   min-height: 0;
-  padding: 9px;
+  padding: 6px 8px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  align-content: start;
+  gap: 3px 8px;
 }
 
 .in-game-hud #objective-list {
@@ -308,6 +365,12 @@ h1 {
   align-items: baseline;
   padding-bottom: 7px;
   border-bottom: 1px solid var(--line);
+}
+
+.objective-chip .panel-head {
+  gap: 5px;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .panel-head strong,
@@ -327,41 +390,8 @@ h1 {
 
 #objective-title {
   display: block;
-  margin-top: 7px;
-  color: var(--ink);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.objective-progress {
-  margin: 7px 0 0;
-  color: var(--blue);
-  font-size: 0.74rem;
-  line-height: 1.35;
-}
-
-.hud-context-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1px;
-  overflow: hidden;
-  background: rgba(7, 10, 12, 0.72);
-}
-
-.hud-context-strip div {
   min-width: 0;
-  padding: 8px;
-  display: grid;
-  gap: 3px;
-  border-right: 1px solid var(--line);
-}
-
-.hud-context-strip div:last-child {
-  border-right: 0;
-}
-
-.hud-context-strip strong {
-  min-width: 0;
+  margin-top: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -370,14 +400,70 @@ h1 {
   font-weight: 600;
 }
 
-.signal-log {
-  min-height: 44px;
-  max-height: 56px;
+.objective-progress {
+  grid-column: 2;
+  min-width: 0;
+  margin: 0;
   overflow: hidden;
-  padding: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-height: 1.2em;
   color: var(--blue);
-  font-size: 0.74rem;
-  line-height: 1.35;
+  font-size: 0.66rem;
+  line-height: 1.2;
+}
+
+.hud-context-strip {
+  grid-area: context;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+  overflow: hidden;
+  background: rgba(7, 10, 12, 0.72);
+}
+
+.hud-context-strip div {
+  min-width: 0;
+  padding: 6px 8px;
+  display: grid;
+  gap: 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hud-context-strip div:last-child {
+  border-bottom: 0;
+}
+
+.hud-context-strip strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.warning-strip[data-warning-state="alert"] {
+  border-color: rgba(213, 166, 73, 0.5);
+  background: rgba(213, 166, 73, 0.12);
+}
+
+.warning-strip[data-warning-state="alert"] strong {
+  color: var(--warning);
+}
+
+.signal-log {
+  grid-area: log;
+  min-height: 30px;
+  max-height: 30px;
+  overflow: hidden;
+  padding: 6px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--blue);
+  font-size: 0.66rem;
+  line-height: 1.25;
   background: rgba(7, 10, 12, 0.72);
 }
 
@@ -860,18 +946,32 @@ h1 {
     font-size: 1.35rem;
   }
 
-  .meter-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .hud {
     top: 8px;
     left: 8px;
-    width: calc(100% - 16px);
+    width: min(560px, calc(100% - 16px));
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.86fr);
+    grid-template-areas:
+      "top top"
+      "meters meters"
+      "objective context";
+  }
+
+  .hud-context-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hud-context-strip div {
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .hud-context-strip div:last-child {
+    border-right: 0;
   }
 
   .signal-log {
-    max-width: min(440px, 100%);
+    display: none;
   }
 
   .surface-dock {
@@ -933,24 +1033,31 @@ h1 {
     top: 6px;
     left: 6px;
     width: calc(100% - 12px);
-    gap: 6px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "top"
+      "meters"
+      "objective"
+      "context";
+    gap: 4px;
   }
 
   .meter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .readout {
-    min-height: 42px;
-    padding: 6px;
+    min-height: 30px;
+    padding: 4px 5px;
   }
 
   .readout strong {
-    font-size: 0.76rem;
+    font-size: 0.68rem;
   }
 
   .objective-panel {
-    padding: 7px;
+    padding: 5px 6px;
   }
 
   #objective-title,
@@ -959,9 +1066,17 @@ h1 {
     font-size: 0.68rem;
   }
 
-  .objective-progress {
-    max-height: 2.8em;
-    overflow: hidden;
+  .hud-context-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hud-context-strip div {
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .hud-context-strip div:last-child {
+    border-right: 0;
   }
 
   .hud-context-strip strong {

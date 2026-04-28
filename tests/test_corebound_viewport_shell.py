@@ -16,6 +16,7 @@ class CoreboundViewportShellTests(unittest.TestCase):
         for contract in (
             'tabindex="0"',
             'class="hud in-game-hud"',
+            'aria-label="Rig status meters"',
             'id="service-context"',
             'id="warning-readout"',
             'class="surface-panel surface-dock"',
@@ -27,6 +28,44 @@ class CoreboundViewportShellTests(unittest.TestCase):
 
         self.assertGreater(menu_start, viewport_start)
         self.assertLess(html.index('class="surface-panel surface-dock"'), menu_start)
+
+    def test_hud_overlay_is_compressed_into_meters_and_objective_chip(self) -> None:
+        html = (GAME_DIR / "index.html").read_text(encoding="utf-8")
+        css = (GAME_DIR / "corebound.css").read_text(encoding="utf-8")
+        script = (GAME_DIR / "corebound.js").read_text(encoding="utf-8")
+
+        for contract in (
+            'class="objective-panel objective-chip"',
+            'id="cargo-meter-fill"',
+            'id="hull-meter-fill"',
+            'id="energy-meter-fill"',
+            'id="heat-meter-fill"',
+            'class="warning-strip" data-warning-state="clear"',
+        ):
+            self.assertIn(contract, html)
+
+        for compact_rule in (
+            "grid-template-areas:",
+            '"objective context"',
+            '"log context";',
+            "grid-template-columns: repeat(6, minmax(0, 1fr));",
+            ".objective-chip .panel-head",
+            ".meter-track",
+            "max-height: 1.2em;",
+            '.warning-strip[data-warning-state="alert"]',
+        ):
+            self.assertIn(compact_rule, css)
+
+        for behavior in (
+            "cargoMeter",
+            "hullMeter",
+            "energyMeter",
+            "heatMeter",
+            "meterPercent",
+            "setMeterFill",
+            "hud.warningStrip.dataset.warningState",
+        ):
+            self.assertIn(behavior, script)
 
     def test_secondary_systems_live_in_the_menu_surface(self) -> None:
         html = (GAME_DIR / "index.html").read_text(encoding="utf-8")
