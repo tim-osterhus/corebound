@@ -11,6 +11,8 @@
     energy: document.getElementById("energy-readout"),
     heat: document.getElementById("heat-readout"),
     pressure: document.getElementById("pressure-readout"),
+    serviceContext: document.getElementById("service-context"),
+    warning: document.getElementById("warning-readout"),
     banked: document.getElementById("banked-readout"),
     alloy: document.getElementById("alloy-readout"),
     research: document.getElementById("research-readout"),
@@ -44,6 +46,7 @@
     facilityStatus: document.getElementById("facility-status"),
     facilityProgress: document.getElementById("facility-progress"),
     utilities: document.getElementById("utility-list"),
+    surfacePanel: document.querySelector(".surface-panel"),
     help: {
       toggle: document.getElementById("help-toggle"),
       surface: document.getElementById("help-surface"),
@@ -450,6 +453,66 @@
     hud.log.textContent = message;
   }
 
+  function serviceContextLabel() {
+    if (state.docked && state.player.y === 0) {
+      if (state.cargo.length > 0) {
+        return "surface: settle cargo";
+      }
+      if (state.hull < rigStats().maxHull) {
+        return "surface: rig bay";
+      }
+      return "surface: launch ready";
+    }
+
+    if (state.drillContact) {
+      const cell = cellAt(state.drillContact.targetX, state.drillContact.targetY);
+      if (cell && cell.terrain) {
+        const terrain = DATA.terrainTypes[cell.terrain];
+        return terrain ? `drilling: ${terrain.label}` : "drilling";
+      }
+      return "drilling";
+    }
+
+    const contract = activeContract();
+    if (contract && !state.completedContracts[contract.id]) {
+      return `contract: ${contract.label}`;
+    }
+
+    const charter = runCharter();
+    if (charter && !state.completedCharters[charter.id]) {
+      return `charter: ${charter.label}`;
+    }
+
+    const route = runRoute();
+    return route ? `route: ${route.label}` : "field traverse";
+  }
+
+  function warningLabel(stats, load) {
+    if (state.hull <= 0) {
+      return "hull failed";
+    }
+    if (state.heat >= stats.maxHeat * 0.85) {
+      return "heat critical";
+    }
+    if (state.energy <= stats.maxEnergy * 0.18) {
+      return "energy low";
+    }
+    if (state.hull <= stats.maxHull * 0.32) {
+      return "hull low";
+    }
+    if (load >= stats.cargoCapacity) {
+      return "cargo full";
+    }
+    const pressure = pressureTier(state.player.y);
+    if (pressure >= 3) {
+      return "crush pressure";
+    }
+    if (state.drillContact) {
+      return "bite engaged";
+    }
+    return "clear";
+  }
+
   const ONBOARDING_STEPS = [
     {
       id: "launch",
@@ -779,9 +842,12 @@
   }
 
   function viewportShape() {
+    const rows = canvas.height < 520 ? 13 : 17;
+    const minimumCols = canvas.width < 680 ? 15 : 21;
+    const aspectCols = Math.ceil((canvas.width / Math.max(1, canvas.height)) * rows);
     return {
-      cols: canvas.width < 680 ? 15 : 21,
-      rows: canvas.height < 520 ? 13 : 17
+      cols: clamp(Math.max(minimumCols, aspectCols), minimumCols, DATA.world.width),
+      rows
     };
   }
 
@@ -852,14 +918,37 @@
     render();
   }
 
-  function setHelpOpen(open) {
+  function focusWithoutScroll(element) {
+    if (!element || typeof element.focus !== "function") {
+      return;
+    }
+    try {
+      element.focus({ preventScroll: true });
+    } catch (error) {
+      element.focus();
+    }
+  }
+
+  function focusGameSurface() {
+    focusWithoutScroll(canvas);
+  }
+
+  function isHelpOpen() {
+    return !!(hud.help.surface && !hud.help.surface.hidden);
+  }
+
+  function setHelpOpen(open, restoreFocus) {
     if (!hud.help.surface || !hud.help.toggle) {
       return;
     }
     hud.help.surface.hidden = !open;
     hud.help.toggle.setAttribute("aria-expanded", open ? "true" : "false");
     if (open) {
+      clearHeldInput();
       renderHelpSurface();
+      focusWithoutScroll(hud.help.close);
+    } else if (restoreFocus) {
+      focusGameSurface();
     }
   }
 
@@ -2758,6 +2847,12 @@
     hud.energy.textContent = `${Math.round(state.energy)} / ${stats.maxEnergy}`;
     hud.heat.textContent = `${Math.round(state.heat)} / ${stats.maxHeat}`;
     hud.pressure.textContent = pressureLabel(state.player.y);
+    if (hud.serviceContext) {
+      hud.serviceContext.textContent = serviceContextLabel();
+    }
+    if (hud.warning) {
+      hud.warning.textContent = warningLabel(stats, load);
+    }
     hud.banked.textContent = `credits ${state.resources.credits}`;
     hud.alloy.textContent = `alloy ${state.resources.alloy}`;
     hud.research.textContent = `research ${state.resources.research}`;
@@ -2766,6 +2861,11 @@
     const routeLabel = route && routesLayerOpen() ? ` / ${route.label}` : "";
     const runLocation = state.player.y <= 0 ? "launch shaft" : bandForDepth(state.player.y).name;
     hud.state.textContent = state.docked ? "surface dock" : `run ${state.runNumber} / ${runLocation}${routeLabel}`;
+    if (hud.surfacePanel) {
+      const dockOpen = state.player.y === 0 && state.docked;
+      hud.surfacePanel.classList.toggle("surface-dock-active", dockOpen);
+      hud.surfacePanel.classList.toggle("surface-dock-away", !dockOpen);
+    }
 
     const counts = oreCounts();
     hud.ores.replaceChildren();
@@ -3220,6 +3320,9 @@
     if (!dir) {
       return;
     }
+    if (isHelpOpen()) {
+      return;
+    }
     event.preventDefault();
     beginDirectionalInput(`key:${event.key}`, dir[0], dir[1]);
   });
@@ -3265,27 +3368,28 @@
   });
   if (hud.help.toggle) {
     hud.help.toggle.addEventListener("click", () => {
-      setHelpOpen(hud.help.surface ? hud.help.surface.hidden : true);
+      setHelpOpen(hud.help.surface ? hud.help.surface.hidden : true, true);
     });
   }
   if (hud.help.close) {
-    hud.help.close.addEventListener("click", () => setHelpOpen(false));
+    hud.help.close.addEventListener("click", () => setHelpOpen(false, true));
   }
   if (hud.help.returnSurface) {
     hud.help.returnSurface.addEventListener("click", () => {
       recallRunFromHelp();
-      setHelpOpen(false);
+      setHelpOpen(false, true);
     });
   }
   if (hud.help.resetRun) {
     hud.help.resetRun.addEventListener("click", () => {
       resetCurrentRun();
-      setHelpOpen(false);
+      setHelpOpen(false, true);
     });
   }
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && hud.help.surface && !hud.help.surface.hidden) {
-      setHelpOpen(false);
+    if (event.key === "Escape" && hud.help.surface) {
+      event.preventDefault();
+      setHelpOpen(hud.help.surface.hidden, true);
     }
   });
 
