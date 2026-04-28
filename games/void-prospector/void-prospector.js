@@ -27,6 +27,7 @@ const VoidProspector = (() => {
       turnRight: ["KeyD", "ArrowRight"],
       retarget: ["Tab", "KeyE"],
       mine: ["Space", "KeyM"],
+      scan: ["KeyC"],
       interact: ["Enter", "KeyF"],
       upgrade: ["KeyU"],
       reset: ["KeyR"],
@@ -59,7 +60,7 @@ const VoidProspector = (() => {
       name: "Frontier Spoke",
       position: { x: 24, y: 0, z: -12 },
       dockingRadius: 8,
-      services: ["sell cargo", "repair hull", "refuel", "contract board", "upgrade rig"],
+      services: ["sell cargo", "repair hull", "refuel", "contract board", "upgrade rig", "survey probes", "decoy burst"],
     },
     contract: {
       id: "charter-ore-spoke",
@@ -68,6 +69,172 @@ const VoidProspector = (() => {
       requiredOre: 8,
       rewardCredits: 160,
       status: "active",
+    },
+    surveyLadder: {
+      version: "0.1.0",
+      releaseLabel: "Survey Ladder",
+      defaultSectorId: "spoke-approach",
+      stationServices: [
+        {
+          id: "survey-probes",
+          name: "Survey Probes",
+          cost: 45,
+          scanPowerBonus: 1,
+          hazardMitigation: 0.25,
+        },
+        {
+          id: "decoy-burst",
+          name: "Decoy Burst",
+          cost: 60,
+          countermeasureCharges: 1,
+        },
+      ],
+      sectors: [
+        {
+          id: "spoke-approach",
+          name: "Spoke Approach",
+          tier: 1,
+          condition: "Mapped harbor",
+          charterTitle: "Spoke Charter",
+          objective: "Mine 8 ore, dock at Frontier Spoke, and keep the pirate wake off the hold.",
+          requiredOre: 8,
+          requiredScans: 0,
+          rewardCredits: 160,
+          surveyReward: 20,
+          oreValueBonus: 0,
+          oreReserveBonus: 0,
+          hazard: {
+            status: "clear",
+            intensity: 0,
+            fuelDrainPerSecond: 0,
+            hullDamagePerSecond: 0,
+            warningThreshold: 99,
+          },
+          pirate: {
+            spawnTick: 18,
+            driftSpeed: 4.2,
+            pressureRate: 0.7,
+            hullDamagePerSecond: 2.4,
+          },
+          anomalies: [
+            {
+              id: "anomaly-spoke-buoy",
+              name: "Dormant Survey Buoy",
+              position: { x: -6, y: 3, z: -52 },
+              radius: 4,
+              scanDifficulty: 2,
+              surveyValue: 18,
+              chartsHazard: false,
+            },
+          ],
+          unlocks: ["rift-shelf"],
+        },
+        {
+          id: "rift-shelf",
+          name: "Rift Shelf",
+          tier: 2,
+          condition: "Charged dust lanes",
+          charterTitle: "Rift Shelf Survey",
+          objective: "Scan one anomaly, mine 10 ore, and return through charged dust before Knife Wake tightens.",
+          requiredOre: 10,
+          requiredScans: 1,
+          rewardCredits: 230,
+          surveyReward: 45,
+          oreValueBonus: 6,
+          oreReserveBonus: 1,
+          hazard: {
+            status: "charged dust",
+            intensity: 1.4,
+            fuelDrainPerSecond: 0.42,
+            hullDamagePerSecond: 0.55,
+            warningThreshold: 5,
+          },
+          pirate: {
+            spawnTick: 14,
+            driftSpeed: 4.8,
+            pressureRate: 0.9,
+            hullDamagePerSecond: 2.9,
+          },
+          anomalies: [
+            {
+              id: "anomaly-rift-lens",
+              name: "Rift Lens",
+              position: { x: -30, y: 3, z: -48 },
+              radius: 4.6,
+              scanDifficulty: 2.5,
+              surveyValue: 32,
+              chartsHazard: true,
+            },
+            {
+              id: "anomaly-derelict-slate",
+              name: "Derelict Slate",
+              position: { x: 42, y: -1, z: -18 },
+              radius: 5,
+              scanDifficulty: 3,
+              surveyValue: 40,
+              chartsHazard: false,
+            },
+          ],
+          unlocks: ["umbra-trench"],
+        },
+        {
+          id: "umbra-trench",
+          name: "Umbra Trench",
+          tier: 3,
+          condition: "Pirate-marked hazard shelf",
+          charterTitle: "Umbra Ladder Charter",
+          objective: "Scan two anomalies, pull 12 ore, and decide when to spend decoys before the trench closes.",
+          requiredOre: 12,
+          requiredScans: 2,
+          rewardCredits: 320,
+          surveyReward: 80,
+          oreValueBonus: 11,
+          oreReserveBonus: 2,
+          hazard: {
+            status: "ion shear",
+            intensity: 2.1,
+            fuelDrainPerSecond: 0.55,
+            hullDamagePerSecond: 0.85,
+            warningThreshold: 4,
+          },
+          pirate: {
+            spawnTick: 10,
+            driftSpeed: 5.6,
+            pressureRate: 1.15,
+            hullDamagePerSecond: 3.4,
+          },
+          anomalies: [
+            {
+              id: "anomaly-umbra-crown",
+              name: "Umbra Crown",
+              position: { x: -44, y: 4, z: -40 },
+              radius: 5.4,
+              scanDifficulty: 3.2,
+              surveyValue: 52,
+              chartsHazard: true,
+            },
+            {
+              id: "anomaly-black-pylon",
+              name: "Black Pylon",
+              position: { x: 8, y: 5, z: -60 },
+              radius: 4.8,
+              scanDifficulty: 3.4,
+              surveyValue: 56,
+              chartsHazard: true,
+            },
+            {
+              id: "anomaly-wake-cache",
+              name: "Wake Cache",
+              position: { x: 45, y: -3, z: -36 },
+              radius: 4.2,
+              scanDifficulty: 2.8,
+              surveyValue: 44,
+              chartsHazard: false,
+            },
+          ],
+          unlocks: [],
+        },
+      ],
     },
     asteroidField: {
       miningRange: 9,
@@ -146,6 +313,7 @@ const VoidProspector = (() => {
     turnLeft: false,
     turnRight: false,
     mine: false,
+    scan: false,
   };
   let currentState = null;
   let sceneHandle = null;
@@ -237,16 +405,147 @@ const VoidProspector = (() => {
     };
   }
 
-  function createAsteroidNodes(seed = DEFAULT_SEED) {
+  function uniqueList(values = []) {
+    return values.filter((value, index, source) => value && source.indexOf(value) === index);
+  }
+
+  function sectorById(sectorId) {
+    return (
+      GAME_DATA.surveyLadder.sectors.find((sector) => sector.id === sectorId) ||
+      GAME_DATA.surveyLadder.sectors.find((sector) => sector.id === GAME_DATA.surveyLadder.defaultSectorId)
+    );
+  }
+
+  function stationServiceById(serviceId) {
+    return GAME_DATA.surveyLadder.stationServices.find((service) => service.id === serviceId) || null;
+  }
+
+  function sortSectorIdsByTier(sectorIds) {
+    return sectorIds.slice().sort((left, right) => sectorById(left).tier - sectorById(right).tier);
+  }
+
+  function nextIncompleteSectorId(ladder) {
+    const unlocked = sortSectorIdsByTier(ladder.unlockedSectorIds || []);
+    return unlocked.find((sectorId) => !(ladder.completedSectorIds || []).includes(sectorId)) || ladder.currentSectorId;
+  }
+
+  function createSurveyLadderState(options = {}) {
+    const base = options.ladder || {};
+    const defaultSectorId = GAME_DATA.surveyLadder.defaultSectorId;
+    const completedSectorIds = uniqueList(base.completedSectorIds || []);
+    let unlockedSectorIds = uniqueList([defaultSectorId, ...(base.unlockedSectorIds || [])]);
+    completedSectorIds.forEach((sectorId) => {
+      const sector = sectorById(sectorId);
+      unlockedSectorIds = uniqueList([...unlockedSectorIds, ...(sector.unlocks || [])]);
+    });
+
+    let currentSectorId = options.sectorId || base.currentSectorId || base.recommendedSectorId || defaultSectorId;
+    if (!unlockedSectorIds.includes(currentSectorId)) {
+      currentSectorId = nextIncompleteSectorId({ ...base, unlockedSectorIds, completedSectorIds }) || defaultSectorId;
+    }
+    const currentSector = sectorById(currentSectorId);
+
+    return {
+      version: GAME_DATA.surveyLadder.version,
+      releaseLabel: GAME_DATA.surveyLadder.releaseLabel,
+      currentSectorId,
+      currentTier: currentSector.tier,
+      unlockedSectorIds,
+      completedSectorIds,
+      recommendedSectorId: base.recommendedSectorId || nextIncompleteSectorId({ ...base, unlockedSectorIds, completedSectorIds, currentSectorId }),
+      surveyScore: base.surveyScore || 0,
+      anomalyScans: base.anomalyScans || 0,
+      hazardCharts: { ...(base.hazardCharts || {}) },
+      lastChoice: base.lastChoice || "spoke-approach",
+      lastCompletedSectorId: base.lastCompletedSectorId || null,
+    };
+  }
+
+  function createStationServiceState(options = {}) {
+    const base = options.stationServices || {};
+    const purchased = uniqueList(base.purchased || []);
+    const state = {
+      purchased,
+      scanPowerBonus: base.scanPowerBonus || 0,
+      hazardMitigation: base.hazardMitigation || 0,
+      countermeasureCharges: base.countermeasureCharges || 0,
+      lastService: base.lastService || "none",
+      countermeasureStatus: base.countermeasureStatus || "idle",
+    };
+    purchased.forEach((serviceId) => {
+      const service = stationServiceById(serviceId);
+      if (!service) {
+        return;
+      }
+      state.scanPowerBonus = Math.max(state.scanPowerBonus, service.scanPowerBonus || 0);
+      state.hazardMitigation = Math.max(state.hazardMitigation, service.hazardMitigation || 0);
+    });
+    return state;
+  }
+
+  function createAnomalyNodes(seed = DEFAULT_SEED, sectorInput = GAME_DATA.surveyLadder.defaultSectorId) {
+    const sector = typeof sectorInput === "string" ? sectorById(sectorInput) : sectorInput;
+    const random = createRng(seed + sector.tier * 7919);
+    return (sector.anomalies || []).map((anomaly, index) => ({
+      ...clone(anomaly),
+      scanSignature: `survey-${sector.id}-${seed}-${index + 1}`,
+      signalPhase: round(random() * TWO_PI, 4),
+      scanState: {
+        status: "unscanned",
+        progress: 0,
+        scanned: false,
+        lastScannedTick: null,
+      },
+    }));
+  }
+
+  function createSectorContract(sector) {
+    return {
+      id: `charter-${sector.id}`,
+      title: sector.charterTitle,
+      objective: sector.objective,
+      requiredOre: sector.requiredOre,
+      requiredScans: sector.requiredScans,
+      rewardCredits: sector.rewardCredits,
+      status: "active",
+      sectorId: sector.id,
+      tier: sector.tier,
+      progress: 0,
+      deliveredOre: 0,
+      deliveredScans: 0,
+      completedAt: null,
+    };
+  }
+
+  function createHazardState(sector, ladder, stationServices) {
+    const charted = Boolean((ladder.hazardCharts || {})[sector.id]);
+    const hazard = sector.hazard || {};
+    return {
+      sectorId: sector.id,
+      status: charted ? "charted" : hazard.status || "clear",
+      intensity: hazard.intensity || 0,
+      effectiveIntensity: 0,
+      exposure: 0,
+      surveyed: charted,
+      mitigation: stationServices.hazardMitigation || 0,
+      fuelDrainPerSecond: hazard.fuelDrainPerSecond || 0,
+      hullDamagePerSecond: hazard.hullDamagePerSecond || 0,
+      warningThreshold: hazard.warningThreshold || 99,
+    };
+  }
+
+  function createAsteroidNodes(seed = DEFAULT_SEED, sectorInput = GAME_DATA.surveyLadder.defaultSectorId) {
+    const sector = typeof sectorInput === "string" ? sectorById(sectorInput) : sectorInput;
     const random = createRng(seed);
     return GAME_DATA.asteroidField.nodes.map((node, index) => {
       const oreVariance = Math.floor(random() * 4);
       const spin = round(random() * TWO_PI, 4);
       return {
         ...clone(node),
-        scanSignature: `vp-${seed}-${index + 1}`,
+        scanSignature: `vp-${sector.id}-${seed}-${index + 1}`,
         spin,
-        oreValue: node.oreValue + oreVariance,
+        oreRemaining: node.oreRemaining + (sector.oreReserveBonus || 0),
+        oreValue: node.oreValue + oreVariance + (sector.oreValueBonus || 0),
         mineState: {
           status: "ready",
           progress: 0,
@@ -307,7 +606,11 @@ const VoidProspector = (() => {
   function createInitialState(options = {}) {
     const seed = options.seed === undefined ? DEFAULT_SEED : options.seed;
     const purchasedUpgrades = Array.isArray(options.upgrades) ? options.upgrades.slice() : [];
-    const asteroids = createAsteroidNodes(seed);
+    const ladder = createSurveyLadderState({ ladder: options.ladder, sectorId: options.sectorId });
+    const sector = sectorById(ladder.currentSectorId);
+    const stationServices = createStationServiceState({ stationServices: options.stationServices });
+    const asteroids = createAsteroidNodes(seed, sector);
+    const anomalies = createAnomalyNodes(seed, sector);
     const ship = {
       name: GAME_DATA.ship.name,
       position: clone(GAME_DATA.ship.startPosition),
@@ -336,7 +639,9 @@ const VoidProspector = (() => {
         capacity: GAME_DATA.ship.cargoCapacity,
       },
       credits: options.credits === undefined ? 0 : options.credits,
+      ladder,
       asteroids,
+      anomalies,
       station: {
         ...clone(GAME_DATA.station),
         docked: false,
@@ -348,12 +653,7 @@ const VoidProspector = (() => {
           dockable: false,
         },
       },
-      contract: {
-        ...clone(GAME_DATA.contract),
-        progress: 0,
-        deliveredOre: 0,
-        completedAt: null,
-      },
+      contract: createSectorContract(sector),
       target: {
         kind: "asteroid",
         id: asteroids[0].id,
@@ -363,12 +663,14 @@ const VoidProspector = (() => {
       },
       pirate: {
         ...clone(GAME_DATA.pirate),
+        ...clone(sector.pirate || {}),
         state: "dormant",
         encounterState: "distant",
         pressure: 0,
         attackCooldown: 0,
         velocity: vector(),
       },
+      hazard: createHazardState(sector, ladder, stationServices),
       mining: {
         active: false,
         targetId: null,
@@ -376,6 +678,15 @@ const VoidProspector = (() => {
         range: GAME_DATA.asteroidField.miningRange,
         lastYield: 0,
       },
+      scanning: {
+        active: false,
+        targetId: null,
+        status: "idle",
+        range: GAME_DATA.asteroidField.miningRange + 7,
+        power: 1 + stationServices.scanPowerBonus,
+        lastScan: 0,
+      },
+      stationServices,
       upgrades: {
         purchased: purchasedUpgrades,
         lastPurchase: null,
@@ -384,11 +695,13 @@ const VoidProspector = (() => {
         oreMined: 0,
         oreSold: 0,
         oreLost: 0,
+        anomaliesScanned: 0,
+        countermeasuresDeployed: 0,
         sorties: options.runCount || 1,
       },
       run: {
         status: "launch",
-        objective: GAME_DATA.contract.objective,
+        objective: sector.objective,
         failureReason: null,
         count: options.runCount || 1,
       },
@@ -398,8 +711,9 @@ const VoidProspector = (() => {
         turnLeft: false,
         turnRight: false,
         mine: false,
+        scan: false,
       },
-      log: [{ tick: 0, message: "Prospector sortie online." }],
+      log: [{ tick: 0, message: `${GAME_DATA.surveyLadder.releaseLabel} tier ${sector.tier}: ${sector.name}.` }],
     };
     applyPurchasedUpgrades(state);
     return syncDerivedState(state);
@@ -409,8 +723,12 @@ const VoidProspector = (() => {
     const asteroidTargets = state.asteroids
       .filter((asteroid) => !asteroid.mineState.depleted)
       .map((asteroid) => ({ kind: "asteroid", id: asteroid.id, position: asteroid.position, name: asteroid.name }));
+    const anomalyTargets = (state.anomalies || [])
+      .filter((anomaly) => !anomaly.scanState.scanned)
+      .map((anomaly) => ({ kind: "anomaly", id: anomaly.id, position: anomaly.position, name: anomaly.name }));
     return [
       ...asteroidTargets,
+      ...anomalyTargets,
       { kind: "station", id: state.station.id, position: state.station.position, name: state.station.name },
       { kind: "pirate", id: state.pirate.id, position: state.pirate.position, name: state.pirate.name },
     ];
@@ -422,6 +740,9 @@ const VoidProspector = (() => {
     }
     if (target.kind === "asteroid") {
       return state.asteroids.find((asteroid) => asteroid.id === target.id) || null;
+    }
+    if (target.kind === "anomaly") {
+      return (state.anomalies || []).find((anomaly) => anomaly.id === target.id) || null;
     }
     if (target.kind === "station") {
       return state.station;
@@ -437,7 +758,11 @@ const VoidProspector = (() => {
       return `${state.run.failureReason} Press R to restart.`;
     }
     if (state.contract.status === "complete") {
-      return `${state.contract.title} complete. Restart for a stronger sortie.`;
+      return `${state.contract.title} complete. Restart into ${state.ladder.recommendedSectorId}.`;
+    }
+    if (state.contract.requiredScans > state.contract.deliveredScans) {
+      const remaining = state.contract.requiredScans - state.contract.deliveredScans;
+      return `Scan ${remaining} anomaly signal${remaining === 1 ? "" : "s"} in ${sectorById(state.ladder.currentSectorId).name}, then finish the ore charter.`;
     }
     if (state.station.proximity.dockable && state.cargo.ore > 0) {
       return "Dock at Frontier Spoke to sell ore, repair, refuel, and log charter progress.";
@@ -448,7 +773,7 @@ const VoidProspector = (() => {
     if (state.pirate.encounterState === "close") {
       return "Pirate in attack range. Break away or dock for repairs.";
     }
-    return GAME_DATA.contract.objective;
+    return state.contract.objective || GAME_DATA.contract.objective;
   }
 
   function syncDerivedState(state) {
@@ -469,7 +794,15 @@ const VoidProspector = (() => {
       state.target.bearing = bearingDegrees(state.ship.position, state.ship.heading, selected.position);
     }
 
-    state.contract.progress = round(Math.min(1, state.contract.deliveredOre / state.contract.requiredOre), 3);
+    if (state.stationServices && state.scanning) {
+      state.scanning.power = 1 + (state.stationServices.scanPowerBonus || 0);
+      state.hazard.mitigation = state.stationServices.hazardMitigation || 0;
+    }
+
+    const oreProgress = Math.min(1, state.contract.deliveredOre / state.contract.requiredOre);
+    const scanProgress =
+      state.contract.requiredScans > 0 ? Math.min(1, state.contract.deliveredScans / state.contract.requiredScans) : 1;
+    state.contract.progress = round(state.contract.requiredScans > 0 ? (oreProgress + scanProgress) / 2 : oreProgress, 3);
     if (state.ship.hull <= 0) {
       state.ship.hull = 0;
       state.run.status = "failed";
@@ -482,6 +815,12 @@ const VoidProspector = (() => {
       state.run.failureReason = "Fuel exhausted. Drift beacon fired.";
     } else if (state.station.proximity.dockable) {
       state.run.status = state.station.docked ? "docked" : "dock range";
+      state.run.failureReason = null;
+    } else if (state.scanning && state.scanning.active) {
+      state.run.status = "scanning";
+      state.run.failureReason = null;
+    } else if (state.hazard && state.hazard.exposure >= state.hazard.warningThreshold) {
+      state.run.status = "hazard";
       state.run.failureReason = null;
     } else if (state.pirate.encounterState === "close") {
       state.run.status = "evading";
@@ -554,6 +893,7 @@ const VoidProspector = (() => {
     next.input.turnLeft = Boolean(input.turnLeft);
     next.input.turnRight = Boolean(input.turnRight);
     next.input.mine = Boolean(input.mine);
+    next.input.scan = Boolean(input.scan);
     next.ship.velocity = limitVelocity(velocity, GAME_DATA.ship.maxSpeed);
     next.ship.position = add(next.ship.position, scale(next.ship.velocity, dt));
     next.ship.position.y = Math.max(-6, Math.min(6, next.ship.position.y));
@@ -587,6 +927,24 @@ const VoidProspector = (() => {
       }
       if ((mineState.status === "cooldown" || mineState.status === "mining") && mineState.beamHeat <= 0) {
         mineState.status = "ready";
+      }
+    });
+    return next;
+  }
+
+  function coolScanningState(state) {
+    const next = state;
+    if (!next.scanning) {
+      return next;
+    }
+    next.scanning.active = false;
+    next.scanning.targetId = null;
+    next.scanning.lastScan = 0;
+    (next.anomalies || []).forEach((anomaly) => {
+      if (anomaly.scanState.scanned) {
+        anomaly.scanState.status = "scanned";
+      } else if (anomaly.scanState.status === "scanning") {
+        anomaly.scanState.status = "locked";
       }
     });
     return next;
@@ -659,6 +1017,85 @@ const VoidProspector = (() => {
     return syncDerivedState(next);
   }
 
+  function scanTarget(state, deltaSeconds = 1) {
+    const dt = Math.max(0, Math.min(deltaSeconds, 2));
+    const next = clone(state);
+    if (next.run.status === "failed" || next.run.status === "complete") {
+      next.scanning.status = "run closed";
+      return syncDerivedState(next);
+    }
+
+    const target = findTarget(next);
+    if (!target || next.target.kind !== "anomaly") {
+      next.scanning.status = "no anomaly lock";
+      return syncDerivedState(next);
+    }
+
+    const range = distance(next.ship.position, target.position);
+    if (range > next.scanning.range + target.radius) {
+      next.scanning.status = "out of range";
+      return syncDerivedState(next);
+    }
+
+    if (target.scanState.scanned) {
+      target.scanState.status = "scanned";
+      next.scanning.status = "already scanned";
+      return syncDerivedState(next);
+    }
+
+    target.scanState.status = "scanning";
+    target.scanState.progress += next.scanning.power * dt;
+    next.scanning.active = true;
+    next.scanning.targetId = target.id;
+    next.scanning.lastScan = 0;
+
+    if (target.scanState.progress >= target.scanDifficulty) {
+      target.scanState.progress = target.scanDifficulty;
+      target.scanState.scanned = true;
+      target.scanState.status = "scanned";
+      target.scanState.lastScannedTick = next.tick;
+      next.scanning.status = `scanned ${target.name}`;
+      next.scanning.lastScan = 1;
+      next.contract.deliveredScans += 1;
+      next.stats.anomaliesScanned += 1;
+      next.ladder.anomalyScans += 1;
+      next.ladder.surveyScore += target.surveyValue || 0;
+      if (target.chartsHazard) {
+        next.hazard.surveyed = true;
+        next.hazard.status = "charted";
+        next.hazard.exposure = Math.max(0, next.hazard.exposure - 2);
+        next.ladder.hazardCharts[next.ladder.currentSectorId] = true;
+      }
+      next.log.unshift({ tick: next.tick, message: `${target.name} scanned into the Survey Ladder.` });
+    } else {
+      next.scanning.status = `scanning ${Math.round((target.scanState.progress / target.scanDifficulty) * 100)}%`;
+    }
+    return syncDerivedState(next);
+  }
+
+  function contractReadyForCompletion(state) {
+    return (
+      state.contract.status === "active" &&
+      state.contract.deliveredOre >= state.contract.requiredOre &&
+      state.contract.deliveredScans >= state.contract.requiredScans
+    );
+  }
+
+  function advanceSurveyLadder(state) {
+    const next = state;
+    const sector = sectorById(next.contract.sectorId || next.ladder.currentSectorId);
+    const wasCompleted = next.ladder.completedSectorIds.includes(sector.id);
+    if (!wasCompleted) {
+      next.ladder.completedSectorIds = uniqueList([...next.ladder.completedSectorIds, sector.id]);
+      next.ladder.unlockedSectorIds = uniqueList([...next.ladder.unlockedSectorIds, ...(sector.unlocks || [])]);
+      next.ladder.surveyScore += sector.surveyReward || 0;
+      next.ladder.lastCompletedSectorId = sector.id;
+    }
+    next.ladder.recommendedSectorId = nextIncompleteSectorId(next.ladder) || sector.id;
+    next.ladder.lastChoice = `completed ${sector.name}`;
+    return next;
+  }
+
   function dockAtStation(state) {
     const next = syncDerivedState(clone(state));
     if (!next.station.proximity.dockable) {
@@ -687,9 +1124,10 @@ const VoidProspector = (() => {
       next.log.unshift({ tick: next.tick, message: "Docking clamps serviced hull and tanks." });
     }
 
-    if (next.contract.status === "active" && next.contract.deliveredOre >= next.contract.requiredOre) {
+    if (contractReadyForCompletion(next)) {
       next.contract.status = "complete";
       next.contract.completedAt = next.tick;
+      advanceSurveyLadder(next);
       next.credits += next.contract.rewardCredits;
       next.run.status = "complete";
       next.log.unshift({
@@ -728,17 +1166,131 @@ const VoidProspector = (() => {
     return syncDerivedState(next);
   }
 
+  function purchaseStationService(state, serviceId = "survey-probes") {
+    const next = syncDerivedState(clone(state));
+    const service = stationServiceById(serviceId);
+    if (!service) {
+      next.stationServices.lastService = "unknown service";
+      return syncDerivedState(next);
+    }
+    if (!next.station.proximity.dockable) {
+      next.stationServices.lastService = "dock required";
+      return syncDerivedState(next);
+    }
+    if (next.stationServices.purchased.includes(serviceId)) {
+      next.stationServices.lastService = `${service.name} ready`;
+      return syncDerivedState(next);
+    }
+    if (next.credits < service.cost) {
+      next.stationServices.lastService = `${service.cost - next.credits} credits short`;
+      return syncDerivedState(next);
+    }
+
+    next.credits -= service.cost;
+    next.stationServices.purchased.push(serviceId);
+    next.stationServices.scanPowerBonus += service.scanPowerBonus || 0;
+    next.stationServices.hazardMitigation += service.hazardMitigation || 0;
+    next.stationServices.countermeasureCharges += service.countermeasureCharges || 0;
+    next.stationServices.lastService = `${service.name} purchased`;
+    next.log.unshift({ tick: next.tick, message: `${service.name} purchased for the next survey push.` });
+    return syncDerivedState(next);
+  }
+
+  function deployCountermeasure(state) {
+    const next = clone(state);
+    if (!next.stationServices || next.stationServices.countermeasureCharges <= 0) {
+      next.stationServices = next.stationServices || createStationServiceState();
+      next.stationServices.countermeasureStatus = "no charge";
+      return syncDerivedState(next);
+    }
+
+    next.stationServices.countermeasureCharges -= 1;
+    next.stationServices.countermeasureStatus = "deployed";
+    next.pirate.pressure = Math.max(0, next.pirate.pressure - 35);
+    next.pirate.attackCooldown = Math.max(next.pirate.attackCooldown, next.pirate.stealCooldown + 4);
+    const awayFromShip = normalize(subtract(next.pirate.position, next.ship.position));
+    const fallback = vector(-1, 0, -1);
+    const shove = length(awayFromShip) ? awayFromShip : normalize(fallback);
+    next.pirate.position = add(next.ship.position, scale(shove, next.pirate.attackRadius + 12));
+    next.stats.countermeasuresDeployed += 1;
+    next.log.unshift({ tick: next.tick, message: "Decoy burst broke the pirate wake lock." });
+    return syncDerivedState(next);
+  }
+
+  function chooseSector(state, sectorId) {
+    const current = syncDerivedState(clone(state));
+    const sector = GAME_DATA.surveyLadder.sectors.find((candidate) => candidate.id === sectorId);
+    if (!sector || !current.ladder.unlockedSectorIds.includes(sector.id)) {
+      current.ladder.lastChoice = `locked ${sectorId}`;
+      return syncDerivedState(current);
+    }
+    const runStarted =
+      current.tick > 0 ||
+      current.cargo.ore > 0 ||
+      current.contract.deliveredOre > 0 ||
+      current.contract.deliveredScans > 0 ||
+      current.contract.status === "complete";
+    if (runStarted) {
+      current.ladder.lastChoice = "finish current charter first";
+      return syncDerivedState(current);
+    }
+
+    const next = createInitialState({
+      seed: current.seed,
+      credits: current.credits,
+      upgrades: current.upgrades.purchased,
+      runCount: current.run.count,
+      ladder: { ...current.ladder, currentSectorId: sector.id, recommendedSectorId: sector.id },
+      stationServices: current.stationServices,
+      sectorId: sector.id,
+    });
+    next.ladder.lastChoice = `sector ${sector.name}`;
+    next.log.unshift({ tick: 0, message: `${sector.name} selected from the Survey Ladder.` });
+    return syncDerivedState(next);
+  }
+
   function resetRun(state, options = {}) {
     const seed = options.seed === undefined ? state.seed + 1 : options.seed;
     const credits = options.credits === undefined ? state.credits : options.credits;
+    const sectorId = options.sectorId || state.ladder.recommendedSectorId || state.ladder.currentSectorId;
     const next = createInitialState({
       seed,
       credits,
       upgrades: state.upgrades.purchased,
       runCount: (state.run.count || 1) + 1,
+      ladder: state.ladder,
+      stationServices: state.stationServices,
+      sectorId,
     });
-    next.log.unshift({ tick: 0, message: `Sortie ${next.run.count} reset with installed upgrades.` });
+    next.log.unshift({
+      tick: 0,
+      message: `Sortie ${next.run.count} reset into ${sectorById(next.ladder.currentSectorId).name}.`,
+    });
     return syncDerivedState(next);
+  }
+
+  function updateHazardState(state, deltaSeconds) {
+    const next = state;
+    if (!next.hazard || next.hazard.intensity <= 0 || next.station.proximity.dockable) {
+      return next;
+    }
+    const chartBonus = next.hazard.surveyed ? 0.55 : 0;
+    const effectiveIntensity = Math.max(0, next.hazard.intensity - (next.hazard.mitigation || 0) - chartBonus);
+    next.hazard.effectiveIntensity = round(effectiveIntensity, 3);
+    if (effectiveIntensity <= 0) {
+      next.hazard.status = next.hazard.surveyed ? "charted" : "suppressed";
+      return next;
+    }
+
+    next.hazard.exposure = round(next.hazard.exposure + effectiveIntensity * deltaSeconds, 3);
+    next.ship.fuel = Math.max(0, next.ship.fuel - effectiveIntensity * next.hazard.fuelDrainPerSecond * deltaSeconds);
+    if (next.hazard.exposure >= next.hazard.warningThreshold) {
+      next.ship.hull = Math.max(0, next.ship.hull - effectiveIntensity * next.hazard.hullDamagePerSecond * deltaSeconds);
+      next.hazard.status = "biting";
+    } else {
+      next.hazard.status = next.hazard.surveyed ? "charted" : sectorById(next.ladder.currentSectorId).hazard.status;
+    }
+    return next;
   }
 
   function updatePirateState(state, deltaSeconds) {
@@ -787,9 +1339,14 @@ const VoidProspector = (() => {
     next.tick = round(next.tick + dt, 3);
     next.elapsed = round(next.elapsed + dt, 3);
     next = updatePirateState(next, dt);
+    next = updateHazardState(next, dt);
     next = coolMiningState(next, dt);
+    next = coolScanningState(next, dt);
     if (input.mine) {
       next = mineTarget(next, dt);
+    }
+    if (input.scan) {
+      next = scanTarget(next, dt);
     }
     if (input.interact) {
       next = dockAtStation(next);
@@ -868,6 +1425,46 @@ const VoidProspector = (() => {
     };
   }
 
+  function surveySummary(state) {
+    const sector = sectorById(state.ladder.currentSectorId);
+    return {
+      version: state.ladder.version,
+      releaseLabel: state.ladder.releaseLabel,
+      sectorId: sector.id,
+      sectorName: sector.name,
+      tier: sector.tier,
+      condition: sector.condition,
+      unlockedSectorIds: state.ladder.unlockedSectorIds.slice(),
+      completedSectorIds: state.ladder.completedSectorIds.slice(),
+      recommendedSectorId: state.ladder.recommendedSectorId,
+      surveyScore: state.ladder.surveyScore,
+      anomalyScans: state.ladder.anomalyScans,
+      contract: {
+        title: state.contract.title,
+        ore: `${state.contract.deliveredOre}/${state.contract.requiredOre}`,
+        scans: `${state.contract.deliveredScans}/${state.contract.requiredScans}`,
+        progress: state.contract.progress,
+      },
+      hazard: {
+        status: state.hazard.status,
+        intensity: state.hazard.intensity,
+        effectiveIntensity: state.hazard.effectiveIntensity,
+        exposure: state.hazard.exposure,
+        surveyed: state.hazard.surveyed,
+      },
+    };
+  }
+
+  function stationServiceSummary(state) {
+    return GAME_DATA.surveyLadder.stationServices.map((service) => ({
+      id: service.id,
+      name: service.name,
+      cost: service.cost,
+      purchased: state.stationServices.purchased.includes(service.id),
+      affordable: state.credits >= service.cost,
+    }));
+  }
+
   function targetSummary(state) {
     const target = findTarget(state);
     if (!target) {
@@ -888,6 +1485,14 @@ const VoidProspector = (() => {
         status = `${state.mining.status} / ${Math.round(target.mineState.progress * 100)}% / ${oreStatus}`;
       } else {
         status = `${target.mineState.status} / ${oreStatus}`;
+      }
+    } else if (state.target.kind === "anomaly") {
+      if (target.scanState.scanned) {
+        status = "scanned";
+      } else if (state.scanning.active && state.scanning.targetId === target.id) {
+        status = `${state.scanning.status} / ${Math.round((target.scanState.progress / target.scanDifficulty) * 100)}%`;
+      } else {
+        status = `${target.scanState.status} / difficulty ${target.scanDifficulty}`;
       }
     } else if (state.target.kind === "station") {
       status = state.station.proximity.dockable ? "dockable" : "stand off";
@@ -949,7 +1554,10 @@ const VoidProspector = (() => {
     dom.cargo.textContent = `${state.cargo.ore} / ${state.cargo.capacity} / ${state.cargo.value}cr`;
     dom.credits.textContent = String(state.credits);
     dom.pressure.textContent = `${Math.round(state.pirate.pressure)} / ${state.pirate.encounterState}`;
-    dom.contract.textContent = `${state.contract.status} / ${state.contract.deliveredOre} of ${state.contract.requiredOre}`;
+    dom.contract.textContent =
+      state.contract.requiredScans > 0
+        ? `${state.contract.status} / ${state.contract.deliveredOre}/${state.contract.requiredOre} ore / ${state.contract.deliveredScans}/${state.contract.requiredScans} scans`
+        : `${state.contract.status} / ${state.contract.deliveredOre} of ${state.contract.requiredOre}`;
     dom.upgrade.textContent = upgrade.text;
     dom.target.textContent = `${target.kind} / ${target.name} / ${target.distance}m`;
     dom.station.textContent = `${formatBearing(station.bearing)} / ${station.distance}m / ${station.dockable ? "dock" : "approach"}`;
@@ -1438,17 +2046,27 @@ const VoidProspector = (() => {
     ASSET_PATHS,
     createInitialState,
     createAsteroidNodes,
+    createAnomalyNodes,
+    createSurveyLadderState,
     applyFlightInput,
     stepSpaceflight,
     mineTarget,
+    scanTarget,
     dockAtStation,
     purchaseUpgrade,
+    purchaseStationService,
+    deployCountermeasure,
+    chooseSector,
     resetRun,
     retarget,
     setTarget,
+    sectorById,
     updateCameraState,
+    updateHazardState,
     dockingStatus,
     upgradeSummary,
+    surveySummary,
+    stationServiceSummary,
     targetSummary,
     bearingTo,
     bearingDegrees,
