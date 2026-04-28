@@ -1,0 +1,1397 @@
+Reading additional input from stdin...
+OpenAI Codex v0.125.0 (research preview)
+--------
+workdir: /mnt/f/_evolve/millrace-games/auto-games
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, /mnt/f/_evolve/millrace-games/auto-games/_visual-check/corebound-assets, /home/tim/.codex/memories]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019dd1ce-7739-70e0-98c3-49af0689693a
+--------
+user
+$imagegen
+
+You are creating browser-game visual assets for a Millrace task.
+
+Use Codex built-in image generation/editing only. Do not use OPENAI_API_KEY, the OpenAI SDK, the Images API, or any API-key fallback. Do not read or print Codex credential files.
+
+Mode: generate
+Working directory: /mnt/f/_evolve/millrace-games/auto-games
+Final asset destination directory: /mnt/f/_evolve/millrace-games/auto-games/games/corebound/assets
+Manifest path to write: /mnt/f/_evolve/millrace-games/auto-games/games/corebound/assets/asset-manifest.json
+Reference images attached or provided:
+- none
+
+Asset brief:
+Create an original Corebound bitmap asset pack for a static browser mining game with a restrained mono-first, operator-grade, diagrammatic industrial style. Use teal as a precise signal accent only. Do not copy Motherload or any commercial game art.
+
+Create final project-consumed PNG assets in these exact files under the final asset destination directory:
+- rig/mantis-rig-motion-strip.png: transparent sprite strip, 4 horizontal frames, 320x80 total, 80x80 per frame. A compact side-view mining pod named Mantis-01 with drill, treads/skids, antenna mast, and subtle per-frame engine/strut motion. No text.
+- surface/surface-facilities-panel.png: 640x160 PNG scene plate showing a square-framed surface base with refinery, rig bay, assay desk, survey relay, and launch gantry. No text labels.
+- surface/launch-shaft-context.png: 320x320 PNG showing a clean vertical shaft collar descending from the base into strata, readable as launch context. No text.
+- terrain/loam-gritstone-tile.png: 128x128 tile texture for upper loam/gritstone strata, subdued dark mineral plates with subtle grid-readable edges.
+- terrain/basalt-core-tile.png: 128x128 tile texture for deep basalt/core rind strata, darker and denser, with faint teal diagnostic seams.
+- terrain/pressure-glass-tile.png: 128x128 tile texture for pressure glass/choir slate strata, smoky dark glass with restrained luminous fracture lines.
+- readables/ore-hazard-atlas.png: 384x128 transparent atlas with six 64x64 cells: copper seed, saltglass, cobalt thread, heat fissure, gas vent, magnetic bloom. Each cell centered, no text.
+- hud/hud-icon-atlas.png: 320x64 transparent atlas with five 64x64 cells: hull, energy, heat, cargo, depth. No text.
+- upgrades/upgrade-research-atlas.png: 512x128 transparent atlas with eight 64x64 cells: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, archive relay. No text.
+
+Style constraints for all files: original art, industrial, slightly alien, square-framed silhouettes, high readability at small game scale, dark graphite/steel base colors, teal accents only for sensor/light signals, no words, no logo marks, no watermarks.
+
+After generating the assets, write the manifest JSON at the requested manifest path with schema_version 1, status complete, mode generate, workdir, and an assets array. Each asset entry must include id, path relative to the workdir, role, description, width, height, intended_use, and notes. Use stable ids: rig.mantis_motion_strip, surface.facilities_panel, surface.launch_shaft_context, terrain.loam_gritstone_tile, terrain.basalt_core_tile, terrain.pressure_glass_tile, readables.ore_hazard_atlas, hud.icon_atlas, upgrades.research_atlas.
+
+Requirements:
+- Create original assets only; do not copy protected game art, characters, names, logos, maps, or exact presentation.
+- Save every final project-consumed asset under the final asset destination directory.
+- Keep UI text, labels, scores, and controls out of raster assets unless the brief explicitly asks for baked-in text.
+- For edits, preserve the source non-destructively and write a new output file.
+- If transparency is needed, make the final file a PNG or WebP with usable alpha, or clearly report why that was not possible.
+- Prefer stable, descriptive lowercase filenames.
+- After generation or editing, write the manifest JSON exactly at the manifest path.
+
+Manifest schema:
+{
+  "schema_version": 1,
+  "status": "complete | blocked",
+  "mode": "generate",
+  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
+  "assets": [
+    {
+      "path": "absolute or workdir-relative path to an asset",
+      "role": "sprite | sprite-strip | icon | background | texture | concept | other",
+      "description": "short asset description",
+      "width": null,
+      "height": null,
+      "notes": "generation or editing notes"
+    }
+  ],
+  "notes": "short summary, or blocker reason when status is blocked"
+}
+
+Finish with a concise summary of files created and any checks the caller should run.
+
+codex
+I’m using the imagegen skill in built-in mode, then I’ll post-process the generated bitmaps locally into the exact PNG dimensions and manifest paths.
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}" -type f '"\\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.webp' \\) -printf '%T@ %p\\n' 2>/dev/null | sort -nr | head -20" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 420ms:
+1777341530.7667866260 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0142fad38819684a14eaef6ca9f74.png
+1777339407.3143180510 /home/tim/.codex/.tmp/plugins/plugins/yepcode/assets/app-icon.png
+1777339407.3103176650 /home/tim/.codex/.tmp/plugins/plugins/windsor-ai/assets/app-icon.png
+1777339407.3103176650 /home/tim/.codex/.tmp/plugins/plugins/weatherpromise/assets/app-icon.png
+1777339407.3103176650 /home/tim/.codex/.tmp/plugins/plugins/waldo/assets/app-icon.png
+1777339407.2623130420 /home/tim/.codex/.tmp/plugins/plugins/vercel/assets/app-icon.png
+1777339407.2583126570 /home/tim/.codex/.tmp/plugins/plugins/vantage/assets/app-icon.png
+1777339407.2583126570 /home/tim/.codex/.tmp/plugins/plugins/united-rentals/assets/app-icon.png
+1777339407.2543122720 /home/tim/.codex/.tmp/plugins/plugins/tinman-ai/assets/app-icon.png
+1777339407.2543122720 /home/tim/.codex/.tmp/plugins/plugins/third-bridge/assets/app-icon.png
+1777339407.2503118860 /home/tim/.codex/.tmp/plugins/plugins/test-android-apps/assets/app-icon.png
+1777339407.2383107310 /home/tim/.codex/.tmp/plugins/plugins/teamwork-com/assets/app-icon.png
+1777339407.2303099600 /home/tim/.codex/.tmp/plugins/plugins/teams/assets/app-icon.png
+1777339407.2303099600 /home/tim/.codex/.tmp/plugins/plugins/taxdown/assets/app-icon.png
+1777339407.2103080340 /home/tim/.codex/.tmp/plugins/plugins/superpowers/assets/app-icon.png
+1777339407.2063076480 /home/tim/.codex/.tmp/plugins/plugins/stripe/assets/app-icon.png
+1777339407.2023072630 /home/tim/.codex/.tmp/plugins/plugins/streak/assets/app-icon.png
+1777339407.2023072630 /home/tim/.codex/.tmp/plugins/plugins/statsig/assets/app-icon.png
+1777339407.2023072630 /home/tim/.codex/.tmp/plugins/plugins/slack/skills/slack/assets/slack.png
+1777339407.1983068780 /home/tim/.codex/.tmp/plugins/plugins/slack/skills/slack-reply-drafting/assets/slack.png
+
+exec
+/bin/bash -lc 'mkdir -p tmp/imagegen/corebound-src games/corebound/assets/{rig,surface,terrain,readables,hud,upgrades} && cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0142fad38819684a14eaef6ca9f74.png tmp/imagegen/corebound-src/mantis-strip-source.png && file tmp/imagegen/corebound-src/mantis-strip-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 558ms:
+tmp/imagegen/corebound-src/mantis-strip-source.png: PNG image data, 2172 x 724, 8-bit/color RGB, non-interlaced
+
+codex
+The first source image is saved locally for processing. I’m generating the scene plates and tile/atlas sources next, then I’ll normalize all files to the requested dimensions.
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}/generated_images" -type f -iname '"'*.png' -printf '%T@ %p\\n' | sort -nr | head -3" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 387ms:
+1777341603.5083957100 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0146c5af08196aec9ee5a90c8250d.png
+1777341530.7667866260 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0142fad38819684a14eaef6ca9f74.png
+
+exec
+/bin/bash -lc 'cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0146c5af08196aec9ee5a90c8250d.png tmp/imagegen/corebound-src/surface-facilities-source.png && file tmp/imagegen/corebound-src/surface-facilities-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 486ms:
+tmp/imagegen/corebound-src/surface-facilities-source.png: PNG image data, 1983 x 793, 8-bit/color RGB, non-interlaced
+
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}/generated_images" -type f -iname '"'*.png' -printf '%T@ %p\\n' | sort -nr | head -3" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 365ms:
+1777341690.0250343960 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f014afaabc8196a97fad554ba014cd.png
+1777341603.5083957100 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0146c5af08196aec9ee5a90c8250d.png
+1777341530.7667866260 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0142fad38819684a14eaef6ca9f74.png
+
+exec
+/bin/bash -lc 'cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f014afaabc8196a97fad554ba014cd.png tmp/imagegen/corebound-src/launch-shaft-source.png && file tmp/imagegen/corebound-src/launch-shaft-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 427ms:
+tmp/imagegen/corebound-src/launch-shaft-source.png: PNG image data, 1254 x 1254, 8-bit/color RGB, non-interlaced
+
+codex
+The surface sources are in place. For the terrain, I’m generating square source textures with seamless-tile instructions, then I’ll downsample them to the requested 128x128 plates.
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}/generated_images" -type f -iname '"'*.png' -printf '%T@ %p\\n' | sort -nr | head -3" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 381ms:
+1777341776.1307986060 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f015086ca08196a4654c9e5ac68cf1.png
+1777341690.0250343960 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f014afaabc8196a97fad554ba014cd.png
+1777341603.5083957100 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0146c5af08196aec9ee5a90c8250d.png
+
+exec
+/bin/bash -lc 'cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f015086ca08196a4654c9e5ac68cf1.png tmp/imagegen/corebound-src/loam-gritstone-source.png && file tmp/imagegen/corebound-src/loam-gritstone-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 416ms:
+tmp/imagegen/corebound-src/loam-gritstone-source.png: PNG image data, 1254 x 1254, 8-bit/color RGB, non-interlaced
+
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}/generated_images" -type f -iname '"'*.png' -printf '%T@ %p\\n' | sort -nr | head -3" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 412ms:
+1777341868.1436712190 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0155db354819698b1cebddeb550d9.png
+1777341776.1307986060 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f015086ca08196a4654c9e5ac68cf1.png
+1777341690.0250343960 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f014afaabc8196a97fad554ba014cd.png
+
+exec
+/bin/bash -lc 'cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0155db354819698b1cebddeb550d9.png tmp/imagegen/corebound-src/basalt-core-source.png && file tmp/imagegen/corebound-src/basalt-core-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 399ms:
+tmp/imagegen/corebound-src/basalt-core-source.png: PNG image data, 1254 x 1254, 8-bit/color RGB, non-interlaced
+
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}/generated_images" -type f -iname '"'*.png' -printf '%T@ %p\\n' | sort -nr | head -3" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 392ms:
+1777341949.9730270590 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f015be5eb4819681632a52335af40f.png
+1777341868.1436712190 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0155db354819698b1cebddeb550d9.png
+1777341776.1307986060 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f015086ca08196a4654c9e5ac68cf1.png
+
+ERROR: Reconnecting... 2/5
+ERROR: Reconnecting... 3/5
+ERROR: Reconnecting... 4/5
+ERROR: Reconnecting... 5/5
+exec
+/bin/bash -lc 'cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f015be5eb4819681632a52335af40f.png tmp/imagegen/corebound-src/pressure-glass-source.png && file tmp/imagegen/corebound-src/pressure-glass-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 418ms:
+tmp/imagegen/corebound-src/pressure-glass-source.png: PNG image data, 1254 x 1254, 8-bit/color RGB, non-interlaced
+
+codex
+The terrain sources are captured. The next three sheets need alpha, so I’m prompting them on a flat chroma-key background and will remove the key locally before finalizing.
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}/generated_images" -type f -iname '"'*.png' -printf '%T@ %p\\n' | sort -nr | head -3" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 381ms:
+1777342052.6746478680 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f01632ce8c819688bb40fd64e03103.png
+1777341949.9730270590 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f015be5eb4819681632a52335af40f.png
+1777341868.1436712190 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f0155db354819698b1cebddeb550d9.png
+
+exec
+/bin/bash -lc 'cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f01632ce8c819688bb40fd64e03103.png tmp/imagegen/corebound-src/ore-hazard-atlas-source.png && file tmp/imagegen/corebound-src/ore-hazard-atlas-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 402ms:
+tmp/imagegen/corebound-src/ore-hazard-atlas-source.png: PNG image data, 1774 x 887, 8-bit/color RGB, non-interlaced
+
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}/generated_images" -type f -iname '"'*.png' -printf '%T@ %p\\n' | sort -nr | head -3" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 366ms:
+1777342129.2127635070 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f016884adc819691c4f82be076d2e5.png
+1777342052.6746478680 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f01632ce8c819688bb40fd64e03103.png
+1777341949.9730270590 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f015be5eb4819681632a52335af40f.png
+
+exec
+/bin/bash -lc 'cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f016884adc819691c4f82be076d2e5.png tmp/imagegen/corebound-src/hud-icon-atlas-source.png && file tmp/imagegen/corebound-src/hud-icon-atlas-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 403ms:
+tmp/imagegen/corebound-src/hud-icon-atlas-source.png: PNG image data, 1774 x 887, 8-bit/color RGB, non-interlaced
+
+exec
+/bin/bash -lc 'find "${CODEX_HOME:-$HOME/.codex}/generated_images" -type f -iname '"'*.png' -printf '%T@ %p\\n' | sort -nr | head -3" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 406ms:
+1777342217.3138396730 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f016c7d3a4819692f40214788ddb14.png
+1777342129.2127635070 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f016884adc819691c4f82be076d2e5.png
+1777342052.6746478680 /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f01632ce8c819688bb40fd64e03103.png
+
+exec
+/bin/bash -lc 'cp /home/tim/.codex/generated_images/019dd1ce-7739-70e0-98c3-49af0689693a/ig_04c047d4bd4cad420169f016c7d3a4819692f40214788ddb14.png tmp/imagegen/corebound-src/upgrade-research-atlas-source.png && file tmp/imagegen/corebound-src/upgrade-research-atlas-source.png' in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 395ms:
+tmp/imagegen/corebound-src/upgrade-research-atlas-source.png: PNG image data, 1881 x 836, 8-bit/color RGB, non-interlaced
+
+codex
+All image-generation sources are saved in `tmp/imagegen/corebound-src`. I’m going to overwrite only the requested final asset paths now: crop/resize them to exact dimensions, remove chroma-key backgrounds where transparency is required, and then validate dimensions/alpha.
+exec
+/bin/bash -lc "python - <<'PY'
+from pathlib import Path
+try:
+    from PIL import Image
+    print('pillow-ok')
+except Exception as e:
+    print('pillow-missing', e)
+PY" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 441ms:
+pillow-ok
+
+ERROR: Reconnecting... 1/5
+exec
+/bin/bash -lc "python - <<'PY'
+from pathlib import Path
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter
+import json, math
+try:
+    import numpy as np
+except Exception as e:
+    raise SystemExit(f'numpy unavailable: {e}')
+
+workdir = Path('/mnt/f/_evolve/millrace-games/auto-games')
+src = workdir / 'tmp/imagegen/corebound-src'
+out = workdir / 'games/corebound/assets'
+
+for d in ['rig','surface','terrain','readables','hud','upgrades']:
+    (out / d).mkdir(parents=True, exist_ok=True)
+
+RESAMPLE = Image.Resampling.LANCZOS
+
+def remove_green_alpha(im: Image.Image) -> Image.Image:
+    im = im.convert('RGBA')
+    arr = np.asarray(im).astype(np.float32)
+    r, g, b, a = arr[...,0], arr[...,1], arr[...,2], arr[...,3]
+    max_rb = np.maximum(r, b)
+    green_score = g - max_rb
+    # Strong chroma-key removal while preserving teal/cyan subject lights where blue ~= green.
+    hard = (g > 135) & (green_score > 65)
+    soft = (g > 95) & (green_score > 24)
+    t = np.clip((green_score - 24) / 76, 0, 1) * np.clip((g - 95) / 80, 0, 1)
+    new_alpha = a.copy()
+    new_alpha[soft] = np.minimum(new_alpha[soft], 255 * (1 - t[soft]))
+    new_alpha[hard] = 0
+    # Despill antialiased edges.
+    edge = new_alpha < 255
+    arr[...,1][edge] = np.minimum(arr[...,1][edge], max_rb[edge] * 1.05)
+    arr[...,3] = np.clip(new_alpha, 0, 255)
+    return Image.fromarray(np.asarray(np.clip(arr, 0, 255), dtype=np.uint8), 'RGBA')
+
+def bbox_for_alpha(im: Image.Image, threshold=20):
+    a = np.asarray(im.getchannel('A'))
+    ys, xs = np.where(a > threshold)
+    if len(xs) == 0:
+        return None
+    return int(xs.min()), int(ys.min()), int(xs.max()+1), int(ys.max()+1)
+
+def groups_by_x(im: Image.Image, expected: int, threshold=30):
+    a = np.asarray(im.getchannel('A'))
+    occupied = (a > threshold).sum(axis=0) > 2
+    runs = []
+    in_run = False
+    start = 0
+    for i, v in enumerate(occupied):
+        if v and not in_run:
+            start = i; in_run = True
+        elif not v and in_run:
+            runs.append([start, i]); in_run = False
+    if in_run:
+        runs.append([start, len(occupied)])
+    if not runs:
+        return []
+    # Merge object-internal gaps; real cell gaps are much larger.
+    merge_gap = max(18, im.width // (expected * 9))
+    merged = [runs[0]]
+    for s, e in runs[1:]:
+        if s - merged[-1][1] <= merge_gap:
+            merged[-1][1] = e
+        else:
+            merged.append([s, e])
+    # If small detached pieces split an icon, progressively merge nearest gaps until expected count.
+    while len(merged) > expected:
+        gaps = [(merged[i+1][0] - merged[i][1], i) for i in range(len(merged)-1)]
+        _, idx = min(gaps)
+        merged[idx][1] = merged[idx+1][1]
+        del merged[idx+1]
+    if len(merged) < expected:
+        box = bbox_for_alpha(im, threshold) or (0, 0, im.width, im.height)
+        x0, _, x1, _ = box
+        cell = (x1 - x0) / expected
+        merged = [[round(x0 + i*cell), round(x0 + (i+1)*cell)] for i in range(expected)]
+    return [(int(s), int(e)) for s, e in merged[:expected]]
+
+def crop_bbox_in_x(im: Image.Image, xr, threshold=20, pad=8):
+    a = np.asarray(im.getchannel('A'))
+    x0, x1 = xr
+    sub = a[:, max(0,x0):min(im.width,x1)] > threshold
+    ys, xs = np.where(sub)
+    if len(xs) == 0:
+        return im.crop((x0, 0, x1, im.height))
+    bx0 = max(0, x0 + int(xs.min()) - pad)
+    bx1 = min(im.width, x0 + int(xs.max()) + 1 + pad)
+    by0 = max(0, int(ys.min()) - pad)
+    by1 = min(im.height, int(ys.max()) + 1 + pad)
+    return im.crop((bx0, by0, bx1, by1))
+
+def paste_fit_cell(canvas, crop, cell_x, cell_y, cell_w, cell_h, max_w, max_h, y_bias=0.5):
+    box = bbox_for_alpha(crop, 8)
+    if box:
+        crop = crop.crop(box)
+    scale = min(max_w / crop.width, max_h / crop.height)
+    nw = max(1, int(round(crop.width * scale)))
+    nh = max(1, int(round(crop.height * scale)))
+    resized = crop.resize((nw, nh), RESAMPLE)
+    px = cell_x + (cell_w - nw) // 2
+    py = cell_y + int(round((cell_h - nh) * y_bias))
+    canvas.alpha_composite(resized, (px, py))
+
+def make_sprite_strip():
+    im = Image.open(src / 'mantis-strip-source.png')
+    rgba = remove_green_alpha(im)
+    groups = groups_by_x(rgba, 4, threshold=25)
+    canvas = Image.new('RGBA', (320, 80), (0,0,0,0))
+    for i, xr in enumerate(groups):
+        crop = crop_bbox_in_x(rgba, xr, threshold=25, pad=12)
+        paste_fit_cell(canvas, crop, i*80, 0, 80, 80, 76, 66, y_bias=0.62)
+    canvas.save(out / 'rig/mantis-rig-motion-strip.png')
+
+def fit_cover(im, size, focal_y=0.5):
+    tw, th = size
+    w, h = im.size
+    target_aspect = tw / th
+    aspect = w / h
+    if aspect > target_aspect:
+        crop_w = int(round(h * target_aspect))
+        x0 = max(0, (w - crop_w)//2)
+        box = (x0, 0, x0 + crop_w, h)
+    else:
+        crop_h = int(round(w / target_aspect))
+        y0 = int(round((h - crop_h) * focal_y))
+        y0 = max(0, min(h - crop_h, y0))
+        box = (0, y0, w, y0 + crop_h)
+    return im.crop(box).resize(size, RESAMPLE)
+
+def make_surfaces():
+    facilities = Image.open(src / 'surface-facilities-source.png').convert('RGB')
+    # Bias high enough to keep gantry/relay tops, while retaining the base deck.
+    facilities = fit_cover(facilities, (640,160), focal_y=0.18)
+    facilities.save(out / 'surface/surface-facilities-panel.png')
+    launch = Image.open(src / 'launch-shaft-source.png').convert('RGB')
+    ImageOps.fit(launch, (320,320), method=RESAMPLE, centering=(0.5,0.5)).save(out / 'surface/launch-shaft-context.png')
+
+def make_seamless_tile(path_in, path_out):
+    im = Image.open(path_in).convert('RGB')
+    im = ImageOps.fit(im, (160,160), method=RESAMPLE, centering=(0.5,0.5)).resize((128,128), RESAMPLE)
+    im = ImageEnhance.Contrast(im).enhance(1.06)
+    im = ImageEnhance.Sharpness(im).enhance(1.15)
+    arr = np.asarray(im).astype(np.float32)
+    h, w, _ = arr.shape
+    blend = 12
+    # Wrap-blend opposing edges so the final 128 tile reads cleanly in a grid.
+    for i in range(blend):
+        t = (i + 1) / (blend + 1)
+        left = arr[:, i, :].copy()
+        right = arr[:, w-1-i, :].copy()
+        avg = left * (1-t) + right * t
+        avg2 = right * (1-t) + left * t
+        arr[:, i, :] = avg
+        arr[:, w-1-i, :] = avg2
+        top = arr[i, :, :].copy()
+        bottom = arr[h-1-i, :, :].copy()
+        avg = top * (1-t) + bottom * t
+        avg2 = bottom * (1-t) + top * t
+        arr[i, :, :] = avg
+        arr[h-1-i, :, :] = avg2
+    Image.fromarray(np.asarray(np.clip(arr,0,255), dtype=np.uint8), 'RGB').save(path_out)
+
+def make_tiles():
+    make_seamless_tile(src / 'loam-gritstone-source.png', out / 'terrain/loam-gritstone-tile.png')
+    make_seamless_tile(src / 'basalt-core-source.png', out / 'terrain/basalt-core-tile.png')
+    make_seamless_tile(src / 'pressure-glass-source.png', out / 'terrain/pressure-glass-tile.png')
+
+def make_atlas(src_name, out_rel, count, width, height, max_size):
+    im = Image.open(src / src_name)
+    rgba = remove_green_alpha(im)
+    groups = groups_by_x(rgba, count, threshold=25)
+    canvas = Image.new('RGBA', (width, height), (0,0,0,0))
+    cell_w = width // count
+    for i, xr in enumerate(groups):
+        crop = crop_bbox_in_x(rgba, xr, threshold=25, pad=12)
+        paste_fit_cell(canvas, crop, i*cell_w, 0, cell_w, height, max_size, max_size, y_bias=0.5)
+    canvas.save(out / out_rel)
+
+def make_atlases():
+    make_atlas('ore-hazard-atlas-source.png', 'readables/ore-hazard-atlas.png', 6, 384, 128, 58)
+    make_atlas('hud-icon-atlas-source.png', 'hud/hud-icon-atlas.png', 5, 320, 64, 58)
+    make_atlas('upgrade-research-atlas-source.png', 'upgrades/upgrade-research-atlas.png', 8, 512, 128, 60)
+
+make_sprite_strip()
+make_surfaces()
+make_tiles()
+make_atlases()
+
+# Validate dimensions/alpha.
+checks = []
+expected = {
+    'rig/mantis-rig-motion-strip.png': (320,80,'RGBA'),
+    'surface/surface-facilities-panel.png': (640,160,'RGB'),
+    'surface/launch-shaft-context.png': (320,320,'RGB'),
+    'terrain/loam-gritstone-tile.png': (128,128,'RGB'),
+    'terrain/basalt-core-tile.png': (128,128,'RGB'),
+    'terrain/pressure-glass-tile.png': (128,128,'RGB'),
+    'readables/ore-hazard-atlas.png': (384,128,'RGBA'),
+    'hud/hud-icon-atlas.png': (320,64,'RGBA'),
+    'upgrades/upgrade-research-atlas.png': (512,128,'RGBA'),
+}
+for rel, (ew,eh,mode_hint) in expected.items():
+    p = out / rel
+    im = Image.open(p)
+    has_alpha = 'A' in im.getbands()
+    transparent_corners = None
+    if has_alpha:
+        a = im.getchannel('A')
+        transparent_corners = [a.getpixel((0,0)), a.getpixel((im.width-1,0)), a.getpixel((0,im.height-1)), a.getpixel((im.width-1,im.height-1))]
+    checks.append((rel, im.size, im.mode, has_alpha, transparent_corners))
+    if im.size "'!= (ew,eh):
+        raise SystemExit(f'"'bad size for {rel}: {im.size}, expected {(ew,eh)}')
+    if mode_hint == 'RGBA' and not has_alpha:
+        raise SystemExit(f'missing alpha for {rel}')
+for c in checks:
+    print(c)
+PY" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 1929ms:
+('rig/mantis-rig-motion-strip.png', (320, 80), 'RGBA', True, [0, 0, 0, 0])
+('surface/surface-facilities-panel.png', (640, 160), 'RGB', False, None)
+('surface/launch-shaft-context.png', (320, 320), 'RGB', False, None)
+('terrain/loam-gritstone-tile.png', (128, 128), 'RGB', False, None)
+('terrain/basalt-core-tile.png', (128, 128), 'RGB', False, None)
+('terrain/pressure-glass-tile.png', (128, 128), 'RGB', False, None)
+('readables/ore-hazard-atlas.png', (384, 128), 'RGBA', True, [0, 0, 0, 0])
+('hud/hud-icon-atlas.png', (320, 64), 'RGBA', True, [0, 0, 0, 0])
+('upgrades/upgrade-research-atlas.png', (512, 128), 'RGBA', True, [0, 0, 0, 0])
+
+codex
+The resized assets are visually readable and the alpha sheets have transparent corners. I’m writing the manifest now with the stable IDs and workdir-relative paths the task specified.
+exec
+/bin/bash -lc "if [ -f games/corebound/assets/asset-manifest.json ]; then sed -n '1,220p' games/corebound/assets/asset-manifest.json; else printf 'missing\\n'; fi" in /mnt/f/_evolve/millrace-games/auto-games
+ succeeded in 376ms:
+missing
+
+apply patch
+patch: completed
+/mnt/f/_evolve/millrace-games/auto-games/games/corebound/assets/asset-manifest.json
+diff --git a/games/corebound/assets/asset-manifest.json b/games/corebound/assets/asset-manifest.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..565db4f6f2a50cb2e65fea73ff9fd47456f4c6b3
+--- /dev/null
++++ b/games/corebound/assets/asset-manifest.json
+@@ -0,0 +1,99 @@
++{
++  "schema_version": 1,
++  "status": "complete",
++  "mode": "generate",
++  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
++  "assets": [
++    {
++      "id": "rig.mantis_motion_strip",
++      "path": "games/corebound/assets/rig/mantis-rig-motion-strip.png",
++      "role": "sprite-strip",
++      "description": "Four-frame transparent motion strip for the compact Mantis-01 mining pod with drill, treads, skids, antenna mast, and subtle strut motion.",
++      "width": 320,
++      "height": 80,
++      "intended_use": "Rig player sprite animation, four horizontal 80x80 frames.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into exact frame cells."
++    },
++    {
++      "id": "surface.facilities_panel",
++      "path": "games/corebound/assets/surface/surface-facilities-panel.png",
++      "role": "background",
++      "description": "Wide surface facilities plate with refinery, rig bay, assay desk, survey relay, and launch gantry in a restrained industrial style.",
++      "width": 640,
++      "height": 160,
++      "intended_use": "Static surface base panel or top-of-run context art.",
++      "notes": "Generated with built-in image generation and cropped/resized to exact 640x160 dimensions."
++    },
++    {
++      "id": "surface.launch_shaft_context",
++      "path": "games/corebound/assets/surface/launch-shaft-context.png",
++      "role": "background",
++      "description": "Square launch context plate showing a vertical shaft collar descending from surface base structures into layered strata.",
++      "width": 320,
++      "height": 320,
++      "intended_use": "Launch shaft context scene or menu/state panel art.",
++      "notes": "Generated with built-in image generation and resized to exact 320x320 dimensions."
++    },
++    {
++      "id": "terrain.loam_gritstone_tile",
++      "path": "games/corebound/assets/terrain/loam-gritstone-tile.png",
++      "role": "texture",
++      "description": "Upper loam and gritstone strata tile with subdued dark mineral plates and grid-readable edges.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for upper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.basalt_core_tile",
++      "path": "games/corebound/assets/terrain/basalt-core-tile.png",
++      "role": "texture",
++      "description": "Deep basalt and core rind strata tile, darker and denser with restrained teal seam accents.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for deeper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.pressure_glass_tile",
++      "path": "games/corebound/assets/terrain/pressure-glass-tile.png",
++      "role": "texture",
++      "description": "Pressure glass and choir slate tile with smoky dark glass facets and faint luminous fractures.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for pressure glass or choir slate strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "readables.ore_hazard_atlas",
++      "path": "games/corebound/assets/readables/ore-hazard-atlas.png",
++      "role": "icon",
++      "description": "Transparent six-cell ore and hazard atlas: copper seed, saltglass, cobalt thread, heat fissure, gas vent, and magnetic bloom.",
++      "width": 384,
++      "height": 128,
++      "intended_use": "Six centered 64x64 readables/icons in a 384x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into six cells."
++    },
++    {
++      "id": "hud.icon_atlas",
++      "path": "games/corebound/assets/hud/hud-icon-atlas.png",
++      "role": "icon",
++      "description": "Transparent five-cell HUD icon atlas for hull, energy, heat, cargo, and depth.",
++      "width": 320,
++      "height": 64,
++      "intended_use": "Five centered 64x64 HUD icons in a 320x64 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into five cells."
++    },
++    {
++      "id": "upgrades.research_atlas",
++      "path": "games/corebound/assets/upgrades/upgrade-research-atlas.png",
++      "role": "icon",
++      "description": "Transparent eight-cell upgrade and research atlas: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, and archive relay.",
++      "width": 512,
++      "height": 128,
++      "intended_use": "Eight centered 64x64 upgrade icons in a 512x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into eight cells."
++    }
++  ],
++  "notes": "Original Corebound bitmap asset pack generated with Codex built-in image generation only; final project-consumed PNGs were saved under games/corebound/assets."
++}
+
+diff --git a/games/corebound/assets/asset-manifest.json b/games/corebound/assets/asset-manifest.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..565db4f6f2a50cb2e65fea73ff9fd47456f4c6b3
+--- /dev/null
++++ b/games/corebound/assets/asset-manifest.json
+@@ -0,0 +1,99 @@
++{
++  "schema_version": 1,
++  "status": "complete",
++  "mode": "generate",
++  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
++  "assets": [
++    {
++      "id": "rig.mantis_motion_strip",
++      "path": "games/corebound/assets/rig/mantis-rig-motion-strip.png",
++      "role": "sprite-strip",
++      "description": "Four-frame transparent motion strip for the compact Mantis-01 mining pod with drill, treads, skids, antenna mast, and subtle strut motion.",
++      "width": 320,
++      "height": 80,
++      "intended_use": "Rig player sprite animation, four horizontal 80x80 frames.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into exact frame cells."
++    },
++    {
++      "id": "surface.facilities_panel",
++      "path": "games/corebound/assets/surface/surface-facilities-panel.png",
++      "role": "background",
++      "description": "Wide surface facilities plate with refinery, rig bay, assay desk, survey relay, and launch gantry in a restrained industrial style.",
++      "width": 640,
++      "height": 160,
++      "intended_use": "Static surface base panel or top-of-run context art.",
++      "notes": "Generated with built-in image generation and cropped/resized to exact 640x160 dimensions."
++    },
++    {
++      "id": "surface.launch_shaft_context",
++      "path": "games/corebound/assets/surface/launch-shaft-context.png",
++      "role": "background",
++      "description": "Square launch context plate showing a vertical shaft collar descending from surface base structures into layered strata.",
++      "width": 320,
++      "height": 320,
++      "intended_use": "Launch shaft context scene or menu/state panel art.",
++      "notes": "Generated with built-in image generation and resized to exact 320x320 dimensions."
++    },
++    {
++      "id": "terrain.loam_gritstone_tile",
++      "path": "games/corebound/assets/terrain/loam-gritstone-tile.png",
++      "role": "texture",
++      "description": "Upper loam and gritstone strata tile with subdued dark mineral plates and grid-readable edges.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for upper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.basalt_core_tile",
++      "path": "games/corebound/assets/terrain/basalt-core-tile.png",
++      "role": "texture",
++      "description": "Deep basalt and core rind strata tile, darker and denser with restrained teal seam accents.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for deeper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.pressure_glass_tile",
++      "path": "games/corebound/assets/terrain/pressure-glass-tile.png",
++      "role": "texture",
++      "description": "Pressure glass and choir slate tile with smoky dark glass facets and faint luminous fractures.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for pressure glass or choir slate strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "readables.ore_hazard_atlas",
++      "path": "games/corebound/assets/readables/ore-hazard-atlas.png",
++      "role": "icon",
++      "description": "Transparent six-cell ore and hazard atlas: copper seed, saltglass, cobalt thread, heat fissure, gas vent, and magnetic bloom.",
++      "width": 384,
++      "height": 128,
++      "intended_use": "Six centered 64x64 readables/icons in a 384x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into six cells."
++    },
++    {
++      "id": "hud.icon_atlas",
++      "path": "games/corebound/assets/hud/hud-icon-atlas.png",
++      "role": "icon",
++      "description": "Transparent five-cell HUD icon atlas for hull, energy, heat, cargo, and depth.",
++      "width": 320,
++      "height": 64,
++      "intended_use": "Five centered 64x64 HUD icons in a 320x64 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into five cells."
++    },
++    {
++      "id": "upgrades.research_atlas",
++      "path": "games/corebound/assets/upgrades/upgrade-research-atlas.png",
++      "role": "icon",
++      "description": "Transparent eight-cell upgrade and research atlas: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, and archive relay.",
++      "width": 512,
++      "height": 128,
++      "intended_use": "Eight centered 64x64 upgrade icons in a 512x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into eight cells."
++    }
++  ],
++  "notes": "Original Corebound bitmap asset pack generated with Codex built-in image generation only; final project-consumed PNGs were saved under games/corebound/assets."
++}
+
+exec
+/bin/bash -lc "python - <<'PY'
+import json
+from pathlib import Path
+from PIL import Image
+workdir = Path('/mnt/f/_evolve/millrace-games/auto-games')
+manifest = workdir / 'games/corebound/assets/asset-manifest.json'
+data = json.loads(manifest.read_text())
+print('manifest status:', data['status'])
+for asset in data['assets']:
+    path = workdir / asset['path']
+    im = Image.open(path)
+    alpha = 'A' in im.getbands()
+    print(f\"{asset['id']}: {im.width}x{im.height} alpha={alpha} path={asset['path']}\")
+PY" in /mnt/f/_evolve/millrace-games/auto-games
+diff --git a/games/corebound/assets/asset-manifest.json b/games/corebound/assets/asset-manifest.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..565db4f6f2a50cb2e65fea73ff9fd47456f4c6b3
+--- /dev/null
++++ b/games/corebound/assets/asset-manifest.json
+@@ -0,0 +1,99 @@
++{
++  "schema_version": 1,
++  "status": "complete",
++  "mode": "generate",
++  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
++  "assets": [
++    {
++      "id": "rig.mantis_motion_strip",
++      "path": "games/corebound/assets/rig/mantis-rig-motion-strip.png",
++      "role": "sprite-strip",
++      "description": "Four-frame transparent motion strip for the compact Mantis-01 mining pod with drill, treads, skids, antenna mast, and subtle strut motion.",
++      "width": 320,
++      "height": 80,
++      "intended_use": "Rig player sprite animation, four horizontal 80x80 frames.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into exact frame cells."
++    },
++    {
++      "id": "surface.facilities_panel",
++      "path": "games/corebound/assets/surface/surface-facilities-panel.png",
++      "role": "background",
++      "description": "Wide surface facilities plate with refinery, rig bay, assay desk, survey relay, and launch gantry in a restrained industrial style.",
++      "width": 640,
++      "height": 160,
++      "intended_use": "Static surface base panel or top-of-run context art.",
++      "notes": "Generated with built-in image generation and cropped/resized to exact 640x160 dimensions."
++    },
++    {
++      "id": "surface.launch_shaft_context",
++      "path": "games/corebound/assets/surface/launch-shaft-context.png",
++      "role": "background",
++      "description": "Square launch context plate showing a vertical shaft collar descending from surface base structures into layered strata.",
++      "width": 320,
++      "height": 320,
++      "intended_use": "Launch shaft context scene or menu/state panel art.",
++      "notes": "Generated with built-in image generation and resized to exact 320x320 dimensions."
++    },
++    {
++      "id": "terrain.loam_gritstone_tile",
++      "path": "games/corebound/assets/terrain/loam-gritstone-tile.png",
++      "role": "texture",
++      "description": "Upper loam and gritstone strata tile with subdued dark mineral plates and grid-readable edges.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for upper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.basalt_core_tile",
++      "path": "games/corebound/assets/terrain/basalt-core-tile.png",
++      "role": "texture",
++      "description": "Deep basalt and core rind strata tile, darker and denser with restrained teal seam accents.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for deeper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.pressure_glass_tile",
++      "path": "games/corebound/assets/terrain/pressure-glass-tile.png",
++      "role": "texture",
++      "description": "Pressure glass and choir slate tile with smoky dark glass facets and faint luminous fractures.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for pressure glass or choir slate strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "readables.ore_hazard_atlas",
++      "path": "games/corebound/assets/readables/ore-hazard-atlas.png",
++      "role": "icon",
++      "description": "Transparent six-cell ore and hazard atlas: copper seed, saltglass, cobalt thread, heat fissure, gas vent, and magnetic bloom.",
++      "width": 384,
++      "height": 128,
++      "intended_use": "Six centered 64x64 readables/icons in a 384x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into six cells."
++    },
++    {
++      "id": "hud.icon_atlas",
++      "path": "games/corebound/assets/hud/hud-icon-atlas.png",
++      "role": "icon",
++      "description": "Transparent five-cell HUD icon atlas for hull, energy, heat, cargo, and depth.",
++      "width": 320,
++      "height": 64,
++      "intended_use": "Five centered 64x64 HUD icons in a 320x64 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into five cells."
++    },
++    {
++      "id": "upgrades.research_atlas",
++      "path": "games/corebound/assets/upgrades/upgrade-research-atlas.png",
++      "role": "icon",
++      "description": "Transparent eight-cell upgrade and research atlas: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, and archive relay.",
++      "width": 512,
++      "height": 128,
++      "intended_use": "Eight centered 64x64 upgrade icons in a 512x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into eight cells."
++    }
++  ],
++  "notes": "Original Corebound bitmap asset pack generated with Codex built-in image generation only; final project-consumed PNGs were saved under games/corebound/assets."
++}
+
+ succeeded in 518ms:
+manifest status: complete
+rig.mantis_motion_strip: 320x80 alpha=True path=games/corebound/assets/rig/mantis-rig-motion-strip.png
+surface.facilities_panel: 640x160 alpha=False path=games/corebound/assets/surface/surface-facilities-panel.png
+surface.launch_shaft_context: 320x320 alpha=False path=games/corebound/assets/surface/launch-shaft-context.png
+terrain.loam_gritstone_tile: 128x128 alpha=False path=games/corebound/assets/terrain/loam-gritstone-tile.png
+terrain.basalt_core_tile: 128x128 alpha=False path=games/corebound/assets/terrain/basalt-core-tile.png
+terrain.pressure_glass_tile: 128x128 alpha=False path=games/corebound/assets/terrain/pressure-glass-tile.png
+readables.ore_hazard_atlas: 384x128 alpha=True path=games/corebound/assets/readables/ore-hazard-atlas.png
+hud.icon_atlas: 320x64 alpha=True path=games/corebound/assets/hud/hud-icon-atlas.png
+upgrades.research_atlas: 512x128 alpha=True path=games/corebound/assets/upgrades/upgrade-research-atlas.png
+
+exec
+/bin/bash -lc "git status --short -- games/corebound/assets | sed -n '1,120p'" in /mnt/f/_evolve/millrace-games/auto-games
+diff --git a/games/corebound/assets/asset-manifest.json b/games/corebound/assets/asset-manifest.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..565db4f6f2a50cb2e65fea73ff9fd47456f4c6b3
+--- /dev/null
++++ b/games/corebound/assets/asset-manifest.json
+@@ -0,0 +1,99 @@
++{
++  "schema_version": 1,
++  "status": "complete",
++  "mode": "generate",
++  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
++  "assets": [
++    {
++      "id": "rig.mantis_motion_strip",
++      "path": "games/corebound/assets/rig/mantis-rig-motion-strip.png",
++      "role": "sprite-strip",
++      "description": "Four-frame transparent motion strip for the compact Mantis-01 mining pod with drill, treads, skids, antenna mast, and subtle strut motion.",
++      "width": 320,
++      "height": 80,
++      "intended_use": "Rig player sprite animation, four horizontal 80x80 frames.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into exact frame cells."
++    },
++    {
++      "id": "surface.facilities_panel",
++      "path": "games/corebound/assets/surface/surface-facilities-panel.png",
++      "role": "background",
++      "description": "Wide surface facilities plate with refinery, rig bay, assay desk, survey relay, and launch gantry in a restrained industrial style.",
++      "width": 640,
++      "height": 160,
++      "intended_use": "Static surface base panel or top-of-run context art.",
++      "notes": "Generated with built-in image generation and cropped/resized to exact 640x160 dimensions."
++    },
++    {
++      "id": "surface.launch_shaft_context",
++      "path": "games/corebound/assets/surface/launch-shaft-context.png",
++      "role": "background",
++      "description": "Square launch context plate showing a vertical shaft collar descending from surface base structures into layered strata.",
++      "width": 320,
++      "height": 320,
++      "intended_use": "Launch shaft context scene or menu/state panel art.",
++      "notes": "Generated with built-in image generation and resized to exact 320x320 dimensions."
++    },
++    {
++      "id": "terrain.loam_gritstone_tile",
++      "path": "games/corebound/assets/terrain/loam-gritstone-tile.png",
++      "role": "texture",
++      "description": "Upper loam and gritstone strata tile with subdued dark mineral plates and grid-readable edges.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for upper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.basalt_core_tile",
++      "path": "games/corebound/assets/terrain/basalt-core-tile.png",
++      "role": "texture",
++      "description": "Deep basalt and core rind strata tile, darker and denser with restrained teal seam accents.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for deeper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.pressure_glass_tile",
++      "path": "games/corebound/assets/terrain/pressure-glass-tile.png",
++      "role": "texture",
++      "description": "Pressure glass and choir slate tile with smoky dark glass facets and faint luminous fractures.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for pressure glass or choir slate strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "readables.ore_hazard_atlas",
++      "path": "games/corebound/assets/readables/ore-hazard-atlas.png",
++      "role": "icon",
++      "description": "Transparent six-cell ore and hazard atlas: copper seed, saltglass, cobalt thread, heat fissure, gas vent, and magnetic bloom.",
++      "width": 384,
++      "height": 128,
++      "intended_use": "Six centered 64x64 readables/icons in a 384x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into six cells."
++    },
++    {
++      "id": "hud.icon_atlas",
++      "path": "games/corebound/assets/hud/hud-icon-atlas.png",
++      "role": "icon",
++      "description": "Transparent five-cell HUD icon atlas for hull, energy, heat, cargo, and depth.",
++      "width": 320,
++      "height": 64,
++      "intended_use": "Five centered 64x64 HUD icons in a 320x64 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into five cells."
++    },
++    {
++      "id": "upgrades.research_atlas",
++      "path": "games/corebound/assets/upgrades/upgrade-research-atlas.png",
++      "role": "icon",
++      "description": "Transparent eight-cell upgrade and research atlas: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, and archive relay.",
++      "width": 512,
++      "height": 128,
++      "intended_use": "Eight centered 64x64 upgrade icons in a 512x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into eight cells."
++    }
++  ],
++  "notes": "Original Corebound bitmap asset pack generated with Codex built-in image generation only; final project-consumed PNGs were saved under games/corebound/assets."
++}
+
+ succeeded in 465ms:
+?? games/corebound/assets/
+
+exec
+/bin/bash -lc "find tmp/imagegen -maxdepth 2 -type f 2>/dev/null | sed -n '1,80p'" in /mnt/f/_evolve/millrace-games/auto-games
+diff --git a/games/corebound/assets/asset-manifest.json b/games/corebound/assets/asset-manifest.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..565db4f6f2a50cb2e65fea73ff9fd47456f4c6b3
+--- /dev/null
++++ b/games/corebound/assets/asset-manifest.json
+@@ -0,0 +1,99 @@
++{
++  "schema_version": 1,
++  "status": "complete",
++  "mode": "generate",
++  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
++  "assets": [
++    {
++      "id": "rig.mantis_motion_strip",
++      "path": "games/corebound/assets/rig/mantis-rig-motion-strip.png",
++      "role": "sprite-strip",
++      "description": "Four-frame transparent motion strip for the compact Mantis-01 mining pod with drill, treads, skids, antenna mast, and subtle strut motion.",
++      "width": 320,
++      "height": 80,
++      "intended_use": "Rig player sprite animation, four horizontal 80x80 frames.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into exact frame cells."
++    },
++    {
++      "id": "surface.facilities_panel",
++      "path": "games/corebound/assets/surface/surface-facilities-panel.png",
++      "role": "background",
++      "description": "Wide surface facilities plate with refinery, rig bay, assay desk, survey relay, and launch gantry in a restrained industrial style.",
++      "width": 640,
++      "height": 160,
++      "intended_use": "Static surface base panel or top-of-run context art.",
++      "notes": "Generated with built-in image generation and cropped/resized to exact 640x160 dimensions."
++    },
++    {
++      "id": "surface.launch_shaft_context",
++      "path": "games/corebound/assets/surface/launch-shaft-context.png",
++      "role": "background",
++      "description": "Square launch context plate showing a vertical shaft collar descending from surface base structures into layered strata.",
++      "width": 320,
++      "height": 320,
++      "intended_use": "Launch shaft context scene or menu/state panel art.",
++      "notes": "Generated with built-in image generation and resized to exact 320x320 dimensions."
++    },
++    {
++      "id": "terrain.loam_gritstone_tile",
++      "path": "games/corebound/assets/terrain/loam-gritstone-tile.png",
++      "role": "texture",
++      "description": "Upper loam and gritstone strata tile with subdued dark mineral plates and grid-readable edges.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for upper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.basalt_core_tile",
++      "path": "games/corebound/assets/terrain/basalt-core-tile.png",
++      "role": "texture",
++      "description": "Deep basalt and core rind strata tile, darker and denser with restrained teal seam accents.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for deeper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.pressure_glass_tile",
++      "path": "games/corebound/assets/terrain/pressure-glass-tile.png",
++      "role": "texture",
++      "description": "Pressure glass and choir slate tile with smoky dark glass facets and faint luminous fractures.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for pressure glass or choir slate strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "readables.ore_hazard_atlas",
++      "path": "games/corebound/assets/readables/ore-hazard-atlas.png",
++      "role": "icon",
++      "description": "Transparent six-cell ore and hazard atlas: copper seed, saltglass, cobalt thread, heat fissure, gas vent, and magnetic bloom.",
++      "width": 384,
++      "height": 128,
++      "intended_use": "Six centered 64x64 readables/icons in a 384x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into six cells."
++    },
++    {
++      "id": "hud.icon_atlas",
++      "path": "games/corebound/assets/hud/hud-icon-atlas.png",
++      "role": "icon",
++      "description": "Transparent five-cell HUD icon atlas for hull, energy, heat, cargo, and depth.",
++      "width": 320,
++      "height": 64,
++      "intended_use": "Five centered 64x64 HUD icons in a 320x64 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into five cells."
++    },
++    {
++      "id": "upgrades.research_atlas",
++      "path": "games/corebound/assets/upgrades/upgrade-research-atlas.png",
++      "role": "icon",
++      "description": "Transparent eight-cell upgrade and research atlas: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, and archive relay.",
++      "width": 512,
++      "height": 128,
++      "intended_use": "Eight centered 64x64 upgrade icons in a 512x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into eight cells."
++    }
++  ],
++  "notes": "Original Corebound bitmap asset pack generated with Codex built-in image generation only; final project-consumed PNGs were saved under games/corebound/assets."
++}
+
+ succeeded in 394ms:
+tmp/imagegen/corebound-src/basalt-core-source.png
+tmp/imagegen/corebound-src/hud-icon-atlas-source.png
+tmp/imagegen/corebound-src/launch-shaft-source.png
+tmp/imagegen/corebound-src/loam-gritstone-source.png
+tmp/imagegen/corebound-src/mantis-strip-source.png
+tmp/imagegen/corebound-src/ore-hazard-atlas-source.png
+tmp/imagegen/corebound-src/pressure-glass-source.png
+tmp/imagegen/corebound-src/surface-facilities-source.png
+tmp/imagegen/corebound-src/upgrade-research-atlas-source.png
+
+exec
+/bin/bash -lc "rm -rf tmp/imagegen/corebound-src && find tmp/imagegen -maxdepth 2 -type f 2>/dev/null | sed -n '1,80p'" in /mnt/f/_evolve/millrace-games/auto-games
+diff --git a/games/corebound/assets/asset-manifest.json b/games/corebound/assets/asset-manifest.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..565db4f6f2a50cb2e65fea73ff9fd47456f4c6b3
+--- /dev/null
++++ b/games/corebound/assets/asset-manifest.json
+@@ -0,0 +1,99 @@
++{
++  "schema_version": 1,
++  "status": "complete",
++  "mode": "generate",
++  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
++  "assets": [
++    {
++      "id": "rig.mantis_motion_strip",
++      "path": "games/corebound/assets/rig/mantis-rig-motion-strip.png",
++      "role": "sprite-strip",
++      "description": "Four-frame transparent motion strip for the compact Mantis-01 mining pod with drill, treads, skids, antenna mast, and subtle strut motion.",
++      "width": 320,
++      "height": 80,
++      "intended_use": "Rig player sprite animation, four horizontal 80x80 frames.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into exact frame cells."
++    },
++    {
++      "id": "surface.facilities_panel",
++      "path": "games/corebound/assets/surface/surface-facilities-panel.png",
++      "role": "background",
++      "description": "Wide surface facilities plate with refinery, rig bay, assay desk, survey relay, and launch gantry in a restrained industrial style.",
++      "width": 640,
++      "height": 160,
++      "intended_use": "Static surface base panel or top-of-run context art.",
++      "notes": "Generated with built-in image generation and cropped/resized to exact 640x160 dimensions."
++    },
++    {
++      "id": "surface.launch_shaft_context",
++      "path": "games/corebound/assets/surface/launch-shaft-context.png",
++      "role": "background",
++      "description": "Square launch context plate showing a vertical shaft collar descending from surface base structures into layered strata.",
++      "width": 320,
++      "height": 320,
++      "intended_use": "Launch shaft context scene or menu/state panel art.",
++      "notes": "Generated with built-in image generation and resized to exact 320x320 dimensions."
++    },
++    {
++      "id": "terrain.loam_gritstone_tile",
++      "path": "games/corebound/assets/terrain/loam-gritstone-tile.png",
++      "role": "texture",
++      "description": "Upper loam and gritstone strata tile with subdued dark mineral plates and grid-readable edges.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for upper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.basalt_core_tile",
++      "path": "games/corebound/assets/terrain/basalt-core-tile.png",
++      "role": "texture",
++      "description": "Deep basalt and core rind strata tile, darker and denser with restrained teal seam accents.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for deeper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.pressure_glass_tile",
++      "path": "games/corebound/assets/terrain/pressure-glass-tile.png",
++      "role": "texture",
++      "description": "Pressure glass and choir slate tile with smoky dark glass facets and faint luminous fractures.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for pressure glass or choir slate strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "readables.ore_hazard_atlas",
++      "path": "games/corebound/assets/readables/ore-hazard-atlas.png",
++      "role": "icon",
++      "description": "Transparent six-cell ore and hazard atlas: copper seed, saltglass, cobalt thread, heat fissure, gas vent, and magnetic bloom.",
++      "width": 384,
++      "height": 128,
++      "intended_use": "Six centered 64x64 readables/icons in a 384x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into six cells."
++    },
++    {
++      "id": "hud.icon_atlas",
++      "path": "games/corebound/assets/hud/hud-icon-atlas.png",
++      "role": "icon",
++      "description": "Transparent five-cell HUD icon atlas for hull, energy, heat, cargo, and depth.",
++      "width": 320,
++      "height": 64,
++      "intended_use": "Five centered 64x64 HUD icons in a 320x64 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into five cells."
++    },
++    {
++      "id": "upgrades.research_atlas",
++      "path": "games/corebound/assets/upgrades/upgrade-research-atlas.png",
++      "role": "icon",
++      "description": "Transparent eight-cell upgrade and research atlas: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, and archive relay.",
++      "width": 512,
++      "height": 128,
++      "intended_use": "Eight centered 64x64 upgrade icons in a 512x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into eight cells."
++    }
++  ],
++  "notes": "Original Corebound bitmap asset pack generated with Codex built-in image generation only; final project-consumed PNGs were saved under games/corebound/assets."
++}
+
+ succeeded in 428ms:
+exec
+/bin/bash -lc "find games/corebound/assets -type f | sort && python -m json.tool games/corebound/assets/asset-manifest.json >/dev/null && printf 'manifest-json-ok\\n'" in /mnt/f/_evolve/millrace-games/auto-games
+diff --git a/games/corebound/assets/asset-manifest.json b/games/corebound/assets/asset-manifest.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..565db4f6f2a50cb2e65fea73ff9fd47456f4c6b3
+--- /dev/null
++++ b/games/corebound/assets/asset-manifest.json
+@@ -0,0 +1,99 @@
++{
++  "schema_version": 1,
++  "status": "complete",
++  "mode": "generate",
++  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
++  "assets": [
++    {
++      "id": "rig.mantis_motion_strip",
++      "path": "games/corebound/assets/rig/mantis-rig-motion-strip.png",
++      "role": "sprite-strip",
++      "description": "Four-frame transparent motion strip for the compact Mantis-01 mining pod with drill, treads, skids, antenna mast, and subtle strut motion.",
++      "width": 320,
++      "height": 80,
++      "intended_use": "Rig player sprite animation, four horizontal 80x80 frames.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into exact frame cells."
++    },
++    {
++      "id": "surface.facilities_panel",
++      "path": "games/corebound/assets/surface/surface-facilities-panel.png",
++      "role": "background",
++      "description": "Wide surface facilities plate with refinery, rig bay, assay desk, survey relay, and launch gantry in a restrained industrial style.",
++      "width": 640,
++      "height": 160,
++      "intended_use": "Static surface base panel or top-of-run context art.",
++      "notes": "Generated with built-in image generation and cropped/resized to exact 640x160 dimensions."
++    },
++    {
++      "id": "surface.launch_shaft_context",
++      "path": "games/corebound/assets/surface/launch-shaft-context.png",
++      "role": "background",
++      "description": "Square launch context plate showing a vertical shaft collar descending from surface base structures into layered strata.",
++      "width": 320,
++      "height": 320,
++      "intended_use": "Launch shaft context scene or menu/state panel art.",
++      "notes": "Generated with built-in image generation and resized to exact 320x320 dimensions."
++    },
++    {
++      "id": "terrain.loam_gritstone_tile",
++      "path": "games/corebound/assets/terrain/loam-gritstone-tile.png",
++      "role": "texture",
++      "description": "Upper loam and gritstone strata tile with subdued dark mineral plates and grid-readable edges.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for upper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.basalt_core_tile",
++      "path": "games/corebound/assets/terrain/basalt-core-tile.png",
++      "role": "texture",
++      "description": "Deep basalt and core rind strata tile, darker and denser with restrained teal seam accents.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for deeper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.pressure_glass_tile",
++      "path": "games/corebound/assets/terrain/pressure-glass-tile.png",
++      "role": "texture",
++      "description": "Pressure glass and choir slate tile with smoky dark glass facets and faint luminous fractures.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for pressure glass or choir slate strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "readables.ore_hazard_atlas",
++      "path": "games/corebound/assets/readables/ore-hazard-atlas.png",
++      "role": "icon",
++      "description": "Transparent six-cell ore and hazard atlas: copper seed, saltglass, cobalt thread, heat fissure, gas vent, and magnetic bloom.",
++      "width": 384,
++      "height": 128,
++      "intended_use": "Six centered 64x64 readables/icons in a 384x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into six cells."
++    },
++    {
++      "id": "hud.icon_atlas",
++      "path": "games/corebound/assets/hud/hud-icon-atlas.png",
++      "role": "icon",
++      "description": "Transparent five-cell HUD icon atlas for hull, energy, heat, cargo, and depth.",
++      "width": 320,
++      "height": 64,
++      "intended_use": "Five centered 64x64 HUD icons in a 320x64 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into five cells."
++    },
++    {
++      "id": "upgrades.research_atlas",
++      "path": "games/corebound/assets/upgrades/upgrade-research-atlas.png",
++      "role": "icon",
++      "description": "Transparent eight-cell upgrade and research atlas: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, and archive relay.",
++      "width": 512,
++      "height": 128,
++      "intended_use": "Eight centered 64x64 upgrade icons in a 512x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into eight cells."
++    }
++  ],
++  "notes": "Original Corebound bitmap asset pack generated with Codex built-in image generation only; final project-consumed PNGs were saved under games/corebound/assets."
++}
+
+ succeeded in 463ms:
+games/corebound/assets/asset-manifest.json
+games/corebound/assets/hud/hud-icon-atlas.png
+games/corebound/assets/readables/ore-hazard-atlas.png
+games/corebound/assets/rig/mantis-rig-motion-strip.png
+games/corebound/assets/surface/launch-shaft-context.png
+games/corebound/assets/surface/surface-facilities-panel.png
+games/corebound/assets/terrain/basalt-core-tile.png
+games/corebound/assets/terrain/loam-gritstone-tile.png
+games/corebound/assets/terrain/pressure-glass-tile.png
+games/corebound/assets/upgrades/upgrade-research-atlas.png
+manifest-json-ok
+
+codex
+Created the Corebound asset pack under `games/corebound/assets`:
+
+- `rig/mantis-rig-motion-strip.png`
+- `surface/surface-facilities-panel.png`
+- `surface/launch-shaft-context.png`
+- `terrain/loam-gritstone-tile.png`
+- `terrain/basalt-core-tile.png`
+- `terrain/pressure-glass-tile.png`
+- `readables/ore-hazard-atlas.png`
+- `hud/hud-icon-atlas.png`
+- `upgrades/upgrade-research-atlas.png`
+- `asset-manifest.json`
+
+Used Codex built-in image generation only, then local PNG post-processing for exact dimensions, alpha removal, packing, and tile edge blending. I validated all image dimensions, alpha presence for transparent sheets, and manifest JSON parsing.
+
+Recommended caller check: run the game/visual loader once to confirm atlas cell ordering and scale in context.
+diff --git a/games/corebound/assets/asset-manifest.json b/games/corebound/assets/asset-manifest.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..565db4f6f2a50cb2e65fea73ff9fd47456f4c6b3
+--- /dev/null
++++ b/games/corebound/assets/asset-manifest.json
+@@ -0,0 +1,99 @@
++{
++  "schema_version": 1,
++  "status": "complete",
++  "mode": "generate",
++  "workdir": "/mnt/f/_evolve/millrace-games/auto-games",
++  "assets": [
++    {
++      "id": "rig.mantis_motion_strip",
++      "path": "games/corebound/assets/rig/mantis-rig-motion-strip.png",
++      "role": "sprite-strip",
++      "description": "Four-frame transparent motion strip for the compact Mantis-01 mining pod with drill, treads, skids, antenna mast, and subtle strut motion.",
++      "width": 320,
++      "height": 80,
++      "intended_use": "Rig player sprite animation, four horizontal 80x80 frames.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into exact frame cells."
++    },
++    {
++      "id": "surface.facilities_panel",
++      "path": "games/corebound/assets/surface/surface-facilities-panel.png",
++      "role": "background",
++      "description": "Wide surface facilities plate with refinery, rig bay, assay desk, survey relay, and launch gantry in a restrained industrial style.",
++      "width": 640,
++      "height": 160,
++      "intended_use": "Static surface base panel or top-of-run context art.",
++      "notes": "Generated with built-in image generation and cropped/resized to exact 640x160 dimensions."
++    },
++    {
++      "id": "surface.launch_shaft_context",
++      "path": "games/corebound/assets/surface/launch-shaft-context.png",
++      "role": "background",
++      "description": "Square launch context plate showing a vertical shaft collar descending from surface base structures into layered strata.",
++      "width": 320,
++      "height": 320,
++      "intended_use": "Launch shaft context scene or menu/state panel art.",
++      "notes": "Generated with built-in image generation and resized to exact 320x320 dimensions."
++    },
++    {
++      "id": "terrain.loam_gritstone_tile",
++      "path": "games/corebound/assets/terrain/loam-gritstone-tile.png",
++      "role": "texture",
++      "description": "Upper loam and gritstone strata tile with subdued dark mineral plates and grid-readable edges.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for upper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.basalt_core_tile",
++      "path": "games/corebound/assets/terrain/basalt-core-tile.png",
++      "role": "texture",
++      "description": "Deep basalt and core rind strata tile, darker and denser with restrained teal seam accents.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for deeper mining strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "terrain.pressure_glass_tile",
++      "path": "games/corebound/assets/terrain/pressure-glass-tile.png",
++      "role": "texture",
++      "description": "Pressure glass and choir slate tile with smoky dark glass facets and faint luminous fractures.",
++      "width": 128,
++      "height": 128,
++      "intended_use": "Repeating terrain tile for pressure glass or choir slate strata.",
++      "notes": "Generated with built-in image generation, downsampled, sharpened, and edge-blended for tile use."
++    },
++    {
++      "id": "readables.ore_hazard_atlas",
++      "path": "games/corebound/assets/readables/ore-hazard-atlas.png",
++      "role": "icon",
++      "description": "Transparent six-cell ore and hazard atlas: copper seed, saltglass, cobalt thread, heat fissure, gas vent, and magnetic bloom.",
++      "width": 384,
++      "height": 128,
++      "intended_use": "Six centered 64x64 readables/icons in a 384x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into six cells."
++    },
++    {
++      "id": "hud.icon_atlas",
++      "path": "games/corebound/assets/hud/hud-icon-atlas.png",
++      "role": "icon",
++      "description": "Transparent five-cell HUD icon atlas for hull, energy, heat, cargo, and depth.",
++      "width": 320,
++      "height": 64,
++      "intended_use": "Five centered 64x64 HUD icons in a 320x64 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into five cells."
++    },
++    {
++      "id": "upgrades.research_atlas",
++      "path": "games/corebound/assets/upgrades/upgrade-research-atlas.png",
++      "role": "icon",
++      "description": "Transparent eight-cell upgrade and research atlas: drill, cargo, scanner, hazard sheath, refinery loop, anchor recall, coolant dump, and archive relay.",
++      "width": 512,
++      "height": 128,
++      "intended_use": "Eight centered 64x64 upgrade icons in a 512x128 atlas.",
++      "notes": "Generated with built-in image generation on chroma key, then locally keyed to alpha and packed into eight cells."
++    }
++  ],
++  "notes": "Original Corebound bitmap asset pack generated with Codex built-in image generation only; final project-consumed PNGs were saved under games/corebound/assets."
++}
+
+2026-04-28T02:22:27.735074Z ERROR codex_core::session: failed to record rollout items: thread 019dd1ce-7739-70e0-98c3-49af0689693a not found
+tokens used
+173,437

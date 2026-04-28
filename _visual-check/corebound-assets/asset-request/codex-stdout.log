@@ -1,0 +1,16 @@
+Created the Corebound asset pack under `games/corebound/assets`:
+
+- `rig/mantis-rig-motion-strip.png`
+- `surface/surface-facilities-panel.png`
+- `surface/launch-shaft-context.png`
+- `terrain/loam-gritstone-tile.png`
+- `terrain/basalt-core-tile.png`
+- `terrain/pressure-glass-tile.png`
+- `readables/ore-hazard-atlas.png`
+- `hud/hud-icon-atlas.png`
+- `upgrades/upgrade-research-atlas.png`
+- `asset-manifest.json`
+
+Used Codex built-in image generation only, then local PNG post-processing for exact dimensions, alpha removal, packing, and tile edge blending. I validated all image dimensions, alpha presence for transparent sheets, and manifest JSON parsing.
+
+Recommended caller check: run the game/visual loader once to confirm atlas cell ordering and scale in context.
