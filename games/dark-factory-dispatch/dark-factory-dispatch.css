@@ -138,7 +138,7 @@ select {
 
 .escalation-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   padding: 0 0 14px;
 }
@@ -222,6 +222,33 @@ select {
 .escalation-card[data-alert="pending"],
 .escalation-card[data-alert="armed"] {
   border-color: rgba(215, 184, 103, 0.72);
+}
+
+.escalation-card[data-surface="breach"][data-alert="dormant"],
+.escalation-card[data-surface="breach"][data-alert="contained"] {
+  border-color: rgba(75, 214, 192, 0.5);
+}
+
+.escalation-card[data-surface="breach"][data-alert="active"] {
+  border-color: rgba(75, 214, 192, 0.82);
+  background: rgba(75, 214, 192, 0.08);
+}
+
+.escalation-card[data-surface="breach"][data-alert="escaped"] {
+  border-color: rgba(214, 96, 77, 0.82);
+  background: rgba(214, 96, 77, 0.08);
+}
+
+.breach-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.breach-actions button {
+  min-height: 2rem;
+  font-size: 0.68rem;
 }
 
 .factory-grid {
@@ -383,6 +410,23 @@ select {
   border-color: rgba(214, 96, 77, 0.75);
 }
 
+.grid-sector-card[data-breach="contaminated"],
+.grid-sector-card[data-breach="quarantined"],
+.queue-item[data-compromised="true"],
+.lane-card[data-breach="contaminated"],
+.lane-card[data-breach-quarantine="true"],
+.job-card[data-family="breach"],
+.contract-card[data-family="breach"] {
+  border-color: rgba(75, 214, 192, 0.68);
+  background: rgba(75, 214, 192, 0.055);
+}
+
+.grid-sector-card[data-breach="scarred"],
+.queue-item[data-breach-directive="true"] {
+  border-color: rgba(215, 184, 103, 0.72);
+  background: rgba(215, 184, 103, 0.055);
+}
+
 .grid-sector-title,
 .grid-directive-title {
   display: flex;
@@ -509,6 +553,23 @@ select {
   text-transform: uppercase;
 }
 
+.breach-readout {
+  min-height: 34px;
+  padding: 6px;
+  border: 1px solid rgba(133, 145, 139, 0.28);
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.breach-readout[data-active="true"] {
+  border-color: rgba(75, 214, 192, 0.64);
+  background: rgba(75, 214, 192, 0.06);
+  color: var(--text);
+}
+
 .fault-readout[data-active="true"] {
   border-color: rgba(215, 184, 103, 0.72);
   background: rgba(215, 184, 103, 0.08);
@@ -595,13 +656,13 @@ select {
 
 .lane-actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
 .queue-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -794,6 +855,7 @@ select {
   .queue-actions,
   .grid-actions,
   .directive-actions,
+  .breach-actions,
   .contract-reward,
   .job-io {
     grid-template-columns: 1fr;

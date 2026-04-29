@@ -39,21 +39,34 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
         for token in (
             "campaignSurfaceState",
             "gridSurfaceState",
+            "breachSurfaceState",
             "renderEscalationSurface",
             "renderGridSiege",
             'data-surface="campaign"',
             'data-surface="emergency"',
             'data-surface="progression"',
             'data-surface="choices"',
+            'data-surface="breach"',
             'data-grid="sectors"',
             'data-action="overdrive"',
+            'data-action="breach-trace"',
+            'data-action="breach-defer"',
+            'data-action="breach-cleanse"',
+            'data-action="breach-quarantine"',
             'data-action="grid-route"',
             'data-action="grid-isolate"',
             'data-action="grid-reserve"',
             'data-action="audit-resolve"',
             'data-action="audit-defer"',
+            'data-compromised="${compromised ? "true" : "false"}"',
+            'data-breach-directive="${entry.breachDirective ? "true" : "false"}"',
+            'data-breach-quarantine="${quarantineActive ? "true" : "false"}"',
             "setQueuePolicy(currentState",
             "toggleLaneOverdrive(",
+            "cleanseCompromisedQueueEntry(currentState",
+            "quarantineBreachLane(",
+            "traceBreachSource(currentState",
+            "deferBreachTrace(currentState",
             "routePowerToSector(currentState",
             "isolateGridSector(currentState",
             "authorizeReserveDraw(currentState",
@@ -72,10 +85,18 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             ".grid-directive-card",
             ".grid-actions",
             ".directive-actions",
+            ".breach-actions",
+            ".breach-readout",
+            '.escalation-card[data-surface="breach"][data-alert="active"]',
             '.lane-card[data-overdrive="true"]',
+            '.lane-card[data-breach-quarantine="true"]',
             '.grid-sector-card[data-isolated="true"]',
+            '.grid-sector-card[data-breach="contaminated"]',
             '.contract-card[data-emergency="true"]',
+            '.contract-card[data-family="breach"]',
             '.queue-item[data-emergency="true"]',
+            '.queue-item[data-compromised="true"]',
+            '.job-card[data-family="breach"]',
             "@media (max-width: 720px)",
             "grid-template-areas:",
             "overflow-wrap: anywhere",
@@ -122,6 +143,48 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
         self.assertEqual(1, active["choices"]["queuePolicyChanges"])
         self.assertEqual(1, active["choices"]["laneOverdrives"])
         self.assertEqual(1, active["choices"]["activeOverdrives"])
+        self.assertEqual("active", active["breach"]["status"])
+        self.assertIn(active["breach"]["source"]["name"], {"Spoofed Dispatch Uplink", "Audit Ghost Carrier"})
+
+    def test_signal_breach_surface_model_exposes_operator_visible_decisions(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
+            let state = game.createInitialState({ seed: 93, faultsEnabled: false });
+            state = game.stepFactory(state, 3);
+            const compromisedId = state.queue.find((entry) => entry.compromised).id;
+            const activeSurface = game.breachSurfaceState(state);
+
+            state = game.cleanseCompromisedQueueEntry(state, compromisedId);
+            state = game.authorizeReserveDraw(state, "assembly-bus");
+            state = game.quarantineBreachLane(state, "assembler-bay", true);
+            const containedSurface = game.breachSurfaceState(state);
+
+            console.log(JSON.stringify({ activeSurface, containedSurface }));
+            """
+        )
+
+        active = result["activeSurface"]
+        contained = result["containedSurface"]
+
+        self.assertEqual("active", active["status"])
+        self.assertEqual("active", active["trace"]["status"])
+        self.assertEqual(1, len([entry for entry in active["queue"] if entry["compromised"]]))
+        self.assertEqual(1, len([entry for entry in active["queue"] if entry["breachDirective"]]))
+        self.assertEqual(["assembly-bus"], [
+            sector["id"]
+            for sector in active["sectors"]
+            if sector["breach"]["status"] == "contaminated"
+        ])
+
+        self.assertEqual(1, contained["choices"]["cleanses"])
+        self.assertEqual(["assembler-bay"], contained["containment"]["quarantinedLanes"])
+        self.assertEqual(1, contained["containment"]["shieldedSectors"])
+        self.assertEqual("quarantined", [
+            sector["breach"]["status"]
+            for sector in contained["sectors"]
+            if sector["id"] == "assembly-bus"
+        ][0])
 
     def test_grid_siege_surface_model_exposes_visible_decision_state(self) -> None:
         result = self.run_node(
@@ -185,6 +248,7 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             '"grid"',
             ".grid-summary,\n  .grid-sector-meta",
             ".grid-actions,\n  .directive-actions",
+            ".breach-actions,\n  .contract-reward",
         ):
             self.assertIn(token, css)
 

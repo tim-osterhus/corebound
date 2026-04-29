@@ -2548,6 +2548,19 @@ const DarkFactoryDispatch = (() => {
       currentState = setQueuePolicy(currentState, dom.queuePolicySelect.value);
       render(currentState);
     });
+    dom.escalation.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) {
+        return;
+      }
+      if (button.dataset.action === "breach-trace") {
+        currentState = traceBreachSource(currentState);
+      }
+      if (button.dataset.action === "breach-defer") {
+        currentState = deferBreachTrace(currentState);
+      }
+      render(currentState);
+    });
     dom.assignNext.addEventListener("click", () => {
       const lane = currentState.lanes.find((candidate) => candidate.status === "idle");
       currentState = assignJobToLane(currentState, lane ? lane.id : null);
@@ -2592,6 +2605,13 @@ const DarkFactoryDispatch = (() => {
           button.dataset.overdriveActive !== "true"
         );
       }
+      if (button.dataset.action === "breach-quarantine") {
+        currentState = quarantineBreachLane(
+          currentState,
+          button.dataset.lane,
+          button.dataset.quarantined !== "true"
+        );
+      }
       render(currentState);
     });
     dom.queue.addEventListener("click", (event) => {
@@ -2608,6 +2628,9 @@ const DarkFactoryDispatch = (() => {
       }
       if (button.dataset.action === "cancel") {
         currentState = cancelQueueEntry(currentState, button.dataset.entry);
+      }
+      if (button.dataset.action === "breach-cleanse") {
+        currentState = cleanseCompromisedQueueEntry(currentState, button.dataset.entry);
       }
       render(currentState);
     });
@@ -2673,6 +2696,12 @@ const DarkFactoryDispatch = (() => {
 
   function renderEscalationSurface(state) {
     const surface = campaignSurfaceState(state);
+    const breach = surface.breach;
+    const activeTrace = breach.trace.status === "active";
+    const traceText = activeTrace ? `due t${breach.trace.dueTick}` : breach.trace.status;
+    const compromisedCount = breach.queue.filter((entry) => entry.compromised).length;
+    const traceDisabled = !activeTrace || breach.status !== "active" || !canPay(state.resources, breach.trace.cost);
+    const deferDisabled = !activeTrace || breach.status !== "active" || !canPay(state.resources, breach.trace.deferCost);
     dom.queuePolicySelect.value = surface.queuePolicy.id;
     dom.escalation.innerHTML = `
       <article class="escalation-card" data-surface="campaign">
@@ -2700,6 +2729,16 @@ const DarkFactoryDispatch = (() => {
         <span>Grid Siege</span>
         <strong>pressure ${surface.grid.pressure}/${surface.grid.threshold} / reserve ${surface.grid.reserve.available}</strong>
         <p>audit ${surface.grid.audit.status} / blackout ${surface.grid.blackout.events} / load ${surface.grid.load}</p>
+      </article>
+      <article class="escalation-card breach-card" data-surface="breach" data-alert="${breach.status}">
+        <span>Signal Breach</span>
+        <strong>${breach.source.name} / ${breach.status}</strong>
+        <p>intensity ${breach.intensity}/${breach.threshold} / trace ${traceText} / ${compromisedCount} compromised</p>
+        <p>${breach.containment.status} / ${breach.containment.countermeasures} countermeasure / scars ${breach.carryover.signalScar || 0}</p>
+        <div class="breach-actions">
+          <button type="button" data-action="breach-trace" ${traceDisabled ? "disabled" : ""}>trace</button>
+          <button type="button" data-action="breach-defer" ${deferDisabled ? "disabled" : ""}>defer</button>
+        </div>
       </article>
     `;
   }
@@ -2732,12 +2771,18 @@ const DarkFactoryDispatch = (() => {
           const priorityDisabled = sector.route === "priority" || sector.isolated || !canPay(state.resources, priorityCost);
           const balancedDisabled = sector.route === "balanced" || sector.isolated;
           const isolateDisabled = !sector.isolated && !canPay(state.resources, isolateCost);
-          const reserveDisabled = surface.reserve.available <= 0;
+          const breachState = sector.breach ? sector.breach.status : "clean";
+          const shielded = sector.breach && sector.breach.shieldedUntil !== null && state.tick < sector.breach.shieldedUntil;
+          const shieldableBreach = breachState === "contaminated";
+          const reserveDisabled = surface.reserve.available <= 0 || shielded;
           const sectorStatus = sector.isolated
             ? "isolated"
             : locked ? `lock t${sector.blackoutLockedUntil}` : sector.powered ? "powered" : "dark";
+          const breachText = breachState === "clean"
+            ? "breach clean"
+            : `breach ${breachState}${sector.breach.sourceId ? ` / ${sector.breach.sourceId}` : ""}${shielded ? ` / shield t${sector.breach.shieldedUntil}` : ""}`;
           return `
-            <article class="grid-sector-card" data-sector="${sector.id}" data-powered="${sector.powered ? "true" : "false"}" data-isolated="${sector.isolated ? "true" : "false"}" data-blackout="${locked ? "true" : "false"}">
+            <article class="grid-sector-card" data-sector="${sector.id}" data-powered="${sector.powered ? "true" : "false"}" data-isolated="${sector.isolated ? "true" : "false"}" data-blackout="${locked ? "true" : "false"}" data-breach="${breachState}">
               <div class="grid-sector-title">
                 <strong>${sector.name}</strong>
                 <span class="status-pill">${sectorStatus}</span>
@@ -2747,12 +2792,13 @@ const DarkFactoryDispatch = (() => {
                 <span>route ${sector.route}</span>
                 <span>link ${sector.connectedTo.map(titleCase).join(" / ")}</span>
                 <span>reserve ${sector.reserveDraws} / blackout ${sector.blackoutCount}</span>
+                <span>${breachText}</span>
               </div>
               <div class="grid-actions">
                 <button type="button" data-action="grid-route" data-sector="${sector.id}" data-route="priority" ${priorityDisabled ? "disabled" : ""}>priority</button>
                 <button type="button" data-action="grid-route" data-sector="${sector.id}" data-route="balanced" ${balancedDisabled ? "disabled" : ""}>balance</button>
                 <button type="button" data-action="grid-isolate" data-sector="${sector.id}" data-isolated="${sector.isolated ? "true" : "false"}" ${isolateDisabled ? "disabled" : ""}>${sector.isolated ? "restore" : "isolate"}</button>
-                <button type="button" data-action="grid-reserve" data-sector="${sector.id}" ${reserveDisabled ? "disabled" : ""}>reserve</button>
+                <button type="button" data-action="grid-reserve" data-sector="${sector.id}" ${reserveDisabled ? "disabled" : ""}>${shieldableBreach ? shielded ? "shielded" : "shield" : "reserve"}</button>
               </div>
             </article>
           `;
@@ -2795,8 +2841,21 @@ const DarkFactoryDispatch = (() => {
       const gridText = sector
         ? `${sector.name} / ${sector.route}${sector.isolated ? " / isolated" : ""}${sector.blackoutLockedUntil ? ` / lock t${sector.blackoutLockedUntil}` : ""}`
         : "no grid sector";
+      const breachState = sector && sector.breach ? sector.breach.status : "clean";
+      const compromisedJob = lane.currentJob && lane.currentJob.compromised;
+      const countermeasureJob = lane.currentJob && lane.currentJob.breachDirective;
+      const quarantineActive = Boolean(lane.breachQuarantine);
+      const canQuarantine = state.breach.status === "active"
+        && sector
+        && (breachState === "contaminated" || quarantineActive)
+        && (quarantineActive || canPay(state.resources, { stability: GAME_DATA.signalBreach.quarantine.stabilityCost }));
+      const breachLaneText = quarantineActive
+        ? `quarantine ${lane.breachQuarantine.sourceId} / ${lane.breachQuarantine.sectorId}`
+        : compromisedJob ? `compromised ${compromisedJob.sourceId} / severity ${compromisedJob.severity}`
+          : countermeasureJob ? `countermeasure ${lane.currentJob.sourceBreachId}`
+            : `breach ${breachState}`;
       return `
-        <article class="lane-card" data-status="${lane.status}" data-overdrive="${overdriveActive ? "true" : "false"}">
+        <article class="lane-card" data-status="${lane.status}" data-overdrive="${overdriveActive ? "true" : "false"}" data-breach-quarantine="${quarantineActive ? "true" : "false"}" data-breach="${breachState}">
           <div class="lane-title">
             <span class="asset-title">${laneIcon}<strong>${lane.name}</strong></span>
             <span class="status-pill">${statusText}</span>
@@ -2811,12 +2870,14 @@ const DarkFactoryDispatch = (() => {
             <span>${overdriveText}</span>
             <span>${gridText}</span>
           </div>
+          <div class="breach-readout" data-active="${breachLaneText === "breach clean" ? "false" : "true"}"><span>${breachLaneText}</span></div>
           <div class="fault-readout" data-active="${lane.fault ? "true" : "false"}">${faultIcon}<span>fault ${faultText}</span></div>
           <div class="lane-actions">
             <button type="button" data-action="assign" data-lane="${lane.id}">assign</button>
             <button type="button" data-action="start" data-lane="${lane.id}">start</button>
             <button type="button" data-action="recover" data-lane="${lane.id}">recover</button>
             <button type="button" data-action="overdrive" data-lane="${lane.id}" data-overdrive-active="${overdriveActive ? "true" : "false"}" ${overdriveDisabled ? "disabled" : ""}>${overdriveActive ? "release" : "overdrive"}</button>
+            <button type="button" data-action="breach-quarantine" data-lane="${lane.id}" data-quarantined="${quarantineActive ? "true" : "false"}" ${canQuarantine ? "" : "disabled"}>${quarantineActive ? "release" : "quarantine"}</button>
           </div>
         </article>
       `;
@@ -2830,9 +2891,11 @@ const DarkFactoryDispatch = (() => {
     }
     dom.queue.innerHTML = state.queue.map((entry) => {
       const jobType = byId(GAME_DATA.jobTypes, entry.jobTypeId);
-      const statusText = entry.status === "held" ? "held" : `p${entry.priority}`;
+      const compromised = entry.compromised && entry.compromised.status === "compromised";
+      const statusText = compromised ? "compromised" : entry.breachDirective ? "countermeasure" : entry.status === "held" ? "held" : `p${entry.priority}`;
+      const cleanseDisabled = !compromised || !canPay(state.resources, GAME_DATA.signalBreach.cleanse.cost);
       return `
-        <li class="queue-item" data-emergency="${entry.emergency ? "true" : "false"}">
+        <li class="queue-item" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}">
           <div class="queue-title">
             <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[entry.jobTypeId], "asset-icon queue-icon")}<strong>${jobType.name}</strong></span>
             <span class="status-pill">${statusText}</span>
@@ -2842,8 +2905,11 @@ const DarkFactoryDispatch = (() => {
             <span>out ${formatBundle(jobType.outputs)}</span>
             ${entry.sourceContractId ? `<span>${entry.sourceContractId}</span>` : ""}
             ${entry.sourceDirectiveId ? `<span>${entry.sourceDirectiveId}</span>` : ""}
+            ${entry.breachDirective ? `<span>countermeasure ${entry.sourceBreachId}</span>` : ""}
+            ${compromised ? `<span>compromised ${entry.compromised.sourceId} / severity ${entry.compromised.severity}</span>` : ""}
           </div>
           <div class="queue-actions">
+            ${compromised ? `<button type="button" data-action="breach-cleanse" data-entry="${entry.id}" ${cleanseDisabled ? "disabled" : ""}>cleanse</button>` : ""}
             <button type="button" data-action="assign" data-entry="${entry.id}">assign</button>
             <button type="button" data-action="raise" data-entry="${entry.id}">raise</button>
             <button type="button" data-action="cancel" data-entry="${entry.id}">cancel</button>
@@ -2862,7 +2928,7 @@ const DarkFactoryDispatch = (() => {
         ? `arms t${contract.activationTick} / ${contract.deadline} ticks`
         : contract.status === "open" ? `opens next / ${contract.deadline} ticks` : `${contract.timeRemaining} ticks left`;
       return `
-        <article class="contract-card" data-status="${contract.status}" data-emergency="${contract.emergency ? "true" : "false"}">
+        <article class="contract-card" data-status="${contract.status}" data-emergency="${contract.emergency ? "true" : "false"}" data-family="${contract.family}">
           <div class="contract-title">
             <strong>${contract.name}</strong>
             <span class="status-pill">${contract.status}</span>
@@ -2901,7 +2967,7 @@ const DarkFactoryDispatch = (() => {
 
   function renderJobs() {
     dom.jobs.innerHTML = GAME_DATA.jobTypes.map((jobType) => `
-      <article class="job-card" data-family="${jobType.family || "standard"}">
+      <article class="job-card" data-family="${jobType.family || "standard"}" data-breach-countermeasure="${jobType.breachCountermeasure ? "true" : "false"}">
         <div class="job-title">
           <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[jobType.id], "asset-icon job-icon")}<strong>${jobType.name}</strong></span>
           <span class="status-pill">${jobType.duration} ticks</span>
@@ -2909,6 +2975,7 @@ const DarkFactoryDispatch = (() => {
         <div class="job-io">
           <span>in ${formatBundle(jobType.inputs)}</span>
           <span>out ${formatBundle(jobType.outputs)}</span>
+          ${jobType.breachCountermeasure ? `<span>breach countermeasure</span>` : ""}
         </div>
         <button type="button" data-job="${jobType.id}">enqueue</button>
       </article>
