@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "live",
-    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.3.0 Signal Breach, and Void Prospector's v0.2.0 Derelict Salvage sortie."
+    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.3.0 Signal Breach, and Void Prospector's v0.3.0 Beacon Convoy route-escort release."
   },
   "games": [
     {
@@ -117,16 +117,23 @@
     {
       "slug": "void-prospector",
       "title": "Void Prospector",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "status": "playable",
-      "summary": "Pilot the Prospector Kite through a compact 3D asteroid field with a three-tier Survey Ladder, anomaly scans, hazard charting, selectable relay caches, derelict hulls, volatile wreckage, salvage locking and extraction, station rig and recovery drone support, pirate escalation, docking, charter payouts, and repeat-sortie upgrades.",
+      "summary": "Pilot the Prospector Kite through a compact 3D asteroid field with Survey Ladder sectors, anomaly scans, hazard charting, salvage extraction, deployable route beacons, convoy contracts, escort integrity, pirate interdiction, station escort drones, signal jammers, countermeasure bursts, docking, charter payouts, and repeat-sortie upgrades.",
       "path": "games/void-prospector/",
       "thumbnail": "games/void-prospector/assets/arcade-title-card.png",
       "release": {
-        "label": "v0.2.0 Derelict Salvage",
-        "copy": "Derelict Salvage adds selectable relay caches, derelict hulls, and volatile wreckage to the Survey Ladder: scan or lock salvage signals, extract under pirate and hazard pressure, buy rig or drone support at station, and bank salvage value or relics toward Umbra recovery contracts."
+        "label": "v0.3.0 Beacon Convoy",
+        "copy": "Beacon Convoy adds deployable route beacons and escort runs to Derelict Salvage: scan prerequisites, deploy or maintain relay beacons, launch cargo convoys, hold formation through ambush and hazard pressure, buy escort drones or signal jammers at station, and bank full or partial payouts into Survey Ladder progress."
       },
       "versions": [
+        {
+          "version": "0.3.0",
+          "path": "games/void-prospector/versions/0.3.0/",
+          "releasedAt": "2026-04-29",
+          "label": "v0.3.0 Beacon Convoy",
+          "summary": "Deployable route beacons, convoy cargo runs, escort integrity, ambush and hazard pressure, station escort drones, signal jammers, countermeasure bursts, and full or partial convoy payouts publish on top of Derelict Salvage."
+        },
         {
           "version": "0.2.0",
           "path": "games/void-prospector/versions/0.2.0/",
