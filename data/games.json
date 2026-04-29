@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "live",
-    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.2.0 Grid Siege, and Void Prospector's v0.2.0 Derelict Salvage sortie."
+    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.3.0 Signal Breach, and Void Prospector's v0.2.0 Derelict Salvage sortie."
   },
   "games": [
     {
@@ -71,16 +71,23 @@
     {
       "slug": "dark-factory-dispatch",
       "title": "Dark Factory Dispatch",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "status": "playable",
-      "summary": "Run a compact machine-intelligence factory through Grid Siege shifts with facility power routing, reserve batteries, blackout lockouts, audit relay directives, emergency coolant-diversion orders, lane overdrive calls, persistent restart scars, and upgrade decisions between shifts.",
+      "summary": "Run a compact machine-intelligence factory through Signal Breach shifts with hostile signal intrusion, compromised queue work, trace deadlines, lane quarantine, sector shielding, countermeasure jobs, facility power routing, reserve batteries, blackout lockouts, audit relay directives, emergency coolant-diversion orders, lane overdrive calls, persistent breach scars, and upgrade decisions between shifts.",
       "path": "games/dark-factory-dispatch/",
       "thumbnail": "games/dark-factory-dispatch/assets/arcade-title-card.png",
       "release": {
-        "label": "v0.2.0 Grid Siege",
-        "copy": "Grid Siege adds a facility power-grid layer to the dispatch floor: route priority power, isolate threatened sectors, draw reserve batteries, and resolve or defer Reserve Ledger Audit directives while blackout pressure and carryover scars reshape the Escalation Shift emergency queue and lane overdrive loop."
+        "label": "v0.3.0 Signal Breach",
+        "copy": "Signal Breach adds hostile intrusion pressure to the dispatch floor: compromised queue entries, trace deadlines, lane quarantine, reserve-powered sector shields, countermeasure jobs, and persistent breach scars now sit on top of Grid Siege power routing, audit directives, emergency queue policy, and lane overdrive calls."
       },
       "versions": [
+        {
+          "version": "0.3.0",
+          "path": "games/dark-factory-dispatch/versions/0.3.0/",
+          "releasedAt": "2026-04-29",
+          "label": "v0.3.0 Signal Breach",
+          "summary": "Hostile signal intrusion, compromised queue entries, trace deadlines, lane quarantine, reserve-powered sector shields, countermeasure jobs, and persistent breach scars publish on top of the Grid Siege release."
+        },
         {
           "version": "0.2.0",
           "path": "games/dark-factory-dispatch/versions/0.2.0/",

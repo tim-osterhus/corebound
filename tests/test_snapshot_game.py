@@ -97,6 +97,50 @@ class SnapshotGameTests(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertNotIn("snapshot", manifest["games"][0])
 
+    def test_create_snapshot_can_omit_commit_for_working_tree_release(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data_dir = root / "data"
+            game_dir = root / "games" / "corebound"
+            data_dir.mkdir()
+            game_dir.mkdir(parents=True)
+            (game_dir / "index.html").write_text("<!doctype html>Corebound", encoding="utf-8")
+            manifest_path = data_dir / "games.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "games": [
+                            {
+                                "slug": "corebound",
+                                "title": "Corebound",
+                                "version": "0.3.0",
+                                "path": "games/corebound/",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(snapshot_game, "ROOT", root), mock.patch.object(
+                snapshot_game, "MANIFEST_PATH", manifest_path
+            ), mock.patch.object(snapshot_game, "current_commit", return_value="abcdef"), mock.patch.object(
+                snapshot_game.build_arcade, "build"
+            ):
+                entry = snapshot_game.create_snapshot(
+                    slug="corebound",
+                    label="Working Tree",
+                    released_at="2026-04-29",
+                    include_commit=False,
+                )
+
+            self.assertEqual("0.3.0", entry["version"])
+            self.assertEqual("2026-04-29", entry["releasedAt"])
+            self.assertNotIn("commit", entry)
+
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertNotIn("commit", manifest["games"][0]["versions"][0])
+
     def test_defer_snapshot_records_no_commit_or_release_stamp(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

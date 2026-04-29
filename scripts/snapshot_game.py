@@ -146,6 +146,7 @@ def create_snapshot(
     summary: str | None = None,
     released_at: str | None = None,
     commit: str | None = None,
+    include_commit: bool = True,
     force: bool = False,
     rebuild_index: bool = True,
 ) -> dict:
@@ -172,9 +173,10 @@ def create_snapshot(
         entry["summary"] = summary
     elif game.get("summary"):
         entry["summary"] = str(game["summary"])
-    commit_value = commit or current_commit()
-    if commit_value:
-        entry["commit"] = commit_value
+    if include_commit:
+        commit_value = commit or current_commit()
+        if commit_value:
+            entry["commit"] = commit_value
 
     upsert_version(game, entry)
     clear_matching_deferral(game, version)
@@ -192,6 +194,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--summary", help="Player-facing release summary.")
     parser.add_argument("--released-at", help="Release date, usually YYYY-MM-DD. Defaults to today in UTC.")
     parser.add_argument("--commit", help="Git commit hash to store with the snapshot. Defaults to current HEAD.")
+    parser.add_argument("--no-commit", action="store_true", help="Omit commit metadata for a truthful working-tree snapshot.")
     parser.add_argument("--defer", action="store_true", help="Record a truthful snapshot deferral without copying files.")
     parser.add_argument("--reason", help="Reason shown when --defer records snapshot continuity.")
     parser.add_argument("--force", action="store_true", help="Replace an existing snapshot for the same version.")
@@ -215,6 +218,9 @@ def main() -> None:
         print(f"Snapshot {entry['version']} deferred: {entry['reason']}")
         return
 
+    if args.no_commit and args.commit:
+        raise SystemExit("--no-commit cannot be combined with --commit.")
+
     entry = create_snapshot(
         slug=args.slug,
         version=args.version,
@@ -222,6 +228,7 @@ def main() -> None:
         summary=args.summary,
         released_at=args.released_at,
         commit=args.commit,
+        include_commit=not args.no_commit,
         force=args.force,
         rebuild_index=not args.skip_build,
     )
