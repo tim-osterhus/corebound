@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "live",
-    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.4.0 Freight Lockdown, and Void Prospector's v0.3.0 Beacon Convoy route-escort release."
+    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.4.0 Freight Lockdown, and Void Prospector's v0.4.0 Storm Cartography route-window release."
   },
   "games": [
     {
@@ -124,16 +124,23 @@
     {
       "slug": "void-prospector",
       "title": "Void Prospector",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "status": "playable",
-      "summary": "Pilot the Prospector Kite through a compact 3D asteroid field with Survey Ladder sectors, anomaly scans, hazard charting, salvage extraction, deployable route beacons, convoy contracts, escort integrity, pirate interdiction, station escort drones, signal jammers, countermeasure bursts, docking, charter payouts, and repeat-sortie upgrades.",
+      "summary": "Pilot the Prospector Kite through a compact 3D asteroid field with Survey Ladder sectors, anomaly scans, hazard charting, salvage extraction, deployable route beacons, convoy contracts, storm-front charting, relay anchors, safe route windows, salvage reroutes, station storm plating, chart processors, pirate interdiction, docking, route payouts, and repeat-sortie upgrades.",
       "path": "games/void-prospector/",
       "thumbnail": "games/void-prospector/assets/arcade-title-card.png",
       "release": {
-        "label": "v0.3.0 Beacon Convoy",
-        "copy": "Beacon Convoy adds deployable route beacons and escort runs to Derelict Salvage: scan prerequisites, deploy or maintain relay beacons, launch cargo convoys, hold formation through ambush and hazard pressure, buy escort drones or signal jammers at station, and bank full or partial payouts into Survey Ladder progress."
+        "label": "v0.4.0 Storm Cartography",
+        "copy": "Storm Cartography extends Beacon Convoy with deep-signal storm fronts, chartable safe windows, relay anchors, Tempest Verge route pressure, storm reroutes for salvage, convoy launch timing through locked windows, chart processors, storm plating, and countermeasure bursts that trade faster payouts against hull, fuel, anchor integrity, escort integrity, and Survey Ladder score."
       },
       "versions": [
+        {
+          "version": "0.4.0",
+          "path": "games/void-prospector/versions/0.4.0/",
+          "releasedAt": "2026-04-29",
+          "label": "v0.4.0 Storm Cartography",
+          "summary": "Deep-signal storm fronts, safe-window charting, relay anchors, Tempest Verge, storm support services, salvage reroutes, convoy timing, and complete/partial/failed storm payouts publish on top of Beacon Convoy."
+        },
         {
           "version": "0.3.0",
           "path": "games/void-prospector/versions/0.3.0/",
