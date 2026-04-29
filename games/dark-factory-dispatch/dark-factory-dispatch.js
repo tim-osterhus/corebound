@@ -115,6 +115,15 @@ const DarkFactoryDispatch = (() => {
         outputs: { stability: 3 },
         family: "grid",
       },
+      {
+        id: "compile-countermeasures",
+        name: "Compile Countermeasures",
+        duration: 4,
+        inputs: { circuits: 1, modules: 1, power: 2 },
+        outputs: { defenses: 1, stability: 2 },
+        family: "breach",
+        breachCountermeasure: true,
+      },
     ],
     contracts: [
       {
@@ -139,6 +148,18 @@ const DarkFactoryDispatch = (() => {
         penalty: { stability: -10, scrap: -3 },
         deadline: 16,
         pressure: "refit the relay before the next dispatch window",
+        status: "open",
+      },
+      {
+        id: "signal-firewall",
+        name: "Signal Firewall",
+        family: "breach",
+        requirement: { defenses: 1, reputation: 1 },
+        escalationRequirement: { defenses: 1 },
+        reward: { reputation: 2, stability: 4 },
+        penalty: { stability: -12, power: -1 },
+        deadline: 18,
+        pressure: "seal the hostile dispatch carrier before queue work is rewritten",
         status: "open",
       },
     ],
@@ -261,8 +282,73 @@ const DarkFactoryDispatch = (() => {
         },
       ],
     },
+    signalBreach: {
+      threshold: 9,
+      cleanse: {
+        cost: { circuits: 1, power: 1 },
+        reward: { stability: 1 },
+        intensityRelief: 2,
+        traceReliefTicks: 2,
+      },
+      quarantine: {
+        stabilityCost: 3,
+        intensityRelief: 1,
+        gridPressureRelief: 2,
+      },
+      shield: {
+        ticks: 4,
+        intensityRelief: 1,
+      },
+      countermeasure: {
+        intensityRelief: 3,
+        traceReliefTicks: 2,
+        reward: { reputation: 1 },
+      },
+      sources: [
+        {
+          id: "spoofed-dispatch-uplink",
+          name: "Spoofed Dispatch Uplink",
+          activationTick: 3,
+          traceTicks: 6,
+          intensity: 3,
+          compromiseCount: 1,
+          sectorId: "assembly-bus",
+          severity: 2,
+          gridPressure: 2,
+          countermeasureJobTypeId: "compile-countermeasures",
+          traceCost: { circuits: 1, drones: 1 },
+          traceReward: { reputation: 1, stability: 3 },
+          tracePenalty: { stability: -10, power: -1 },
+          deferCost: { stability: 4 },
+          deferTicks: 3,
+          deferIntensity: 2,
+          escapeScar: 3,
+          jobCompletionPenalty: { stability: -4 },
+        },
+        {
+          id: "audit-ghost-carrier",
+          name: "Audit Ghost Carrier",
+          activationTick: 5,
+          traceTicks: 8,
+          intensity: 4,
+          compromiseCount: 2,
+          sectorId: "clean-bus",
+          severity: 2,
+          gridPressure: 0,
+          countermeasureJobTypeId: "compile-countermeasures",
+          traceCost: { circuits: 2, drones: 1 },
+          traceReward: { reputation: 1, stability: 4 },
+          tracePenalty: { stability: -12, power: -2 },
+          deferCost: { stability: 5 },
+          deferTicks: 2,
+          deferIntensity: 3,
+          escapeScar: 4,
+          jobCompletionPenalty: { stability: -5 },
+        },
+      ],
+    },
     campaign: {
-      release: "v0.2.0 Grid Siege",
+      release: "v0.3.0 Signal Breach",
       shifts: [
         {
           shift: 1,
@@ -416,6 +502,28 @@ const DarkFactoryDispatch = (() => {
     return definition && definition.priority ? definition.priority : {};
   }
 
+  function breachSourceDefinition(sourceId) {
+    return byId(GAME_DATA.signalBreach.sources, sourceId);
+  }
+
+  function selectBreachSource(campaign) {
+    const sources = GAME_DATA.signalBreach.sources;
+    const index = Math.max(0, campaign.demand - 1) % sources.length;
+    return sources[index];
+  }
+
+  function cleanBreachSectorState(sectorId, carryover = {}) {
+    const contaminated = Array.isArray(carryover.contaminatedSectors)
+      && carryover.contaminatedSectors.includes(sectorId);
+    return {
+      status: contaminated ? "scarred" : "clean",
+      sourceId: null,
+      severity: contaminated ? 1 : 0,
+      shieldedUntil: null,
+      quarantinedAtTick: null,
+    };
+  }
+
   function clampResourceFloor(resources) {
     Object.keys(resources).forEach((resource) => {
       resources[resource] = Math.max(0, resources[resource]);
@@ -425,6 +533,7 @@ const DarkFactoryDispatch = (() => {
   function createGridState(campaign, options = {}) {
     const incoming = options.campaign || {};
     const carryover = incoming.gridCarryover || {};
+    const breachCarryover = incoming.breachCarryover || {};
     const pressure = Math.max(0, (carryover.blackoutScar || 0) + (carryover.auditPressure || 0));
     const reserveDebt = Math.max(0, carryover.reserveDebt || 0);
     const threshold = Math.max(6, GAME_DATA.grid.blackout.threshold - Math.max(0, campaign.demand - 2));
@@ -444,6 +553,7 @@ const DarkFactoryDispatch = (() => {
         blackoutLockedUntil: null,
         blackoutCount: 0,
         reserveDraws: 0,
+        breach: cleanBreachSectorState(sector.id, breachCarryover),
       })),
       blackout: {
         status: "armed",
@@ -484,12 +594,76 @@ const DarkFactoryDispatch = (() => {
     };
   }
 
+  function createBreachState(campaign, options = {}) {
+    const incoming = options.campaign || {};
+    const carryover = incoming.breachCarryover || {};
+    const source = selectBreachSource(campaign);
+    const signalScar = Math.max(0, carryover.signalScar || 0);
+    return {
+      release: GAME_DATA.campaign.release,
+      status: "dormant",
+      sourceId: source.id,
+      activatedAtTick: null,
+      intensity: signalScar,
+      threshold: GAME_DATA.signalBreach.threshold,
+      trace: {
+        status: "quiet",
+        dueTick: null,
+        deferrals: 0,
+        resolved: 0,
+        failures: Math.max(0, carryover.traceFailures || 0),
+      },
+      contamination: {
+        queuedEntries: 0,
+        completedCompromisedJobs: 0,
+        sectors: Array.isArray(carryover.contaminatedSectors)
+          ? carryover.contaminatedSectors.slice()
+          : [],
+      },
+      containment: {
+        status: signalScar > 0 ? "scarred" : "ready",
+        cleansedEntries: 0,
+        quarantinedLanes: [],
+        shieldedSectors: 0,
+        countermeasures: 0,
+        tracedSources: 0,
+      },
+      choices: {
+        cleanses: 0,
+        quarantines: 0,
+        traces: 0,
+        traceDeferrals: 0,
+        shieldRoutes: 0,
+        countermeasureJobs: 0,
+      },
+      countermeasureQueued: false,
+      carryover: {
+        signalScar,
+        escapedSources: Math.max(0, carryover.escapedSources || 0),
+        traceFailures: Math.max(0, carryover.traceFailures || 0),
+        contaminatedSectors: Array.isArray(carryover.contaminatedSectors)
+          ? carryover.contaminatedSectors.slice()
+          : [],
+      },
+      history: [],
+    };
+  }
+
   function applyGridCarryoverResources(resources, grid) {
     if (!grid || !grid.carryover) {
       return;
     }
     resources.power -= grid.carryover.reserveDebt || 0;
     resources.stability -= grid.carryover.blackoutScar || 0;
+    clampResourceFloor(resources);
+  }
+
+  function applyBreachCarryoverResources(resources, breach) {
+    if (!breach || !breach.carryover) {
+      return;
+    }
+    resources.stability -= breach.carryover.signalScar || 0;
+    resources.power -= Math.min(2, breach.carryover.escapedSources || 0);
     clampResourceFloor(resources);
   }
 
@@ -545,6 +719,11 @@ const DarkFactoryDispatch = (() => {
         sectorIsolations: 0,
         auditDeferrals: 0,
         auditRepairs: 0,
+        breachCleanses: 0,
+        breachQuarantines: 0,
+        breachTraces: 0,
+        breachDeferrals: 0,
+        breachCountermeasures: 0,
       },
     };
   }
@@ -612,6 +791,9 @@ const DarkFactoryDispatch = (() => {
       sourceContractId: options.sourceContractId || null,
       gridDirective: Boolean(options.gridDirective),
       sourceDirectiveId: options.sourceDirectiveId || null,
+      breachDirective: Boolean(options.breachDirective),
+      sourceBreachId: options.sourceBreachId || null,
+      compromised: options.compromised ? clone(options.compromised) : null,
       heldReason: options.heldReason || null,
       createdAtTick: state.tick,
     };
@@ -626,9 +808,11 @@ const DarkFactoryDispatch = (() => {
     const upgradeEffects = aggregateUpgradeEffects(purchased);
     const campaign = createCampaignState(run, options);
     const grid = createGridState(campaign, options);
+    const breach = createBreachState(campaign, options);
     const resources = baseResources();
     applyBundle(resources, upgradeEffects.startResources, 1);
     applyGridCarryoverResources(resources, grid);
+    applyBreachCarryoverResources(resources, breach);
     const state = {
       tick: 0,
       seed,
@@ -637,6 +821,7 @@ const DarkFactoryDispatch = (() => {
       produced: {},
       queue: [],
       grid,
+      breach,
       lanes: GAME_DATA.lanes.map((lane) => {
         const performance = lanePerformance(lane, upgradeEffects, null, gridEffectForLane(grid, lane.id));
         return {
@@ -659,6 +844,7 @@ const DarkFactoryDispatch = (() => {
           recoveryRemaining: 0,
           currentJob: null,
           fault: null,
+          breachQuarantine: null,
           completedJobs: 0,
           restartState: clone(lane.restartState),
         };
@@ -984,8 +1170,389 @@ const DarkFactoryDispatch = (() => {
     if (sector) {
       sector.reserveDraws += 1;
       sector.powered = true;
+      shieldBreachSectorInPlace(next, sector);
     }
     return withLog(next, `Reserve batteries drew ${reserve.drawAmount} power into ${sector ? sector.name : "the grid"}.`);
+  }
+
+  function activeBreachSource(state) {
+    return state.breach ? breachSourceDefinition(state.breach.sourceId) : null;
+  }
+
+  function currentBreachTraceTicks(state, source) {
+    const scarCompression = Math.min(2, state.breach.carryover.signalScar || 0);
+    return Math.max(3, source.traceTicks - Math.max(0, state.campaign.demand - 2) - scarCompression);
+  }
+
+  function contaminateBreachSector(state, sectorId, source) {
+    const sector = gridSectorState(state, sectorId);
+    if (!sector || !source) {
+      return false;
+    }
+    sector.breach = {
+      status: sector.breach && sector.breach.status === "quarantined" ? "quarantined" : "contaminated",
+      sourceId: source.id,
+      severity: Math.max(source.severity || 1, sector.breach ? sector.breach.severity || 0 : 0),
+      shieldedUntil: sector.breach ? sector.breach.shieldedUntil : null,
+      quarantinedAtTick: sector.breach ? sector.breach.quarantinedAtTick : null,
+    };
+    if (!state.breach.contamination.sectors.includes(sector.id)) {
+      state.breach.contamination.sectors.push(sector.id);
+    }
+    return true;
+  }
+
+  function compromiseQueueEntry(state, entry, source) {
+    if (!entry || entry.compromised || entry.breachDirective || entry.gridDirective || entry.emergency) {
+      return false;
+    }
+    entry.compromised = {
+      sourceId: source.id,
+      severity: source.severity || 1,
+      status: "compromised",
+      createdAtTick: state.tick,
+    };
+    state.breach.contamination.queuedEntries += 1;
+    return true;
+  }
+
+  function compromiseQueuedJobs(state, source) {
+    let compromised = 0;
+    state.queue.some((entry) => {
+      if (compromised >= source.compromiseCount) {
+        return true;
+      }
+      if (compromiseQueueEntry(state, entry, source)) {
+        compromised += 1;
+      }
+      return false;
+    });
+    return compromised;
+  }
+
+  function queueBreachCountermeasure(state, source) {
+    if (!source.countermeasureJobTypeId || state.breach.countermeasureQueued) {
+      return false;
+    }
+    const alreadyQueued = state.queue.some((entry) => (
+      entry.breachDirective && entry.sourceBreachId === source.id
+    ));
+    const alreadyAssigned = state.lanes.some((lane) => (
+      lane.currentJob && lane.currentJob.breachDirective && lane.currentJob.sourceBreachId === source.id
+    ));
+    if (alreadyQueued || alreadyAssigned) {
+      state.breach.countermeasureQueued = true;
+      return false;
+    }
+    state.queue.unshift(createQueueEntry(state, source.countermeasureJobTypeId, 1, {
+      breachDirective: true,
+      sourceBreachId: source.id,
+    }));
+    state.breach.countermeasureQueued = true;
+    applyQueuePolicy(state);
+    return true;
+  }
+
+  function maybeActivateSignalBreach(state) {
+    if (!state.breach || state.breach.status !== "dormant") {
+      return false;
+    }
+    const source = activeBreachSource(state);
+    if (!source) {
+      return false;
+    }
+    const activationTick = Math.max(
+      2,
+      source.activationTick - Math.max(0, state.campaign.demand - 1) - Math.min(1, state.breach.carryover.signalScar || 0)
+    );
+    if (state.tick < activationTick) {
+      return false;
+    }
+    state.breach.status = "active";
+    state.breach.activatedAtTick = state.tick;
+    state.breach.intensity += source.intensity;
+    state.breach.trace.status = "active";
+    state.breach.trace.dueTick = state.tick + currentBreachTraceTicks(state, source);
+    state.breach.containment.status = "intrusion";
+    compromiseQueuedJobs(state, source);
+    contaminateBreachSector(state, source.sectorId, source);
+    queueBreachCountermeasure(state, source);
+    if (state.grid) {
+      state.grid.pressure += source.gridPressure;
+    }
+    state.breach.history.unshift({
+      tick: state.tick,
+      event: "activated",
+      sourceId: source.id,
+      dueTick: state.breach.trace.dueTick,
+    });
+    state.log.unshift({ tick: state.tick, message: `${source.name} signal breach active; trace due t${state.breach.trace.dueTick}.` });
+    return true;
+  }
+
+  function shieldBreachSectorInPlace(state, sector) {
+    if (!state.breach || !sector || !sector.breach || sector.breach.status !== "contaminated") {
+      return false;
+    }
+    const shield = GAME_DATA.signalBreach.shield;
+    sector.breach.shieldedUntil = state.tick + shield.ticks;
+    state.breach.intensity = Math.max(0, state.breach.intensity - shield.intensityRelief);
+    state.breach.containment.shieldedSectors += 1;
+    state.breach.choices.shieldRoutes += 1;
+    state.breach.history.unshift({
+      tick: state.tick,
+      event: "shielded-sector",
+      sectorId: sector.id,
+      untilTick: sector.breach.shieldedUntil,
+    });
+    state.log.unshift({ tick: state.tick, message: `${sector.name} reserve shield holds breach until t${sector.breach.shieldedUntil}.` });
+    return true;
+  }
+
+  function releaseExpiredBreachShields(state) {
+    if (!state.grid) {
+      return;
+    }
+    state.grid.sectors.forEach((sector) => {
+      if (!sector.breach || sector.breach.shieldedUntil === null || state.tick < sector.breach.shieldedUntil) {
+        return;
+      }
+      sector.breach.shieldedUntil = null;
+      state.log.unshift({ tick: state.tick, message: `${sector.name} breach shield expired.` });
+    });
+  }
+
+  function failBreachTraceInPlace(state, source) {
+    applyBundle(state.resources, source.tracePenalty, 1);
+    clampResourceFloor(state.resources);
+    state.breach.status = "escaped";
+    state.breach.trace.status = "failed";
+    state.breach.trace.failures += 1;
+    state.breach.trace.dueTick = null;
+    state.breach.intensity += source.deferIntensity;
+    state.breach.containment.status = "scarred";
+    if (state.grid) {
+      state.grid.pressure += source.gridPressure;
+    }
+    compromiseQueuedJobs(state, source);
+    state.breach.history.unshift({
+      tick: state.tick,
+      event: "trace-failed",
+      sourceId: source.id,
+      scar: source.escapeScar,
+    });
+    state.log.unshift({ tick: state.tick, message: `${source.name} trace failed; intrusion scar persisted.` });
+  }
+
+  function maybeFailBreachTrace(state) {
+    if (!state.breach || state.breach.status !== "active" || state.breach.trace.status !== "active") {
+      return false;
+    }
+    if (state.tick <= state.breach.trace.dueTick) {
+      return false;
+    }
+    const source = activeBreachSource(state);
+    if (!source) {
+      return false;
+    }
+    failBreachTraceInPlace(state, source);
+    return true;
+  }
+
+  function advanceBreachState(state) {
+    if (!state.breach) {
+      return;
+    }
+    releaseExpiredBreachShields(state);
+    maybeActivateSignalBreach(state);
+    if (state.breach.status === "active" && hasActiveEmergency(state) && state.tick % 3 === 0) {
+      state.breach.intensity += 1;
+    }
+    if (state.breach.status === "active" && state.breach.intensity >= state.breach.threshold) {
+      state.breach.containment.status = "critical";
+    }
+    maybeFailBreachTrace(state);
+  }
+
+  function cleanseCompromisedQueueEntry(state, entryId) {
+    const next = clone(state);
+    const entry = next.queue.find((candidate) => candidate.id === entryId);
+    const cleanse = GAME_DATA.signalBreach.cleanse;
+    if (!entry || !entry.compromised || entry.compromised.status !== "compromised") {
+      return withLog(next, "No compromised queue entry selected.");
+    }
+    if (!canPay(next.resources, cleanse.cost)) {
+      return withLog(next, `Queue cleanse lacks ${formatBundle(cleanse.cost)}.`);
+    }
+    applyBundle(next.resources, cleanse.cost, -1);
+    applyBundle(next.resources, cleanse.reward, 1);
+    entry.compromised = null;
+    entry.cleansedAtTick = next.tick;
+    next.breach.intensity = Math.max(0, next.breach.intensity - cleanse.intensityRelief);
+    if (next.breach.trace.status === "active") {
+      next.breach.trace.dueTick += cleanse.traceReliefTicks;
+    }
+    next.breach.containment.cleansedEntries += 1;
+    next.breach.choices.cleanses += 1;
+    next.campaign.choices.breachCleanses += 1;
+    next.breach.history.unshift({ tick: next.tick, event: "queue-cleansed", entryId });
+    return withLog(next, `${jobName(entry.jobTypeId)} queue signal cleansed.`);
+  }
+
+  function quarantineBreachLane(state, laneId, active = true) {
+    const next = clone(state);
+    const lane = byId(next.lanes, laneId);
+    const sector = lane ? gridSectorForLane(next.grid, lane.id) : null;
+    const quarantine = GAME_DATA.signalBreach.quarantine;
+    if (!lane || !sector) {
+      return withLog(next, "Unknown breach quarantine lane.");
+    }
+    if (active && lane.breachQuarantine) {
+      return withLog(next, `${lane.name} breach quarantine already active.`);
+    }
+    if (!active && !lane.breachQuarantine) {
+      return withLog(next, `${lane.name} has no breach quarantine.`);
+    }
+    if (active && !canPay(next.resources, { stability: quarantine.stabilityCost })) {
+      return withLog(next, `${lane.name} quarantine lacks stability ${quarantine.stabilityCost}.`);
+    }
+    if (active) {
+      applyBundle(next.resources, { stability: quarantine.stabilityCost }, -1);
+      lane.breachQuarantine = {
+        sourceId: next.breach.sourceId,
+        sectorId: sector.id,
+        startedAtTick: next.tick,
+      };
+      sector.breach.status = "quarantined";
+      sector.breach.sourceId = next.breach.sourceId;
+      sector.breach.quarantinedAtTick = next.tick;
+      sector.isolated = true;
+      sector.powered = false;
+      sector.route = "balanced";
+      markLaneGridLocked(lane, "breach-quarantine");
+      next.breach.intensity = Math.max(0, next.breach.intensity - quarantine.intensityRelief);
+      next.grid.pressure = Math.max(0, next.grid.pressure - quarantine.gridPressureRelief);
+      if (!next.breach.containment.quarantinedLanes.includes(lane.id)) {
+        next.breach.containment.quarantinedLanes.push(lane.id);
+      }
+      next.breach.choices.quarantines += 1;
+      next.campaign.choices.breachQuarantines += 1;
+      next.breach.history.unshift({ tick: next.tick, event: "lane-quarantined", laneId: lane.id });
+    } else {
+      lane.breachQuarantine = null;
+      sector.breach.status = sector.breach.sourceId ? "contaminated" : "clean";
+      sector.breach.quarantinedAtTick = null;
+      sector.isolated = false;
+      sector.powered = true;
+      restoreLaneGridLock(lane, "breach-quarantine");
+      next.breach.history.unshift({ tick: next.tick, event: "lane-quarantine-cleared", laneId: lane.id });
+    }
+    refreshSectorLane(next, sector);
+    return withLog(next, `${lane.name} breach quarantine ${active ? "engaged" : "cleared"}.`);
+  }
+
+  function traceBreachSource(state) {
+    const next = clone(state);
+    const source = activeBreachSource(next);
+    if (!source || next.breach.status !== "active" || next.breach.trace.status !== "active") {
+      return withLog(next, "No active breach trace.");
+    }
+    if (!canPay(next.resources, source.traceCost)) {
+      return withLog(next, `${source.name} trace lacks ${formatBundle(source.traceCost)}.`);
+    }
+    applyBundle(next.resources, source.traceCost, -1);
+    applyBundle(next.resources, source.traceReward, 1);
+    next.breach.status = "contained";
+    next.breach.trace.status = "resolved";
+    next.breach.trace.dueTick = null;
+    next.breach.trace.resolved += 1;
+    next.breach.intensity = Math.max(0, next.breach.intensity - source.intensity - 1);
+    next.breach.containment.status = "contained";
+    next.breach.containment.tracedSources += 1;
+    next.breach.choices.traces += 1;
+    next.campaign.choices.breachTraces += 1;
+    next.grid.sectors.forEach((sector) => {
+      if (sector.breach && sector.breach.sourceId === source.id && sector.breach.status !== "quarantined") {
+        sector.breach.status = "contained";
+        sector.breach.severity = Math.max(0, sector.breach.severity - 1);
+      }
+    });
+    next.breach.history.unshift({ tick: next.tick, event: "source-traced", sourceId: source.id });
+    return withLog(next, `${source.name} traced and contained.`);
+  }
+
+  function deferBreachTrace(state) {
+    const next = clone(state);
+    const source = activeBreachSource(next);
+    if (!source || next.breach.status !== "active" || next.breach.trace.status !== "active") {
+      return withLog(next, "No active breach trace to defer.");
+    }
+    if (!canPay(next.resources, source.deferCost)) {
+      return withLog(next, `${source.name} deferral lacks ${formatBundle(source.deferCost)}.`);
+    }
+    applyBundle(next.resources, source.deferCost, -1);
+    next.breach.trace.dueTick += source.deferTicks;
+    next.breach.trace.deferrals += 1;
+    next.breach.intensity += source.deferIntensity;
+    next.breach.containment.status = "deferred";
+    next.breach.choices.traceDeferrals += 1;
+    next.campaign.choices.breachDeferrals += 1;
+    next.breach.history.unshift({ tick: next.tick, event: "trace-deferred", sourceId: source.id });
+    return withLog(next, `${source.name} trace deferred to t${next.breach.trace.dueTick}.`);
+  }
+
+  function completeBreachCountermeasureInPlace(state, completedJob) {
+    if (!state.breach || !completedJob.breachDirective) {
+      return false;
+    }
+    const countermeasure = GAME_DATA.signalBreach.countermeasure;
+    applyBundle(state.resources, countermeasure.reward, 1);
+    state.breach.intensity = Math.max(0, state.breach.intensity - countermeasure.intensityRelief);
+    if (state.breach.trace.status === "active") {
+      state.breach.trace.dueTick += countermeasure.traceReliefTicks;
+    }
+    state.breach.containment.countermeasures += 1;
+    state.breach.choices.countermeasureJobs += 1;
+    state.campaign.choices.breachCountermeasures += 1;
+    if (state.breach.status === "active" && state.breach.containment.status !== "contained") {
+      state.breach.containment.status = "mitigated";
+    }
+    state.breach.history.unshift({
+      tick: state.tick,
+      event: "countermeasure-complete",
+      sourceId: completedJob.sourceBreachId,
+    });
+    state.log.unshift({ tick: state.tick, message: "Countermeasures damped the breach trace." });
+    return true;
+  }
+
+  function applyCompromisedJobCompletion(state, lane, completedJob) {
+    if (!state.breach || !completedJob.compromised || completedJob.compromised.status !== "compromised") {
+      return false;
+    }
+    const source = breachSourceDefinition(completedJob.compromised.sourceId);
+    if (!source) {
+      return false;
+    }
+    applyBundle(state.resources, source.jobCompletionPenalty, 1);
+    clampResourceFloor(state.resources);
+    state.breach.intensity += completedJob.compromised.severity || 1;
+    state.breach.contamination.completedCompromisedJobs += 1;
+    if (state.grid) {
+      state.grid.pressure += source.gridPressure;
+      const sector = gridSectorForLane(state.grid, lane.id);
+      if (sector) {
+        contaminateBreachSector(state, sector.id, source);
+      }
+    }
+    state.breach.history.unshift({
+      tick: state.tick,
+      event: "compromised-job-complete",
+      laneId: lane.id,
+      jobTypeId: completedJob.jobTypeId,
+    });
+    state.log.unshift({ tick: state.tick, message: `${lane.name} completed compromised ${jobName(completedJob.jobTypeId)}; breach pressure rose.` });
+    return true;
   }
 
   function auditDirectiveDefinition(state) {
@@ -1124,6 +1691,19 @@ const DarkFactoryDispatch = (() => {
     if (state.grid.audit.status === "active") {
       load += 1;
     }
+    state.grid.sectors.forEach((sector) => {
+      if (!sector.breach || !["contaminated", "scarred"].includes(sector.breach.status)) {
+        return;
+      }
+      if (sector.breach.shieldedUntil !== null && state.tick < sector.breach.shieldedUntil) {
+        return;
+      }
+      const lane = laneForSector(state, sector);
+      if (!lane || lane.status !== "running") {
+        return;
+      }
+      load += sector.breach.severity || 1;
+    });
     return Math.max(0, load - gridPressureRelief(state));
   }
 
@@ -1286,6 +1866,9 @@ const DarkFactoryDispatch = (() => {
       sourceContractId: entry.sourceContractId,
       gridDirective: entry.gridDirective,
       sourceDirectiveId: entry.sourceDirectiveId,
+      breachDirective: entry.breachDirective,
+      sourceBreachId: entry.sourceBreachId,
+      compromised: entry.compromised ? clone(entry.compromised) : null,
     };
     lane.status = "assigned";
     lane.progress = 0;
@@ -1356,6 +1939,12 @@ const DarkFactoryDispatch = (() => {
       if (directive) {
         completeAuditDirectiveInPlace(state, directive, false);
       }
+    }
+    if (completedJob.breachDirective) {
+      completeBreachCountermeasureInPlace(state, completedJob);
+    }
+    if (completedJob.compromised) {
+      applyCompromisedJobCompletion(state, lane, completedJob);
     }
     evaluateContracts(state);
   }
@@ -1445,6 +2034,7 @@ const DarkFactoryDispatch = (() => {
       }
       next.tick += 1;
       maybeActivateEmergencyContracts(next);
+      advanceBreachState(next);
       advanceGridState(next);
       next.lanes.forEach((lane) => {
         advanceLaneRecovery(next, lane);
@@ -1489,6 +2079,29 @@ const DarkFactoryDispatch = (() => {
     return Object.entries(contract.requirement).every(([resource, amount]) => (state.produced[resource] || 0) >= amount);
   }
 
+  function recordBreachContractCompletion(state, contract) {
+    if (!state.breach || contract.family !== "breach") {
+      return;
+    }
+    state.breach.intensity = Math.max(0, state.breach.intensity - 2);
+    if (state.breach.status === "active") {
+      state.breach.containment.status = "contract-contained";
+    }
+    state.breach.history.unshift({ tick: state.tick, event: "breach-contract-complete", contractId: contract.id });
+  }
+
+  function recordBreachContractFailure(state, contract) {
+    if (!state.breach || !["active", "dormant"].includes(state.breach.status)) {
+      return;
+    }
+    const pressure = contract.emergency ? 2 : 1;
+    state.breach.intensity += pressure;
+    if (state.grid) {
+      state.grid.pressure += pressure;
+    }
+    state.breach.history.unshift({ tick: state.tick, event: "contract-failed", contractId: contract.id });
+  }
+
   function evaluateRunOutcome(state) {
     const openOrActive = state.contracts.some((contract) => (
       contract.status === "open" || contract.status === "active" || contract.status === "pending"
@@ -1519,6 +2132,7 @@ const DarkFactoryDispatch = (() => {
           state.campaign.emergency.status = "complete";
         }
         applyBundle(state.resources, contract.reward, 1);
+        recordBreachContractCompletion(state, contract);
         state.log.unshift({ tick: state.tick, message: `${contract.name} contract complete.` });
         activateNextContract(state);
         return;
@@ -1530,6 +2144,7 @@ const DarkFactoryDispatch = (() => {
           state.campaign.emergency.status = "failed";
         }
         applyBundle(state.resources, contract.penalty, 1);
+        recordBreachContractFailure(state, contract);
         state.log.unshift({ tick: state.tick, message: `${contract.name} contract failed; penalty applied.` });
         activateNextContract(state);
       }
@@ -1656,8 +2271,77 @@ const DarkFactoryDispatch = (() => {
         blackoutLockedUntil: sector.blackoutLockedUntil,
         blackoutCount: sector.blackoutCount,
         reserveDraws: sector.reserveDraws,
+        breach: sector.breach ? clone(sector.breach) : cleanBreachSectorState(sector.id),
       })),
       choices: clone(grid.choices),
+    };
+  }
+
+  function breachSurfaceState(state) {
+    const breach = state.breach;
+    const source = breach ? breachSourceDefinition(breach.sourceId) : null;
+    if (!breach) {
+      return null;
+    }
+    return {
+      release: breach.release,
+      status: breach.status,
+      intensity: breach.intensity,
+      threshold: breach.threshold,
+      source: {
+        id: breach.sourceId,
+        name: source ? source.name : titleCase(breach.sourceId),
+      },
+      trace: {
+        status: breach.trace.status,
+        dueTick: breach.trace.dueTick,
+        deferrals: breach.trace.deferrals,
+        resolved: breach.trace.resolved,
+        failures: breach.trace.failures,
+        cost: source ? clone(source.traceCost) : {},
+        deferCost: source ? clone(source.deferCost) : {},
+      },
+      contamination: {
+        queuedEntries: breach.contamination.queuedEntries,
+        completedCompromisedJobs: breach.contamination.completedCompromisedJobs,
+        sectors: breach.contamination.sectors.slice(),
+      },
+      containment: {
+        status: breach.containment.status,
+        cleansedEntries: breach.containment.cleansedEntries,
+        quarantinedLanes: breach.containment.quarantinedLanes.slice(),
+        shieldedSectors: breach.containment.shieldedSectors,
+        countermeasures: breach.containment.countermeasures,
+        tracedSources: breach.containment.tracedSources,
+      },
+      queue: state.queue.map((entry) => ({
+        id: entry.id,
+        jobTypeId: entry.jobTypeId,
+        status: entry.status,
+        breachDirective: Boolean(entry.breachDirective),
+        sourceBreachId: entry.sourceBreachId,
+        compromised: entry.compromised ? clone(entry.compromised) : null,
+      })),
+      lanes: state.lanes.map((lane) => ({
+        id: lane.id,
+        status: lane.status,
+        breachQuarantine: lane.breachQuarantine ? clone(lane.breachQuarantine) : null,
+        currentJob: lane.currentJob ? {
+          jobTypeId: lane.currentJob.jobTypeId,
+          breachDirective: Boolean(lane.currentJob.breachDirective),
+          sourceBreachId: lane.currentJob.sourceBreachId,
+          compromised: lane.currentJob.compromised ? clone(lane.currentJob.compromised) : null,
+        } : null,
+      })),
+      sectors: state.grid.sectors.map((sector) => ({
+        id: sector.id,
+        name: sector.name,
+        laneId: sector.laneId,
+        breach: sector.breach ? clone(sector.breach) : cleanBreachSectorState(sector.id),
+      })),
+      choices: clone(breach.choices),
+      carryover: clone(breach.carryover),
+      history: breach.history.slice(0, 6),
     };
   }
 
@@ -1720,8 +2404,14 @@ const DarkFactoryDispatch = (() => {
         reserveDraws: campaign.choices.reserveDraws,
         sectorIsolations: campaign.choices.sectorIsolations,
         auditDeferrals: campaign.choices.auditDeferrals,
+        breachCleanses: campaign.choices.breachCleanses,
+        breachQuarantines: campaign.choices.breachQuarantines,
+        breachTraces: campaign.choices.breachTraces,
+        breachDeferrals: campaign.choices.breachDeferrals,
+        breachCountermeasures: campaign.choices.breachCountermeasures,
       },
       grid: gridSurfaceState(state),
+      breach: breachSurfaceState(state),
     };
   }
 
@@ -1739,6 +2429,37 @@ const DarkFactoryDispatch = (() => {
       reserveDebt: Math.min(GAME_DATA.grid.reserve.capacity, Math.max(0, (previousCarryover.reserveDebt || 0) + reserveDraws)),
       auditPressure: Math.min(6, auditUnresolved ? 2 + state.grid.audit.deferrals : 0),
     };
+    const previousBreachCarryover = state.breach && state.breach.carryover ? state.breach.carryover : {};
+    const breachUnresolved = state.breach && ["active", "escaped"].includes(state.breach.status);
+    const breachEscaped = state.breach && state.breach.status === "escaped";
+    const breachSource = state.breach ? breachSourceDefinition(state.breach.sourceId) : null;
+    const contaminatedSectors = state.grid
+      ? state.grid.sectors
+        .filter((sector) => sector.breach && ["contaminated", "quarantined", "scarred"].includes(sector.breach.status))
+        .map((sector) => sector.id)
+      : [];
+    const breachCarryover = {
+      signalScar: Math.min(
+        12,
+        (previousBreachCarryover.signalScar || 0)
+          + (breachEscaped && breachSource ? breachSource.escapeScar : breachUnresolved ? 2 : 0)
+          + (state.breach ? state.breach.contamination.completedCompromisedJobs : 0)
+          + contaminatedSectors.length
+      ),
+      escapedSources: Math.min(
+        6,
+        (previousBreachCarryover.escapedSources || 0)
+          + (breachEscaped ? 1 : 0)
+      ),
+      traceFailures: Math.min(
+        6,
+        Math.max(previousBreachCarryover.traceFailures || 0, state.breach ? state.breach.trace.failures : 0)
+      ),
+      contaminatedSectors: Array.from(new Set([
+        ...(Array.isArray(previousBreachCarryover.contaminatedSectors) ? previousBreachCarryover.contaminatedSectors : []),
+        ...contaminatedSectors,
+      ])).slice(0, GAME_DATA.grid.sectors.length),
+    };
     ledger.push({
       shift: state.campaign.shift,
       phase: state.campaign.phase,
@@ -1752,12 +2473,24 @@ const DarkFactoryDispatch = (() => {
         auditStatus: state.grid.audit.status,
         carryover: gridCarryover,
       } : null,
+      breach: state.breach ? {
+        status: state.breach.status,
+        sourceId: state.breach.sourceId,
+        intensity: state.breach.intensity,
+        traceStatus: state.breach.trace.status,
+        compromisedJobs: state.breach.contamination.completedCompromisedJobs,
+        cleansedEntries: state.breach.containment.cleansedEntries,
+        quarantinedLanes: state.breach.containment.quarantinedLanes.slice(),
+        countermeasures: state.breach.containment.countermeasures,
+        carryover: breachCarryover,
+      } : null,
       finishedAtTick: state.tick,
     });
     return {
       queuePolicy: state.campaign.queuePolicy,
       ledger,
       gridCarryover,
+      breachCarryover,
     };
   }
 
@@ -2208,14 +2941,20 @@ const DarkFactoryDispatch = (() => {
     authorizeReserveDraw,
     deferAuditDirective,
     resolveAuditDirective,
+    cleanseCompromisedQueueEntry,
+    quarantineBreachLane,
+    traceBreachSource,
+    deferBreachTrace,
     evaluateContracts,
     maybeActivateEmergencyContracts,
     advanceGridState,
+    advanceBreachState,
     resetFactoryState,
     canPay,
     applyBundle,
     contractProgress,
     gridSurfaceState,
+    breachSurfaceState,
     campaignSurfaceState,
   };
 

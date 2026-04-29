@@ -40,7 +40,7 @@ class DarkFactoryDispatchGridSiegeTests(unittest.TestCase):
             """
         )
 
-        self.assertEqual("v0.2.0 Grid Siege", result["release"])
+        self.assertEqual("v0.3.0 Signal Breach", result["release"])
         self.assertEqual(3, result["sectorCount"])
         self.assertEqual(["forge-bus", "clean-bus"], result["connectedAssembly"])
         self.assertEqual("active", result["auditStatus"])

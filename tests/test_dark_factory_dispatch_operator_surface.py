@@ -105,7 +105,7 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
         pending = result["pendingSurface"]
         active = result["activeSurface"]
 
-        self.assertEqual("v0.2.0 Grid Siege", first["release"])
+        self.assertEqual("v0.3.0 Signal Breach", first["release"])
         self.assertEqual(1, first["shift"])
         self.assertEqual("quiet", first["emergency"]["status"])
         self.assertIn("shift 02", first["emergency"]["detail"])
