@@ -102,6 +102,7 @@ input {
 .choice-row label,
 .target-data,
 .salvage-target-data,
+.convoy-target-data,
 .control-strip {
   color: var(--muted);
   font-size: 0.72rem;
@@ -194,7 +195,9 @@ input {
   position: fixed;
   right: 18px;
   bottom: 64px;
-  width: min(320px, calc(100vw - 36px));
+  width: min(340px, calc(100vw - 36px));
+  max-height: calc(100vh - 96px);
+  overflow: auto;
 }
 
 .survey-panel {
@@ -235,14 +238,16 @@ input {
 }
 
 .target-data,
-.salvage-target-data {
+.salvage-target-data,
+.convoy-target-data {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   padding: 10px;
 }
 
-.salvage-target-data {
+.salvage-target-data,
+.convoy-target-data {
   padding-top: 0;
 }
 
@@ -254,13 +259,15 @@ input {
   line-height: 1.35;
 }
 
-.sector-list {
+.sector-list,
+.convoy-list {
   display: grid;
   gap: 0;
   border-bottom: 1px solid var(--line-soft);
 }
 
-.sector-row {
+.sector-row,
+.convoy-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
@@ -270,23 +277,28 @@ input {
   border-top: 1px solid var(--line-soft);
 }
 
-.sector-row:first-child {
+.sector-row:first-child,
+.convoy-row:first-child {
   border-top: 0;
 }
 
 .sector-row strong,
 .sector-row span,
+.convoy-row strong,
+.convoy-row span,
 .event-log li {
   overflow-wrap: anywhere;
 }
 
-.sector-row strong {
+.sector-row strong,
+.convoy-row strong {
   color: var(--text);
   font-size: 0.82rem;
   font-weight: 600;
 }
 
-.sector-row span {
+.sector-row span,
+.convoy-row span {
   color: var(--muted);
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -299,6 +311,21 @@ input {
 .sector-row[data-state="locked"] {
   color: var(--dim);
   opacity: 0.62;
+}
+
+.convoy-row[data-state="ready"],
+.convoy-row[data-state="enroute"] {
+  background: rgba(75, 214, 192, 0.08);
+}
+
+.convoy-row[data-state="needs beacon"] {
+  background: rgba(208, 179, 106, 0.08);
+}
+
+.convoy-row[data-state="locked"],
+.convoy-row[data-state="no-route"] {
+  color: var(--dim);
+  opacity: 0.66;
 }
 
 .choice-row {
@@ -330,6 +357,7 @@ input {
 .service-panel button {
   cursor: pointer;
   padding: 7px 8px;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
 }
 
@@ -370,6 +398,7 @@ input {
 
 .target-data span,
 .salvage-target-data span,
+.convoy-target-data span,
 .action-panel button {
   min-height: 32px;
   padding: 8px;
@@ -450,6 +479,7 @@ input {
 
   .target-panel {
     width: min(420px, calc(100vw - 36px));
+    max-height: none;
     margin: 8px 18px 0 auto;
   }
 
@@ -497,6 +527,7 @@ input {
     right: auto;
     bottom: auto;
     width: calc(100vw - 36px);
+    max-height: none;
     margin: 8px 18px 0;
   }
 }

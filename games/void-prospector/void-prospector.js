@@ -2253,6 +2253,10 @@ const VoidProspector = (() => {
       next.convoy.status = `${convoyRouteById(next, next.convoy.activeRouteId).name} already active`;
       return syncDerivedState(next);
     }
+    if (next.convoy.activeRouteId === route.id && ["enroute", "ambushed", "straggling"].includes(route.convoyState.status)) {
+      next.convoy.status = `${route.name} already active`;
+      return syncDerivedState(next);
+    }
     if (["delivered", "partial", "failed"].includes(route.convoyState.status)) {
       next.convoy.status = `${route.name} ${route.convoyState.status}`;
       return syncDerivedState(next);
@@ -2878,6 +2882,49 @@ const VoidProspector = (() => {
     return `${service.cost}cr ready`;
   }
 
+  function convoySupportText(convoy, state) {
+    const parts = [];
+    if (convoy.supportIntegrity > 0) {
+      parts.push(`escort +${Math.round(convoy.supportIntegrity)}`);
+    }
+    if (convoy.supportMitigation > 0) {
+      parts.push(`ambush -${Math.round(convoy.supportMitigation * 100)}`);
+    }
+    if (convoy.payoutBonus > 0) {
+      parts.push(`payout +${Math.round(convoy.payoutBonus * 100)}%`);
+    }
+    if (state.stationServices.countermeasureCharges > 0) {
+      parts.push(`${state.stationServices.countermeasureCharges} burst`);
+    }
+    return parts.length ? parts.join(" / ") : "support none";
+  }
+
+  function convoyRouteSurface(route, supportText) {
+    if (!route) {
+      return {
+        name: "No convoy route",
+        routeText: "route none",
+        beaconText: "beacon none",
+        escortText: "escort 0/0",
+        riskText: "ambush 0 / hazard 0",
+        rewardText: "reward 0cr",
+        supportText,
+      };
+    }
+    const escort = `${Math.round(route.convoy.escortIntegrity)}/${Math.round(route.convoy.maxEscortIntegrity)}`;
+    return {
+      name: route.name,
+      routeText: `${route.name} / ${route.convoy.status}`,
+      beaconText: `${route.beacon.name} / ${route.beacon.status} / ${Math.round(route.beacon.integrity)}/${Math.round(
+        route.beacon.maxIntegrity
+      )}`,
+      escortText: `escort ${escort} / ${route.convoy.formationStatus}`,
+      riskText: `ambush ${Math.round(route.convoy.ambushPressure)} / hazard ${round(route.convoy.hazardExposure, 1)}`,
+      rewardText: `${route.convoy.payoutCredits}cr reward / cargo ${route.cargoValue}cr`,
+      supportText,
+    };
+  }
+
   function surveyCockpitSurface(state) {
     const summary = surveySummary(state);
     const salvage = salvageSummary(state);
@@ -2937,6 +2984,38 @@ const VoidProspector = (() => {
       convoy.routes.find((route) => route.convoy.status === "needs beacon") ||
       convoy.routes[0] ||
       null;
+    const selectedConvoy =
+      target.kind === "convoy" ? convoy.routes.find((route) => route.id === state.target.id) || null : null;
+    const selectedConvoyRoute = selectedConvoy ? convoyRouteById(state, selectedConvoy.id) : null;
+    const selectedConvoyReadiness = selectedConvoy ? convoyRouteReadiness(state, selectedConvoy.id) : null;
+    const selectedConvoyInRange = selectedConvoyRoute ? routeBeaconInRange(state, selectedConvoyRoute) : false;
+    const selectedConvoyTerminal = selectedConvoyRoute
+      ? ["delivered", "partial", "failed"].includes(selectedConvoyRoute.convoyState.status)
+      : false;
+    const supportText = convoySupportText(convoy, state);
+    const convoyTarget = convoyRouteSurface(selectedConvoy || convoyFocus, supportText);
+    const convoyRows =
+      convoy.routes.length > 0
+        ? convoy.routes.map((route) => ({
+            id: route.id,
+            name: route.name,
+            state: route.convoy.status,
+            primaryText: `${route.convoy.status} / ${route.beacon.status}`,
+            detailText: route.prerequisitesReady
+              ? `escort ${Math.round(route.convoy.escortIntegrity)}/${Math.round(
+                  route.convoy.maxEscortIntegrity
+                )} / ambush ${Math.round(route.convoy.ambushPressure)} / ${route.convoy.payoutCredits}cr`
+              : route.missingPrerequisites.slice(0, 2).join(" + ") || "locked",
+          }))
+        : [
+            {
+              id: "no-convoy-route",
+              name: "No convoy lane",
+              state: "no-route",
+              primaryText: "no convoy route in this sector",
+              detailText: "choose a higher tier route",
+            },
+          ];
     const salvageProgress =
       selectedSalvage && selectedSalvage.extractionDifficulty
         ? Math.round((selectedSalvage.extractionProgress / selectedSalvage.extractionDifficulty) * 100)
@@ -2974,6 +3053,10 @@ const VoidProspector = (() => {
             convoyFocus.convoy.escortIntegrity
           )}/${Math.round(convoyFocus.convoy.maxEscortIntegrity)}`
         : `${convoy.releaseLabel} / no route`,
+      beaconText: convoyFocus ? convoyRouteSurface(convoyFocus, supportText).beaconText : "beacon none",
+      ambushText: convoyFocus
+        ? `${convoyRouteSurface(convoyFocus, supportText).riskText} / ${convoyFocus.convoy.payoutCredits}cr`
+        : "risk 0 / 0cr",
       salvageTarget: {
         name: recommendedSalvage ? recommendedSalvage.name : "No salvage site",
         familyText: recommendedSalvage
@@ -2992,6 +3075,8 @@ const VoidProspector = (() => {
           : "risk none",
         contractText: salvageContractParts.length ? salvageContractParts.join(" / ") : "optional recovery",
       },
+      convoyTarget,
+      convoySupportText: supportText,
       serviceText:
         serviceNames.length > 0
           ? `${serviceNames.join(" + ")} / ${state.stationServices.countermeasureCharges} burst`
@@ -3001,6 +3086,7 @@ const VoidProspector = (() => {
       sectors,
       services,
       convoyRoutes: convoy.routes,
+      convoyRows,
       actions: {
         canScan: canAct && target.kind === "anomaly",
         canScanSalvage: canAct && target.kind === "salvage",
@@ -3014,13 +3100,23 @@ const VoidProspector = (() => {
         canDeployBeacon:
           canAct &&
           target.kind === "convoy" &&
-          convoyFocus &&
-          convoyRouteReadiness(state, state.target.id).canDeployBeacon,
+          selectedConvoyReadiness &&
+          selectedConvoyReadiness.canDeployBeacon &&
+          selectedConvoyInRange,
+        canMaintainBeacon:
+          canAct &&
+          target.kind === "convoy" &&
+          selectedConvoyRoute &&
+          selectedConvoyRoute.beaconState.deployed &&
+          !selectedConvoyTerminal &&
+          (selectedConvoyInRange || state.station.proximity.dockable),
         canStartConvoy:
           canAct &&
           target.kind === "convoy" &&
-          convoyFocus &&
-          convoyRouteReadiness(state, state.target.id).canStart,
+          selectedConvoyReadiness &&
+          selectedConvoyReadiness.canStart &&
+          selectedConvoyRoute &&
+          !["enroute", "ambushed", "straggling"].includes(selectedConvoyRoute.convoyState.status),
         canCountermeasureConvoy: canAct && Boolean(convoy.activeRouteId) && state.stationServices.countermeasureCharges > 0,
         countermeasureReady,
         countermeasureText:
@@ -3146,6 +3242,9 @@ const VoidProspector = (() => {
     dom.contract = document.getElementById("contract-readout");
     dom.scan = document.getElementById("scan-readout");
     dom.salvage = document.getElementById("salvage-readout");
+    dom.convoy = document.getElementById("convoy-readout");
+    dom.beacon = document.getElementById("beacon-readout");
+    dom.ambush = document.getElementById("ambush-readout");
     dom.upgrade = document.getElementById("upgrade-readout");
     dom.service = document.getElementById("service-readout");
     dom.target = document.getElementById("target-readout");
@@ -3159,8 +3258,16 @@ const VoidProspector = (() => {
     dom.salvageLockState = document.getElementById("salvage-lock-state");
     dom.salvageExtractionState = document.getElementById("salvage-extraction-state");
     dom.salvageRiskReward = document.getElementById("salvage-risk-reward");
+    dom.convoyRouteState = document.getElementById("convoy-route-state");
+    dom.convoyBeaconState = document.getElementById("convoy-beacon-state");
+    dom.convoyEscortState = document.getElementById("convoy-escort-state");
+    dom.convoyRiskState = document.getElementById("convoy-risk-state");
+    dom.convoyRewardState = document.getElementById("convoy-reward-state");
+    dom.convoySupportState = document.getElementById("convoy-support-state");
     dom.mineAction = document.getElementById("mine-action");
     dom.scanAction = document.getElementById("scan-action");
+    dom.beaconAction = document.getElementById("beacon-action");
+    dom.convoyAction = document.getElementById("convoy-action");
     dom.abandonAction = document.getElementById("abandon-action");
     dom.dockAction = document.getElementById("dock-action");
     dom.upgradeAction = document.getElementById("upgrade-action");
@@ -3168,12 +3275,15 @@ const VoidProspector = (() => {
     dom.ladderTitle = document.getElementById("ladder-title");
     dom.ladderStatus = document.getElementById("ladder-status-surface");
     dom.sectorList = document.getElementById("sector-list");
+    dom.convoyList = document.getElementById("convoy-list");
     dom.sectorSelect = document.getElementById("sector-select");
     dom.sectorAction = document.getElementById("sector-action");
     dom.serviceProbesAction = document.getElementById("service-probes-action");
     dom.serviceDecoyAction = document.getElementById("service-decoy-action");
     dom.serviceSalvageRigAction = document.getElementById("service-salvage-rig-action");
     dom.serviceRecoveryDronesAction = document.getElementById("service-recovery-drones-action");
+    dom.serviceEscortAction = document.getElementById("service-escort-action");
+    dom.serviceJammersAction = document.getElementById("service-jammers-action");
     dom.countermeasureAction = document.getElementById("countermeasure-action");
     dom.eventLog = document.getElementById("event-log");
   }
@@ -3199,6 +3309,30 @@ const VoidProspector = (() => {
       state.textContent = `${sector.state} / ${sector.condition}`;
       row.append(name, state);
       dom.sectorList.append(row);
+    });
+  }
+
+  function renderConvoyRows(surface) {
+    if (!dom.convoyList) {
+      return;
+    }
+    const signature = surface.convoyRows.map((route) => `${route.id}:${route.state}:${route.primaryText}:${route.detailText}`).join("|");
+    if (dom.convoyList.dataset.signature === signature) {
+      return;
+    }
+    dom.convoyList.dataset.signature = signature;
+    dom.convoyList.replaceChildren();
+    surface.convoyRows.forEach((route) => {
+      const row = document.createElement("div");
+      row.className = "convoy-row";
+      row.dataset.state = route.state;
+
+      const name = document.createElement("strong");
+      name.textContent = route.name;
+      const state = document.createElement("span");
+      state.textContent = `${route.primaryText} / ${route.detailText}`;
+      row.append(name, state);
+      dom.convoyList.append(row);
     });
   }
 
@@ -3258,6 +3392,7 @@ const VoidProspector = (() => {
       dom.ladderStatus.textContent = surface.statusText;
     }
     renderSectorRows(surface);
+    renderConvoyRows(surface);
     renderSectorSelect(surface, state);
     renderEventLog(surface);
 
@@ -3268,8 +3403,10 @@ const VoidProspector = (() => {
     renderServiceButton(dom.serviceDecoyAction, surface, "decoy-burst", "Decoy");
     renderServiceButton(dom.serviceSalvageRigAction, surface, "salvage-rig", "Rig");
     renderServiceButton(dom.serviceRecoveryDronesAction, surface, "recovery-drones", "Drones");
+    renderServiceButton(dom.serviceEscortAction, surface, "escort-drones", "Escort");
+    renderServiceButton(dom.serviceJammersAction, surface, "signal-jammers", "Jammers");
     if (dom.countermeasureAction) {
-      dom.countermeasureAction.disabled = !surface.actions.countermeasureReady;
+      dom.countermeasureAction.disabled = !(surface.actions.countermeasureReady || surface.actions.canCountermeasureConvoy);
       dom.countermeasureAction.textContent = `Burst ${surface.actions.countermeasureText}`;
     }
   }
@@ -3309,6 +3446,9 @@ const VoidProspector = (() => {
     dom.contract.textContent = contractReadoutText(state);
     dom.scan.textContent = surface.scanText;
     dom.salvage.textContent = surface.salvageText;
+    dom.convoy.textContent = surface.convoyText;
+    dom.beacon.textContent = surface.beaconText;
+    dom.ambush.textContent = surface.ambushText;
     dom.upgrade.textContent = upgrade.text;
     dom.service.textContent = surface.serviceText;
     dom.target.textContent = `${target.kind} / ${target.name} / ${target.distance}m`;
@@ -3322,6 +3462,12 @@ const VoidProspector = (() => {
     dom.salvageLockState.textContent = surface.salvageTarget.lockText;
     dom.salvageExtractionState.textContent = surface.salvageTarget.extractionText;
     dom.salvageRiskReward.textContent = surface.salvageTarget.riskRewardText;
+    dom.convoyRouteState.textContent = surface.convoyTarget.routeText;
+    dom.convoyBeaconState.textContent = surface.convoyTarget.beaconText;
+    dom.convoyEscortState.textContent = surface.convoyTarget.escortText;
+    dom.convoyRiskState.textContent = surface.convoyTarget.riskText;
+    dom.convoyRewardState.textContent = surface.convoyTarget.rewardText;
+    dom.convoySupportState.textContent = surface.convoyTarget.supportText;
 
     dom.hull.closest(".readout").dataset.tone = cssToneForPercent(state.ship.hull);
     dom.fuel.closest(".readout").dataset.tone = cssToneForPercent(state.ship.fuel);
@@ -3335,6 +3481,21 @@ const VoidProspector = (() => {
       state.contract.requiredScans > state.contract.deliveredScans ? "warn" : "signal";
     dom.salvage.closest(".readout").dataset.tone =
       state.salvage.failures > 0 ? "danger" : state.salvage.holdValue > 0 || state.salvage.relicsInHold > 0 ? "signal" : "warn";
+    const convoyFocus =
+      (state.convoy.activeRouteId && convoyRouteById(state, state.convoy.activeRouteId)) ||
+      (state.convoyRoutes || []).find((route) => route.convoyState.status === "ready") ||
+      (state.convoyRoutes || []).find((route) => route.convoyState.status === "needs beacon") ||
+      (state.convoyRoutes || [])[0] ||
+      null;
+    dom.convoy.closest(".readout").dataset.tone = state.convoy.activeRouteId ? "signal" : convoyFocus ? "warn" : "signal";
+    dom.beacon.closest(".readout").dataset.tone =
+      convoyFocus && convoyFocus.beaconState.deployed ? "signal" : convoyFocus ? "warn" : "signal";
+    dom.ambush.closest(".readout").dataset.tone =
+      convoyFocus && convoyFocus.convoyState.ambushPressure > 42
+        ? "danger"
+        : convoyFocus && convoyFocus.convoyState.ambushPressure > 0
+          ? "warn"
+          : "signal";
     dom.service.closest(".readout").dataset.tone =
       state.stationServices.countermeasureCharges > 0 || state.stationServices.purchased.length > 0 ? "signal" : "warn";
     if (dom.mineAction) {
@@ -3346,6 +3507,15 @@ const VoidProspector = (() => {
     if (dom.scanAction) {
       dom.scanAction.textContent = target.kind === "salvage" ? "Signal Lock" : "Scan";
       dom.scanAction.disabled = !(surface.actions.canScan || surface.actions.canScanSalvage);
+    }
+    if (dom.beaconAction) {
+      dom.beaconAction.textContent =
+        target.kind === "convoy" && target.beaconStatus && target.beaconStatus !== "undeployed" ? "Maintain Beacon" : "Deploy Beacon";
+      dom.beaconAction.disabled = !(surface.actions.canDeployBeacon || surface.actions.canMaintainBeacon);
+    }
+    if (dom.convoyAction) {
+      dom.convoyAction.textContent = target.kind === "convoy" ? "Start Convoy" : "Convoy";
+      dom.convoyAction.disabled = !surface.actions.canStartConvoy;
     }
     if (dom.abandonAction) {
       dom.abandonAction.disabled = !surface.actions.canAbandonSalvage;
@@ -3381,6 +3551,18 @@ const VoidProspector = (() => {
     } else if (action === "scan") {
       currentState =
         currentState.target.kind === "salvage" ? scanSalvageTarget(currentState, 1) : scanTarget(currentState, 1);
+    } else if (action === "beacon") {
+      if (currentState.target.kind === "convoy") {
+        const route = convoyRouteById(currentState, currentState.target.id);
+        currentState =
+          route && route.beaconState.deployed
+            ? maintainRouteBeacon(currentState, currentState.target.id)
+            : deployRouteBeacon(currentState, currentState.target.id);
+      }
+    } else if (action === "convoy") {
+      if (currentState.target.kind === "convoy") {
+        currentState = startConvoyRoute(currentState, currentState.target.id);
+      }
     } else if (action === "abandon-salvage") {
       currentState = abandonSalvageTarget(currentState);
     } else if (action === "interact") {
@@ -3396,6 +3578,10 @@ const VoidProspector = (() => {
       currentState = purchaseStationService(currentState, "salvage-rig");
     } else if (action === "service-recovery-drones") {
       currentState = purchaseStationService(currentState, "recovery-drones");
+    } else if (action === "service-escort") {
+      currentState = purchaseStationService(currentState, "escort-drones");
+    } else if (action === "service-jammers") {
+      currentState = purchaseStationService(currentState, "signal-jammers");
     } else if (action === "countermeasure") {
       currentState = deployCountermeasure(currentState);
     } else if (action === "sector") {
@@ -3442,6 +3628,12 @@ const VoidProspector = (() => {
     if (dom.scanAction) {
       dom.scanAction.addEventListener("click", () => performAction("scan"));
     }
+    if (dom.beaconAction) {
+      dom.beaconAction.addEventListener("click", () => performAction("beacon"));
+    }
+    if (dom.convoyAction) {
+      dom.convoyAction.addEventListener("click", () => performAction("convoy"));
+    }
     if (dom.abandonAction) {
       dom.abandonAction.addEventListener("click", () => performAction("abandon-salvage"));
     }
@@ -3468,6 +3660,12 @@ const VoidProspector = (() => {
     }
     if (dom.serviceRecoveryDronesAction) {
       dom.serviceRecoveryDronesAction.addEventListener("click", () => performAction("service-recovery-drones"));
+    }
+    if (dom.serviceEscortAction) {
+      dom.serviceEscortAction.addEventListener("click", () => performAction("service-escort"));
+    }
+    if (dom.serviceJammersAction) {
+      dom.serviceJammersAction.addEventListener("click", () => performAction("service-jammers"));
     }
     if (dom.countermeasureAction) {
       dom.countermeasureAction.addEventListener("click", () => performAction("countermeasure"));
@@ -3690,6 +3888,139 @@ const VoidProspector = (() => {
     });
   }
 
+  function createConvoyMesh(THREE, route) {
+    const group = new THREE.Group();
+    group.userData.convoyRouteId = route.id;
+    const beaconMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd0b36a,
+      transparent: true,
+      opacity: 0.6,
+    });
+    const laneMaterial = new THREE.LineBasicMaterial({
+      color: 0x4bd6c0,
+      transparent: true,
+      opacity: 0.34,
+    });
+    const podMaterial = new THREE.MeshStandardMaterial({
+      color: 0x9aa59f,
+      roughness: 0.62,
+      metalness: 0.34,
+      emissive: 0x102a26,
+      emissiveIntensity: 0.28,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const escortMaterial = new THREE.MeshBasicMaterial({
+      color: 0x8ea1ff,
+      transparent: true,
+      opacity: 0.72,
+    });
+    const dangerMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd46857,
+      transparent: true,
+      opacity: 0.46,
+    });
+
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, route.beacon.radius * 1.65, 6), beaconMaterial);
+    mast.position.y = route.beacon.radius * 0.46;
+    group.add(mast);
+
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(route.beacon.radius * 0.58, 0.055, 6, 44), beaconMaterial);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = route.beacon.radius * 0.96;
+    group.add(ring);
+
+    const crown = new THREE.Mesh(new THREE.OctahedronGeometry(route.beacon.radius * 0.22, 0), beaconMaterial);
+    crown.position.y = route.beacon.radius * 1.34;
+    group.add(crown);
+
+    const end = route.endPosition || route.beacon.position;
+    const laneGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0.05, 0),
+      new THREE.Vector3(end.x - route.beacon.position.x, end.y - route.beacon.position.y + 0.05, end.z - route.beacon.position.z),
+    ]);
+    const lane = new THREE.Line(laneGeometry, laneMaterial);
+    group.add(lane);
+
+    const ambush = new THREE.Group();
+    const midpoint = new THREE.Vector3(
+      (end.x - route.beacon.position.x) * 0.55,
+      (end.y - route.beacon.position.y) * 0.55 + 0.65,
+      (end.z - route.beacon.position.z) * 0.55
+    );
+    ambush.position.copy(midpoint);
+    for (let index = 0; index < 3; index += 1) {
+      const signature = new THREE.Mesh(new THREE.TetrahedronGeometry(0.42 + index * 0.08, 0), dangerMaterial);
+      signature.position.set((index - 1) * 1.1, Math.sin(index) * 0.18, (index % 2 ? 1 : -1) * 0.72);
+      ambush.add(signature);
+    }
+    group.add(ambush);
+
+    const pod = new THREE.Group();
+    const cargo = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 1.05), podMaterial);
+    pod.add(cargo);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.1, 4), podMaterial);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.z = -0.95;
+    pod.add(nose);
+    for (let index = 0; index < 3; index += 1) {
+      const drone = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), escortMaterial);
+      drone.position.set(Math.cos(index * 2.1) * 1.45, 0.22, Math.sin(index * 2.1) * 1.45);
+      pod.add(drone);
+    }
+    group.add(pod);
+
+    group.userData.beaconMaterial = beaconMaterial;
+    group.userData.laneMaterial = laneMaterial;
+    group.userData.pod = pod;
+    group.userData.podMaterial = podMaterial;
+    group.userData.escortMaterial = escortMaterial;
+    group.userData.ambush = ambush;
+    group.userData.dangerMaterial = dangerMaterial;
+    return group;
+  }
+
+  function syncConvoyMeshes(handle, state, timeSeconds = 0) {
+    const { THREE } = handle;
+    const activeIds = new Set((state.convoyRoutes || []).map((route) => route.id));
+    handle.objects.convoyMeshes.forEach((mesh, routeId) => {
+      if (!activeIds.has(routeId)) {
+        handle.scene.remove(mesh);
+        handle.objects.convoyMeshes.delete(routeId);
+      }
+    });
+    (state.convoyRoutes || []).forEach((route) => {
+      if (!handle.objects.convoyMeshes.has(route.id)) {
+        const mesh = createConvoyMesh(THREE, route);
+        handle.objects.convoyMeshes.set(route.id, mesh);
+        handle.scene.add(mesh);
+      }
+      const mesh = handle.objects.convoyMeshes.get(route.id);
+      const active = ["enroute", "ambushed", "straggling"].includes(route.convoyState.status);
+      const terminal = ["delivered", "partial", "failed"].includes(route.convoyState.status);
+      const locked = route.convoyState.status === "locked";
+      const beaconColor = locked ? 0x59655f : route.beaconState.deployed ? 0x4bd6c0 : 0xd0b36a;
+      const convoyPosition = route.convoyState.position || route.startPosition || route.beacon.position;
+      const relativePosition = subtract(convoyPosition, route.beacon.position);
+      const escortRatio = clamp(route.convoyState.escortIntegrity / Math.max(1, route.convoyState.maxEscortIntegrity), 0, 1);
+
+      mesh.position.set(route.beacon.position.x, route.beacon.position.y, route.beacon.position.z);
+      mesh.userData.beaconMaterial.color.setHex(beaconColor);
+      mesh.userData.beaconMaterial.opacity = locked ? 0.24 : route.beaconState.deployed ? 0.9 : 0.58;
+      mesh.userData.laneMaterial.color.setHex(active ? 0x8ea1ff : route.beaconState.deployed ? 0x4bd6c0 : 0xd0b36a);
+      mesh.userData.laneMaterial.opacity = locked ? 0.14 : active ? 0.74 : route.beaconState.deployed ? 0.46 : 0.28;
+      mesh.userData.pod.visible = route.beaconState.deployed || active || terminal;
+      mesh.userData.pod.position.set(relativePosition.x, relativePosition.y + 0.42, relativePosition.z);
+      mesh.userData.pod.rotation.y = timeSeconds * (active ? 0.9 : 0.25);
+      mesh.userData.pod.scale.setScalar(terminal ? 0.74 : 0.72 + escortRatio * 0.28);
+      mesh.userData.podMaterial.opacity = terminal ? 0.42 : 0.72 + escortRatio * 0.24;
+      mesh.userData.escortMaterial.opacity = terminal ? 0.24 : 0.42 + escortRatio * 0.38;
+      mesh.userData.dangerMaterial.opacity = Math.min(0.78, 0.2 + route.convoyState.ambushPressure / 100);
+      mesh.userData.ambush.visible = route.convoyState.ambushPressure > 0 && !terminal;
+      mesh.userData.ambush.rotation.y = -timeSeconds * 0.45;
+    });
+  }
+
   function createPirateMesh(THREE, assets = {}) {
     const group = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
@@ -3817,6 +4148,14 @@ const VoidProspector = (() => {
       scene.add(mesh);
     });
 
+    const convoyMeshes = new Map();
+    (state.convoyRoutes || []).forEach((route) => {
+      const mesh = createConvoyMesh(THREE, route);
+      mesh.position.set(route.beacon.position.x, route.beacon.position.y, route.beacon.position.z);
+      convoyMeshes.set(route.id, mesh);
+      scene.add(mesh);
+    });
+
     const pirate = createPirateMesh(THREE, sceneAssets);
     scene.add(pirate);
 
@@ -3836,6 +4175,7 @@ const VoidProspector = (() => {
         station,
         asteroidMeshes,
         salvageMeshes,
+        convoyMeshes,
         pirate,
         targetRing,
         miningBeam,
@@ -3880,6 +4220,7 @@ const VoidProspector = (() => {
     });
 
     syncSalvageMeshes(handle, state);
+    syncConvoyMeshes(handle, state, timeSeconds);
     (state.salvageSites || []).forEach((site) => {
       const mesh = handle.objects.salvageMeshes.get(site.id);
       if (!mesh) {
@@ -3904,7 +4245,9 @@ const VoidProspector = (() => {
       const radius = target.radius ? target.radius + 1.2 : 6;
       handle.objects.targetRing.position.set(target.position.x, target.position.y, target.position.z);
       handle.objects.targetRing.scale.setScalar(radius / 3.8);
-      handle.objects.targetRing.material.color.setHex(state.target.kind === "salvage" ? 0xd0b36a : 0x4bd6c0);
+      handle.objects.targetRing.material.color.setHex(
+        state.target.kind === "salvage" ? 0xd0b36a : state.target.kind === "convoy" ? 0x8ea1ff : 0x4bd6c0
+      );
       handle.objects.targetRing.visible = true;
     } else {
       handle.objects.targetRing.visible = false;
