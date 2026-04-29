@@ -75,7 +75,8 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
             "new THREE.BoxGeometry",
             "new THREE.TorusGeometry",
             "new THREE.TetrahedronGeometry",
-            "state.target.kind === \"salvage\" ? 0xd0b36a",
+            "state.target.kind === \"salvage\"",
+            "0xd0b36a",
         ):
             self.assertIn(token, script)
 
@@ -83,7 +84,7 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
         self.assertEqual("assets/asset-manifest.json", json.loads(self.run_node("game.GAME_DATA.assets"))["sourceManifest"])
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*salvage[^"\'\)\s]*\.png')
 
-    def test_beacon_convoy_visuals_are_procedural_and_keep_raster_manifest_local(self) -> None:
+    def test_beacon_convoy_and_storm_visuals_are_procedural_and_keep_raster_manifest_local(self) -> None:
         script = source_text("void-prospector.js")
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         manifest_paths = {asset["path"].removeprefix("games/void-prospector/") for asset in manifest["assets"]}
@@ -92,11 +93,16 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
             "createConvoyMesh",
             "syncConvoyMeshes",
             "convoyMeshes",
+            "createStormMesh",
+            "syncStormMeshes",
+            "stormMeshes",
             "new THREE.CylinderGeometry",
             "new THREE.TorusGeometry",
+            "new THREE.IcosahedronGeometry",
             "new THREE.BufferGeometry().setFromPoints",
             "new THREE.TetrahedronGeometry",
-            "state.target.kind === \"convoy\" ? 0x8ea1ff : 0x4bd6c0",
+            "state.target.kind === \"storm\"",
+            "stormTarget",
         ):
             self.assertIn(token, script)
 
@@ -112,6 +118,8 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
         )
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*convoy[^"\'\)\s]*\.png')
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*beacon[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*storm[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*anchor[^"\'\)\s]*\.png')
 
     def test_game_data_exposes_asset_manifest_paths_for_state_checks(self) -> None:
         assets = json.loads(self.run_node("game.GAME_DATA.assets"))

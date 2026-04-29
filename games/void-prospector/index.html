@@ -16,7 +16,7 @@
     <header class="topline">
       <a class="backlink" href="../../">Millrace Arcade</a>
       <div class="identity">
-        <span class="eyebrow">v0.3.0 Beacon Convoy</span>
+        <span class="eyebrow">v0.4.0 Storm Cartography</span>
         <h1>Void Prospector</h1>
       </div>
       <div class="run-chip" id="run-status">launch / stable</div>
@@ -75,6 +75,10 @@
         <span>Convoy</span>
         <strong id="convoy-readout">Beacon Convoy / no route</strong>
       </article>
+      <article class="readout readout-wide">
+        <span>Storm</span>
+        <strong id="storm-readout">Storm Cartography / no chart</strong>
+      </article>
       <article class="readout">
         <span>Beacon</span>
         <strong id="beacon-readout">no beacon</strong>
@@ -82,6 +86,14 @@
       <article class="readout">
         <span>Ambush</span>
         <strong id="ambush-readout">risk 0 / 0cr</strong>
+      </article>
+      <article class="readout">
+        <span>Window</span>
+        <strong id="storm-window-readout">window none</strong>
+      </article>
+      <article class="readout">
+        <span>Anchor</span>
+        <strong id="storm-anchor-readout">anchor none</strong>
       </article>
       <article class="readout">
         <span>Upgrade</span>
@@ -109,6 +121,7 @@
       <span>Space/M mine or extract</span>
       <span>C scan or lock</span>
       <span>F/Enter dock</span>
+      <span>B deploy anchor/beacon</span>
       <span>U upgrade</span>
       <span>R restart</span>
     </footer>
@@ -139,6 +152,14 @@
         <span id="convoy-reward-state">reward 0cr</span>
         <span id="convoy-support-state">support none</span>
       </div>
+      <div class="storm-target-data" aria-label="Selected storm chart state">
+        <span id="storm-chart-state">chart none</span>
+        <span id="storm-window-state">window none</span>
+        <span id="storm-anchor-state">anchor none</span>
+        <span id="storm-exposure-state">intensity 0 / reroute none</span>
+        <span id="storm-reward-state">reward 0cr</span>
+        <span id="storm-support-state">support none</span>
+      </div>
       <div class="action-panel" aria-label="Action controls">
         <button type="button" id="mine-action">Mine</button>
         <button type="button" id="scan-action">Scan</button>
@@ -161,6 +182,7 @@
       </div>
       <div class="sector-list" id="sector-list" aria-label="Sector route state"></div>
       <div class="convoy-list" id="convoy-list" aria-label="Convoy route state"></div>
+      <div class="storm-list" id="storm-list" aria-label="Storm chart state"></div>
       <div class="choice-row">
         <label for="sector-select">Route</label>
         <select id="sector-select" aria-label="Choose unlocked sector"></select>
@@ -173,6 +195,8 @@
         <button type="button" id="service-recovery-drones-action">Drones</button>
         <button type="button" id="service-escort-action">Escort</button>
         <button type="button" id="service-jammers-action">Jammers</button>
+        <button type="button" id="service-chart-processors-action">Processors</button>
+        <button type="button" id="service-storm-plating-action">Plating</button>
         <button type="button" id="countermeasure-action">Burst</button>
       </div>
       <ol class="event-log" id="event-log" aria-label="Recent survey events"></ol>

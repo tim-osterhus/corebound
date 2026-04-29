@@ -28,6 +28,7 @@ const VoidProspector = (() => {
       retarget: ["Tab", "KeyE"],
       mine: ["Space", "KeyM"],
       scan: ["KeyC"],
+      beacon: ["KeyB"],
       interact: ["Enter", "KeyF"],
       upgrade: ["KeyU"],
       reset: ["KeyR"],
@@ -4129,10 +4130,98 @@ const VoidProspector = (() => {
     };
   }
 
+  function stormWindowText(timing) {
+    if (!timing) {
+      return "window none";
+    }
+    if (timing.locked) {
+      return `window locked / ${timing.remaining}s remaining`;
+    }
+    if (timing.open) {
+      return `window open / ${timing.remaining}s remaining`;
+    }
+    if (timing.pending) {
+      return `opens ${timing.opensAt}s / closes ${timing.closesAt}s`;
+    }
+    if (timing.missed) {
+      return "window missed";
+    }
+    return `window ${timing.opensAt}-${timing.closesAt}s`;
+  }
+
+  function stormSupportText(storm, state) {
+    const parts = [];
+    if (storm.scanPower > GAME_DATA.stormCartography.baseScanPower) {
+      parts.push(`scan +${round(storm.scanPower - GAME_DATA.stormCartography.baseScanPower, 2)}`);
+    }
+    if (storm.supportIntegrity > 0) {
+      parts.push(`anchor +${Math.round(storm.supportIntegrity)}`);
+    }
+    if (storm.windowBonus > 0) {
+      parts.push(`window +${Math.round(storm.windowBonus)}s`);
+    }
+    if (storm.supportMitigation > 0) {
+      parts.push(`hazard -${Math.round(storm.supportMitigation * 100)}%`);
+    }
+    if (storm.payoutBonus > 0) {
+      parts.push(`payout +${Math.round(storm.payoutBonus * 100)}%`);
+    }
+    if (state.stationServices.countermeasureCharges > 0) {
+      parts.push(`${state.stationServices.countermeasureCharges} burst`);
+    }
+    return parts.length ? parts.join(" / ") : "support none";
+  }
+
+  function stormRerouteCandidate(state, chart) {
+    if (
+      !chart ||
+      !chart.stormState ||
+      !chart.stormState.safeWindow.locked ||
+      chart.stormState.outcome !== "none"
+    ) {
+      return null;
+    }
+    const completed = new Set(chart.stormState.salvageReroutes || []);
+    return (
+      (chart.salvageSiteIds || [])
+        .map((siteId) => (state.salvageSites || []).find((site) => site.id === siteId))
+        .find((site) => site && !completed.has(site.id) && (site.salvageState.stormReroute || {}).status !== "rerouted") || null
+    );
+  }
+
+  function stormChartSurface(chart, supportText) {
+    if (!chart) {
+      return {
+        name: "No storm chart",
+        chartText: "chart none",
+        windowText: "window none",
+        anchorText: "anchor none",
+        exposureText: "intensity 0 / reroute none",
+        rewardText: "reward 0cr",
+        supportText,
+      };
+    }
+    const anchorStatus = chart.anchor.deployed ? "deployed" : "undeployed";
+    const routedCount = chart.storm.salvageReroutes.length;
+    const exposedCount = chart.modifiers.salvageSiteIds.length;
+    return {
+      name: chart.name,
+      chartText: `${chart.name} / ${chart.storm.status}`,
+      windowText: stormWindowText(chart.safeWindow),
+      anchorText: `${chart.anchor.name} / ${anchorStatus} / ${Math.round(chart.anchor.integrity)}/${Math.round(
+        chart.anchor.maxIntegrity
+      )}`,
+      exposureText: `intensity ${round(chart.intensity, 1)} / reroute ${routedCount}/${exposedCount} salvage / convoy ${chart.modifiers.convoyRouteIds.length}`,
+      rewardText: `${chart.rewardCredits}cr reward / score ${chart.ladderScore} / outcome ${chart.storm.outcome}`,
+      supportText,
+    };
+  }
+
   function surveyCockpitSurface(state) {
     const summary = surveySummary(state);
     const salvage = salvageSummary(state);
     const convoy = convoySummary(state);
+    const storm = stormSummary(state);
     const completedCount = summary.completedSectorIds.length;
     const totalSectors = GAME_DATA.surveyLadder.sectors.length;
     const target = targetSummary(state);
@@ -4198,6 +4287,25 @@ const VoidProspector = (() => {
       : false;
     const supportText = convoySupportText(convoy, state);
     const convoyTarget = convoyRouteSurface(selectedConvoy || convoyFocus, supportText);
+    const activeStorm = storm.charts.find((chart) => chart.id === storm.activeChartId) || null;
+    const stormFocus =
+      activeStorm ||
+      storm.charts.find((chart) => ["window locked", "window open", "anchor ready", "charted", "uncharted"].includes(chart.storm.status)) ||
+      storm.charts[0] ||
+      null;
+    const selectedStorm = target.kind === "storm" ? storm.charts.find((chart) => chart.id === state.target.id) || null : null;
+    const selectedStormChart = selectedStorm ? stormChartById(state, selectedStorm.id) : null;
+    const selectedStormReadiness = selectedStorm ? stormChartReadiness(state, selectedStorm.id) : null;
+    const selectedStormScanInRange = selectedStormChart
+      ? distance(state.ship.position, selectedStormChart.position) <= state.storm.scanRange + selectedStormChart.radius
+      : false;
+    const selectedStormAnchorInRange = selectedStormChart ? stormAnchorInRange(state, selectedStormChart) : false;
+    const selectedStormTerminal = selectedStormChart
+      ? ["complete", "partial", "failed"].includes(selectedStormChart.stormState.outcome)
+      : false;
+    const selectedStormReroute = stormRerouteCandidate(state, selectedStormChart);
+    const stormSupport = stormSupportText(storm, state);
+    const stormTarget = stormChartSurface(selectedStorm || stormFocus, stormSupport);
     const convoyRows =
       convoy.routes.length > 0
         ? convoy.routes.map((route) => ({
@@ -4217,6 +4325,29 @@ const VoidProspector = (() => {
               name: "No convoy lane",
               state: "no-route",
               primaryText: "no convoy route in this sector",
+              detailText: "choose a higher tier route",
+            },
+          ];
+    const stormRows =
+      storm.charts.length > 0
+        ? storm.charts.map((chart) => ({
+            id: chart.id,
+            name: chart.name,
+            state: chart.storm.status,
+            primaryText: `${chart.storm.status} / ${stormWindowText(chart.safeWindow)}`,
+            detailText: chart.prerequisitesReady
+              ? `anchor ${Math.round(chart.anchor.integrity)}/${Math.round(chart.anchor.maxIntegrity)} / intensity ${round(
+                  chart.intensity,
+                  1
+                )} / ${chart.rewardCredits}cr`
+              : chart.missingPrerequisites.slice(0, 2).join(" + ") || "locked",
+          }))
+        : [
+            {
+              id: "no-storm-chart",
+              name: "No storm chart",
+              state: "no-chart",
+              primaryText: "no storm front in this sector",
               detailText: "choose a higher tier route",
             },
           ];
@@ -4251,7 +4382,7 @@ const VoidProspector = (() => {
     }
 
     return {
-      titleText: `${summary.releaseLabel} v${summary.version} + ${salvage.releaseLabel} v${salvage.version} + ${convoy.releaseLabel} v${convoy.version} / tier ${summary.tier}`,
+      titleText: `${summary.releaseLabel} v${summary.version} + ${salvage.releaseLabel} v${salvage.version} + ${convoy.releaseLabel} v${convoy.version} + ${storm.releaseLabel} v${storm.version} / tier ${summary.tier}`,
       ladderText: `tier ${summary.tier} / ${completedCount}/${totalSectors} charted`,
       sectorText: `${summary.sectorName} / ${summary.condition}`,
       objectiveProgressText: objectiveParts.join(" / "),
@@ -4267,6 +4398,11 @@ const VoidProspector = (() => {
       ambushText: convoyFocus
         ? `${convoyRouteSurface(convoyFocus, supportText).riskText} / ${convoyFocus.convoy.payoutCredits}cr`
         : "risk 0 / 0cr",
+      stormText: stormFocus
+        ? `${storm.releaseLabel} / ${stormFocus.name} / ${stormFocus.storm.status} / intensity ${round(stormFocus.intensity, 1)}`
+        : `${storm.releaseLabel} / no chart`,
+      stormWindowText: stormTarget.windowText,
+      stormAnchorText: stormTarget.anchorText,
       salvageTarget: {
         name: recommendedSalvage ? recommendedSalvage.name : "No salvage site",
         familyText: recommendedSalvage
@@ -4287,6 +4423,8 @@ const VoidProspector = (() => {
       },
       convoyTarget,
       convoySupportText: supportText,
+      stormTarget,
+      stormSupportText: stormSupport,
       serviceText:
         serviceNames.length > 0
           ? `${serviceNames.join(" + ")} / ${state.stationServices.countermeasureCharges} burst`
@@ -4297,8 +4435,16 @@ const VoidProspector = (() => {
       services,
       convoyRoutes: convoy.routes,
       convoyRows,
+      stormCharts: storm.charts,
+      stormRows,
       actions: {
-        canScan: canAct && (target.kind === "anomaly" || target.kind === "storm"),
+        canScan:
+          canAct &&
+          (target.kind === "anomaly" ||
+            (target.kind === "storm" &&
+              selectedStormReadiness &&
+              selectedStormReadiness.canScan &&
+              selectedStormScanInRange)),
         canScanSalvage: canAct && target.kind === "salvage",
         canExtractSalvage: canAct && target.kind === "salvage",
         canAbandonSalvage:
@@ -4328,6 +4474,33 @@ const VoidProspector = (() => {
           selectedConvoyRoute &&
           !["enroute", "ambushed", "straggling"].includes(selectedConvoyRoute.convoyState.status),
         canCountermeasureConvoy: canAct && Boolean(convoy.activeRouteId) && state.stationServices.countermeasureCharges > 0,
+        canDeployStormAnchor:
+          canAct &&
+          target.kind === "storm" &&
+          selectedStormReadiness &&
+          selectedStormReadiness.canDeployAnchor &&
+          selectedStormAnchorInRange,
+        canMaintainStormAnchor:
+          canAct &&
+          target.kind === "storm" &&
+          selectedStormReadiness &&
+          selectedStormReadiness.canMaintainAnchor &&
+          !selectedStormTerminal &&
+          (selectedStormAnchorInRange || state.station.proximity.dockable),
+        canLockStormWindow:
+          canAct &&
+          target.kind === "storm" &&
+          selectedStormReadiness &&
+          selectedStormReadiness.canLockWindow,
+        canRerouteStormSalvage: canAct && target.kind === "storm" && Boolean(selectedStormReroute),
+        canCountermeasureStorm:
+          canAct &&
+          Boolean(
+            activeStorm &&
+              activeStorm.safeWindow.locked &&
+              activeStorm.storm.outcome === "none" &&
+              state.stationServices.countermeasureCharges > 0
+          ),
         countermeasureReady,
         countermeasureText:
           state.stationServices.countermeasureCharges > 0
@@ -4384,7 +4557,7 @@ const VoidProspector = (() => {
     } else if (state.target.kind === "storm") {
       const timing = stormWindowTiming(target, state);
       const progress = Math.round((target.stormState.progress / target.scanDifficulty) * 100);
-      status = `${target.stormState.status} / chart ${progress}% / window ${timing.open ? "open" : timing.pending ? "pending" : timing.locked ? "locked" : "missed"} / anchor ${Math.round(
+      status = `${target.stormState.status} / chart ${progress}% / window ${timing.locked ? "locked" : timing.open ? "open" : timing.pending ? "pending" : "missed"} / anchor ${Math.round(
         target.stormState.anchorIntegrity
       )}/${Math.round(target.stormState.maxAnchorIntegrity)}`;
     } else if (state.target.kind === "station") {
@@ -4475,8 +4648,11 @@ const VoidProspector = (() => {
     dom.scan = document.getElementById("scan-readout");
     dom.salvage = document.getElementById("salvage-readout");
     dom.convoy = document.getElementById("convoy-readout");
+    dom.storm = document.getElementById("storm-readout");
     dom.beacon = document.getElementById("beacon-readout");
     dom.ambush = document.getElementById("ambush-readout");
+    dom.stormWindow = document.getElementById("storm-window-readout");
+    dom.stormAnchor = document.getElementById("storm-anchor-readout");
     dom.upgrade = document.getElementById("upgrade-readout");
     dom.service = document.getElementById("service-readout");
     dom.target = document.getElementById("target-readout");
@@ -4496,6 +4672,12 @@ const VoidProspector = (() => {
     dom.convoyRiskState = document.getElementById("convoy-risk-state");
     dom.convoyRewardState = document.getElementById("convoy-reward-state");
     dom.convoySupportState = document.getElementById("convoy-support-state");
+    dom.stormChartState = document.getElementById("storm-chart-state");
+    dom.stormWindowState = document.getElementById("storm-window-state");
+    dom.stormAnchorState = document.getElementById("storm-anchor-state");
+    dom.stormExposureState = document.getElementById("storm-exposure-state");
+    dom.stormRewardState = document.getElementById("storm-reward-state");
+    dom.stormSupportState = document.getElementById("storm-support-state");
     dom.mineAction = document.getElementById("mine-action");
     dom.scanAction = document.getElementById("scan-action");
     dom.beaconAction = document.getElementById("beacon-action");
@@ -4508,6 +4690,7 @@ const VoidProspector = (() => {
     dom.ladderStatus = document.getElementById("ladder-status-surface");
     dom.sectorList = document.getElementById("sector-list");
     dom.convoyList = document.getElementById("convoy-list");
+    dom.stormList = document.getElementById("storm-list");
     dom.sectorSelect = document.getElementById("sector-select");
     dom.sectorAction = document.getElementById("sector-action");
     dom.serviceProbesAction = document.getElementById("service-probes-action");
@@ -4516,6 +4699,8 @@ const VoidProspector = (() => {
     dom.serviceRecoveryDronesAction = document.getElementById("service-recovery-drones-action");
     dom.serviceEscortAction = document.getElementById("service-escort-action");
     dom.serviceJammersAction = document.getElementById("service-jammers-action");
+    dom.serviceChartProcessorsAction = document.getElementById("service-chart-processors-action");
+    dom.serviceStormPlatingAction = document.getElementById("service-storm-plating-action");
     dom.countermeasureAction = document.getElementById("countermeasure-action");
     dom.eventLog = document.getElementById("event-log");
   }
@@ -4565,6 +4750,30 @@ const VoidProspector = (() => {
       state.textContent = `${route.primaryText} / ${route.detailText}`;
       row.append(name, state);
       dom.convoyList.append(row);
+    });
+  }
+
+  function renderStormRows(surface) {
+    if (!dom.stormList) {
+      return;
+    }
+    const signature = surface.stormRows.map((chart) => `${chart.id}:${chart.state}:${chart.primaryText}:${chart.detailText}`).join("|");
+    if (dom.stormList.dataset.signature === signature) {
+      return;
+    }
+    dom.stormList.dataset.signature = signature;
+    dom.stormList.replaceChildren();
+    surface.stormRows.forEach((chart) => {
+      const row = document.createElement("div");
+      row.className = "storm-row";
+      row.dataset.state = chart.state;
+
+      const name = document.createElement("strong");
+      name.textContent = chart.name;
+      const state = document.createElement("span");
+      state.textContent = `${chart.primaryText} / ${chart.detailText}`;
+      row.append(name, state);
+      dom.stormList.append(row);
     });
   }
 
@@ -4625,6 +4834,7 @@ const VoidProspector = (() => {
     }
     renderSectorRows(surface);
     renderConvoyRows(surface);
+    renderStormRows(surface);
     renderSectorSelect(surface, state);
     renderEventLog(surface);
 
@@ -4637,8 +4847,14 @@ const VoidProspector = (() => {
     renderServiceButton(dom.serviceRecoveryDronesAction, surface, "recovery-drones", "Drones");
     renderServiceButton(dom.serviceEscortAction, surface, "escort-drones", "Escort");
     renderServiceButton(dom.serviceJammersAction, surface, "signal-jammers", "Jammers");
+    renderServiceButton(dom.serviceChartProcessorsAction, surface, "chart-processors", "Processors");
+    renderServiceButton(dom.serviceStormPlatingAction, surface, "storm-plating", "Plating");
     if (dom.countermeasureAction) {
-      dom.countermeasureAction.disabled = !(surface.actions.countermeasureReady || surface.actions.canCountermeasureConvoy);
+      dom.countermeasureAction.disabled = !(
+        surface.actions.countermeasureReady ||
+        surface.actions.canCountermeasureConvoy ||
+        surface.actions.canCountermeasureStorm
+      );
       dom.countermeasureAction.textContent = `Burst ${surface.actions.countermeasureText}`;
     }
   }
@@ -4656,6 +4872,12 @@ const VoidProspector = (() => {
     }
     if ((state.contract.deliveredConvoyValue || 0) > 0) {
       parts.push(`${state.contract.deliveredConvoyValue}cr convoy`);
+    }
+    if ((state.contract.requiredStormCharts || 0) > 0) {
+      parts.push(`${state.contract.deliveredStormCharts}/${state.contract.requiredStormCharts} storm`);
+    }
+    if ((state.contract.requiredStormPayout || 0) > 0) {
+      parts.push(`${state.contract.deliveredStormPayout}/${state.contract.requiredStormPayout}cr storm`);
     }
     return parts.join(" / ");
   }
@@ -4679,8 +4901,11 @@ const VoidProspector = (() => {
     dom.scan.textContent = surface.scanText;
     dom.salvage.textContent = surface.salvageText;
     dom.convoy.textContent = surface.convoyText;
+    dom.storm.textContent = surface.stormText;
     dom.beacon.textContent = surface.beaconText;
     dom.ambush.textContent = surface.ambushText;
+    dom.stormWindow.textContent = surface.stormWindowText;
+    dom.stormAnchor.textContent = surface.stormAnchorText;
     dom.upgrade.textContent = upgrade.text;
     dom.service.textContent = surface.serviceText;
     dom.target.textContent = `${target.kind} / ${target.name} / ${target.distance}m`;
@@ -4700,6 +4925,12 @@ const VoidProspector = (() => {
     dom.convoyRiskState.textContent = surface.convoyTarget.riskText;
     dom.convoyRewardState.textContent = surface.convoyTarget.rewardText;
     dom.convoySupportState.textContent = surface.convoyTarget.supportText;
+    dom.stormChartState.textContent = surface.stormTarget.chartText;
+    dom.stormWindowState.textContent = surface.stormTarget.windowText;
+    dom.stormAnchorState.textContent = surface.stormTarget.anchorText;
+    dom.stormExposureState.textContent = surface.stormTarget.exposureText;
+    dom.stormRewardState.textContent = surface.stormTarget.rewardText;
+    dom.stormSupportState.textContent = surface.stormTarget.supportText;
 
     dom.hull.closest(".readout").dataset.tone = cssToneForPercent(state.ship.hull);
     dom.fuel.closest(".readout").dataset.tone = cssToneForPercent(state.ship.fuel);
@@ -4728,6 +4959,32 @@ const VoidProspector = (() => {
         : convoyFocus && convoyFocus.convoyState.ambushPressure > 0
           ? "warn"
           : "signal";
+    const stormFocus =
+      (state.storm.activeChartId && stormChartById(state, state.storm.activeChartId)) ||
+      (state.stormCharts || []).find((chart) => chart.stormState.status === "window open") ||
+      (state.stormCharts || []).find((chart) => chart.stormState.status === "anchor ready") ||
+      (state.stormCharts || [])[0] ||
+      null;
+    dom.storm.closest(".readout").dataset.tone =
+      stormFocus && ["failed", "window missed"].includes(stormFocus.stormState.status)
+        ? "danger"
+        : stormFocus && ["locked", "uncharted", "charted", "anchor ready", "window open"].includes(stormFocus.stormState.status)
+          ? "warn"
+          : "signal";
+    dom.stormWindow.closest(".readout").dataset.tone =
+      stormFocus && stormFocus.stormState.safeWindow.locked
+        ? "signal"
+        : stormFocus && stormWindowTiming(stormFocus, state).missed
+          ? "danger"
+          : stormFocus
+            ? "warn"
+            : "signal";
+    dom.stormAnchor.closest(".readout").dataset.tone =
+      stormFocus && stormFocus.stormState.anchorDeployed
+        ? cssToneForPercent((stormFocus.stormState.anchorIntegrity / Math.max(1, stormFocus.stormState.maxAnchorIntegrity)) * 100)
+        : stormFocus
+          ? "warn"
+          : "signal";
     dom.service.closest(".readout").dataset.tone =
       state.stationServices.countermeasureCharges > 0 || state.stationServices.purchased.length > 0 ? "signal" : "warn";
     if (dom.mineAction) {
@@ -4737,20 +4994,32 @@ const VoidProspector = (() => {
         !["asteroid", "salvage"].includes(target.kind) || cargoBlocked || state.run.status === "failed";
     }
     if (dom.scanAction) {
-      dom.scanAction.textContent = target.kind === "salvage" ? "Signal Lock" : "Scan";
+      dom.scanAction.textContent = target.kind === "salvage" ? "Signal Lock" : target.kind === "storm" ? "Chart Storm" : "Scan";
       dom.scanAction.disabled = !(surface.actions.canScan || surface.actions.canScanSalvage);
     }
     if (dom.beaconAction) {
       dom.beaconAction.textContent =
-        target.kind === "convoy" && target.beaconStatus && target.beaconStatus !== "undeployed" ? "Maintain Beacon" : "Deploy Beacon";
-      dom.beaconAction.disabled = !(surface.actions.canDeployBeacon || surface.actions.canMaintainBeacon);
+        target.kind === "storm"
+          ? target.anchorStatus === "deployed"
+            ? "Maintain Anchor"
+            : "Deploy Anchor"
+          : target.kind === "convoy" && target.beaconStatus && target.beaconStatus !== "undeployed"
+            ? "Maintain Beacon"
+            : "Deploy Beacon";
+      dom.beaconAction.disabled = !(
+        surface.actions.canDeployBeacon ||
+        surface.actions.canMaintainBeacon ||
+        surface.actions.canDeployStormAnchor ||
+        surface.actions.canMaintainStormAnchor
+      );
     }
     if (dom.convoyAction) {
-      dom.convoyAction.textContent = target.kind === "convoy" ? "Start Convoy" : "Convoy";
-      dom.convoyAction.disabled = !surface.actions.canStartConvoy;
+      dom.convoyAction.textContent = target.kind === "storm" ? "Lock Window" : target.kind === "convoy" ? "Start Convoy" : "Convoy";
+      dom.convoyAction.disabled = !(surface.actions.canStartConvoy || surface.actions.canLockStormWindow);
     }
     if (dom.abandonAction) {
-      dom.abandonAction.disabled = !surface.actions.canAbandonSalvage;
+      dom.abandonAction.textContent = target.kind === "storm" ? "Reroute Salvage" : "Abandon";
+      dom.abandonAction.disabled = !(surface.actions.canAbandonSalvage || surface.actions.canRerouteStormSalvage);
     }
     if (dom.dockAction) {
       dom.dockAction.disabled = !station.dockable || state.run.status === "failed";
@@ -4808,7 +5077,13 @@ const VoidProspector = (() => {
         currentState = lockStormRouteWindow(currentState, currentState.target.id);
       }
     } else if (action === "abandon-salvage") {
-      currentState = abandonSalvageTarget(currentState);
+      if (currentState.target.kind === "storm") {
+        const chart = stormChartById(currentState, currentState.target.id);
+        const site = stormRerouteCandidate(currentState, chart);
+        currentState = site ? rerouteStormSalvage(currentState, site.id, chart.id) : currentState;
+      } else {
+        currentState = abandonSalvageTarget(currentState);
+      }
     } else if (action === "interact") {
       currentState = dockAtStation(currentState);
     } else if (action === "upgrade") {
@@ -4826,6 +5101,10 @@ const VoidProspector = (() => {
       currentState = purchaseStationService(currentState, "escort-drones");
     } else if (action === "service-jammers") {
       currentState = purchaseStationService(currentState, "signal-jammers");
+    } else if (action === "service-chart-processors") {
+      currentState = purchaseStationService(currentState, "chart-processors");
+    } else if (action === "service-storm-plating") {
+      currentState = purchaseStationService(currentState, "storm-plating");
     } else if (action === "countermeasure") {
       currentState = deployCountermeasure(currentState);
     } else if (action === "sector") {
@@ -4852,7 +5131,7 @@ const VoidProspector = (() => {
         renderHud(currentState);
         return;
       }
-      if (["interact", "upgrade", "reset"].includes(control) && !event.repeat) {
+      if (["beacon", "interact", "upgrade", "reset"].includes(control) && !event.repeat) {
         performAction(control);
         return;
       }
@@ -4910,6 +5189,12 @@ const VoidProspector = (() => {
     }
     if (dom.serviceJammersAction) {
       dom.serviceJammersAction.addEventListener("click", () => performAction("service-jammers"));
+    }
+    if (dom.serviceChartProcessorsAction) {
+      dom.serviceChartProcessorsAction.addEventListener("click", () => performAction("service-chart-processors"));
+    }
+    if (dom.serviceStormPlatingAction) {
+      dom.serviceStormPlatingAction.addEventListener("click", () => performAction("service-storm-plating"));
     }
     if (dom.countermeasureAction) {
       dom.countermeasureAction.addEventListener("click", () => performAction("countermeasure"));
@@ -5265,6 +5550,115 @@ const VoidProspector = (() => {
     });
   }
 
+  function createStormMesh(THREE, chart) {
+    const group = new THREE.Group();
+    group.userData.stormChartId = chart.id;
+    const frontMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd46857,
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide,
+    });
+    const wakeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4bd6c0,
+      transparent: true,
+      opacity: 0.28,
+      wireframe: true,
+    });
+    const anchorMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd0b36a,
+      transparent: true,
+      opacity: 0.56,
+    });
+    const routeMaterial = new THREE.LineBasicMaterial({
+      color: 0x8ea1ff,
+      transparent: true,
+      opacity: 0.34,
+    });
+
+    const front = new THREE.Mesh(new THREE.TorusGeometry(chart.radius, 0.08, 8, 72), frontMaterial);
+    front.rotation.x = Math.PI / 2;
+    group.add(front);
+
+    const wake = new THREE.Mesh(new THREE.IcosahedronGeometry(chart.radius * 0.74, 1), wakeMaterial);
+    wake.rotation.set(0.4, 0.2, 0.08);
+    group.add(wake);
+
+    const anchorOffset = subtract(chart.anchor.position, chart.position);
+    const anchor = new THREE.Group();
+    anchor.position.set(anchorOffset.x, anchorOffset.y, anchorOffset.z);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, chart.anchor.radius * 1.8, 6), anchorMaterial);
+    mast.position.y = chart.anchor.radius * 0.52;
+    anchor.add(mast);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(chart.anchor.radius * 0.54, 0.055, 6, 42), anchorMaterial);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = chart.anchor.radius * 1.12;
+    anchor.add(ring);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(chart.anchor.radius * 0.25, 0), wakeMaterial);
+    core.position.y = chart.anchor.radius * 1.45;
+    anchor.add(core);
+    group.add(anchor);
+
+    const routeLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0.12, 0),
+        new THREE.Vector3(anchorOffset.x, anchorOffset.y + 0.12, anchorOffset.z),
+      ]),
+      routeMaterial
+    );
+    group.add(routeLine);
+
+    group.userData.front = front;
+    group.userData.wake = wake;
+    group.userData.anchor = anchor;
+    group.userData.frontMaterial = frontMaterial;
+    group.userData.wakeMaterial = wakeMaterial;
+    group.userData.anchorMaterial = anchorMaterial;
+    group.userData.routeMaterial = routeMaterial;
+    return group;
+  }
+
+  function syncStormMeshes(handle, state, timeSeconds = 0) {
+    const { THREE } = handle;
+    const activeIds = new Set((state.stormCharts || []).map((chart) => chart.id));
+    handle.objects.stormMeshes.forEach((mesh, chartId) => {
+      if (!activeIds.has(chartId)) {
+        handle.scene.remove(mesh);
+        handle.objects.stormMeshes.delete(chartId);
+      }
+    });
+    (state.stormCharts || []).forEach((chart) => {
+      if (!handle.objects.stormMeshes.has(chart.id)) {
+        const mesh = createStormMesh(THREE, chart);
+        handle.objects.stormMeshes.set(chart.id, mesh);
+        handle.scene.add(mesh);
+      }
+      const mesh = handle.objects.stormMeshes.get(chart.id);
+      const timing = stormWindowTiming(chart, state);
+      const terminal = ["complete", "partial", "failed"].includes(chart.stormState.outcome);
+      const ready = chart.prerequisiteStatus && chart.prerequisiteStatus.ready;
+      const anchorRatio = clamp(chart.stormState.anchorIntegrity / Math.max(1, chart.stormState.maxAnchorIntegrity), 0, 1);
+      const stormColor = terminal && chart.stormState.outcome === "failed" ? 0xd46857 : timing.locked ? 0x4bd6c0 : timing.open ? 0xd0b36a : 0x8ea1ff;
+      const anchorOffset = subtract(chart.anchor.position, chart.position);
+
+      mesh.position.set(chart.position.x, chart.position.y, chart.position.z);
+      mesh.rotation.y = timeSeconds * (timing.locked ? 0.22 : 0.1);
+      mesh.userData.frontMaterial.color.setHex(stormColor);
+      mesh.userData.frontMaterial.opacity = ready ? (timing.locked ? 0.42 : 0.24) : 0.12;
+      mesh.userData.wakeMaterial.color.setHex(timing.locked ? 0x4bd6c0 : 0x8ea1ff);
+      mesh.userData.wakeMaterial.opacity = ready ? 0.18 + Math.min(0.2, (chart.intensity || 0) * 0.05) : 0.08;
+      mesh.userData.anchor.position.set(anchorOffset.x, anchorOffset.y, anchorOffset.z);
+      mesh.userData.anchor.visible = ready || chart.stormState.charted || chart.stormState.anchorDeployed;
+      mesh.userData.anchor.scale.setScalar(chart.stormState.anchorDeployed ? 0.86 + anchorRatio * 0.2 : 0.74);
+      mesh.userData.anchorMaterial.color.setHex(chart.stormState.anchorDeployed ? 0x4bd6c0 : 0xd0b36a);
+      mesh.userData.anchorMaterial.opacity = chart.stormState.anchorDeployed ? 0.48 + anchorRatio * 0.42 : ready ? 0.5 : 0.22;
+      mesh.userData.routeMaterial.color.setHex(timing.locked ? 0x4bd6c0 : 0x8ea1ff);
+      mesh.userData.routeMaterial.opacity = ready ? (timing.locked ? 0.68 : 0.32) : 0.12;
+      mesh.userData.wake.rotation.y = -timeSeconds * (0.16 + (chart.intensity || 0) * 0.04);
+      mesh.userData.front.scale.setScalar(terminal ? 0.86 : 1 + Math.sin(timeSeconds * 0.9 + chart.intensity) * 0.025);
+    });
+  }
+
   function createPirateMesh(THREE, assets = {}) {
     const group = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
@@ -5400,6 +5794,14 @@ const VoidProspector = (() => {
       scene.add(mesh);
     });
 
+    const stormMeshes = new Map();
+    (state.stormCharts || []).forEach((chart) => {
+      const mesh = createStormMesh(THREE, chart);
+      mesh.position.set(chart.position.x, chart.position.y, chart.position.z);
+      stormMeshes.set(chart.id, mesh);
+      scene.add(mesh);
+    });
+
     const pirate = createPirateMesh(THREE, sceneAssets);
     scene.add(pirate);
 
@@ -5420,6 +5822,7 @@ const VoidProspector = (() => {
         asteroidMeshes,
         salvageMeshes,
         convoyMeshes,
+        stormMeshes,
         pirate,
         targetRing,
         miningBeam,
@@ -5465,6 +5868,7 @@ const VoidProspector = (() => {
 
     syncSalvageMeshes(handle, state);
     syncConvoyMeshes(handle, state, timeSeconds);
+    syncStormMeshes(handle, state, timeSeconds);
     (state.salvageSites || []).forEach((site) => {
       const mesh = handle.objects.salvageMeshes.get(site.id);
       if (!mesh) {
@@ -5490,7 +5894,13 @@ const VoidProspector = (() => {
       handle.objects.targetRing.position.set(target.position.x, target.position.y, target.position.z);
       handle.objects.targetRing.scale.setScalar(radius / 3.8);
       handle.objects.targetRing.material.color.setHex(
-        state.target.kind === "salvage" ? 0xd0b36a : state.target.kind === "convoy" ? 0x8ea1ff : 0x4bd6c0
+        state.target.kind === "salvage"
+          ? 0xd0b36a
+          : state.target.kind === "convoy"
+            ? 0x8ea1ff
+            : state.target.kind === "storm"
+              ? 0xd46857
+              : 0x4bd6c0
       );
       handle.objects.targetRing.visible = true;
     } else {

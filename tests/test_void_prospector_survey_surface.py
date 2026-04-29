@@ -26,8 +26,11 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "scan-readout",
             "salvage-readout",
             "convoy-readout",
+            "storm-readout",
             "beacon-readout",
             "ambush-readout",
+            "storm-window-readout",
+            "storm-anchor-readout",
             "service-readout",
             "scan-action",
             "beacon-action",
@@ -43,11 +46,18 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "convoy-risk-state",
             "convoy-reward-state",
             "convoy-support-state",
+            "storm-chart-state",
+            "storm-window-state",
+            "storm-anchor-state",
+            "storm-exposure-state",
+            "storm-reward-state",
+            "storm-support-state",
             "survey-panel",
             "ladder-title",
             "ladder-status-surface",
             "sector-list",
             "convoy-list",
+            "storm-list",
             "sector-select",
             "sector-action",
             "service-probes-action",
@@ -56,18 +66,23 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "service-recovery-drones-action",
             "service-escort-action",
             "service-jammers-action",
+            "service-chart-processors-action",
+            "service-storm-plating-action",
             "countermeasure-action",
             "event-log",
         ):
             self.assertIn(hook, html)
 
-        self.assertIn("v0.3.0 Beacon Convoy", html)
+        self.assertIn("v0.4.0 Storm Cartography", html)
         self.assertIn("C scan or lock", html)
+        self.assertIn("B deploy anchor/beacon", html)
         self.assertIn("Space/M mine or extract", html)
         self.assertIn('aria-label="Survey Ladder controls"', html)
         self.assertIn('aria-label="Selected salvage target state"', html)
         self.assertIn('aria-label="Selected convoy route state"', html)
+        self.assertIn('aria-label="Selected storm chart state"', html)
         self.assertIn('aria-label="Convoy route state"', html)
+        self.assertIn('aria-label="Storm chart state"', html)
 
     def test_survey_surface_css_keeps_desktop_and_narrow_layout_contracts(self) -> None:
         css = read_game_file("void-prospector.css")
@@ -80,8 +95,11 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             ".service-panel",
             ".salvage-target-data",
             ".convoy-target-data",
+            ".storm-target-data",
             ".convoy-list",
             ".convoy-row",
+            ".storm-list",
+            ".storm-row",
             ".event-log",
             "max-height: calc(100vh - 96px)",
             "max-height: min(170px, max(150px, calc(100vh - 550px)))",
@@ -100,6 +118,7 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         self.assertRegex(css, r"@media \(max-width: 980px\)[\s\S]*?\.target-panel\s*\{[^}]*position: relative")
         self.assertIn("width: calc(100vw - 24px)", css)
         self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr))", css)
+        self.assertIn('.storm-row[data-state="window locked"]', css)
         self.assertNotIn("border-radius: 12px", css)
         self.assertNotIn("overflow-x: scroll", css)
 
@@ -266,6 +285,77 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         self.assertIn("Escort Drones + Signal Jammers / 1 burst", result["serviceText"])
         self.assertIn(["escort-drones", "installed", False], result["services"])
         self.assertIn(["signal-jammers", "installed", False], result["services"])
+
+    def test_storm_cartography_surface_exposes_chart_anchor_window_support_and_actions(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/void-prospector/void-prospector.js");
+            const ladder = {
+              currentSectorId: "rift-shelf",
+              recommendedSectorId: "rift-shelf",
+              unlockedSectorIds: ["spoke-approach", "rift-shelf"],
+              completedSectorIds: ["spoke-approach"],
+              scannedAnomalyIds: ["anomaly-rift-lens"],
+              hazardCharts: { "rift-shelf": true },
+            };
+            let state = game.createInitialState({ seed: 44, sectorId: "rift-shelf", ladder, credits: 500 });
+            state.ship.position = { ...state.station.position };
+            state = game.dockAtStation(state);
+            state = game.purchaseStationService(state, "chart-processors");
+            state = game.purchaseStationService(state, "storm-plating");
+            state = game.purchaseStationService(state, "signal-jammers");
+            state = game.setTarget(state, "storm", "storm-rift-breaker");
+            state.ship.position = { ...state.stormCharts[0].position };
+            const chartSurface = game.surveyCockpitSurface(state);
+            state = game.scanStormChart(state, 2);
+            state.ship.position = { ...state.stormCharts[0].anchor.position };
+            const anchorSurface = game.surveyCockpitSurface(state);
+            state = game.deployStormAnchor(state, "storm-rift-breaker");
+            state.elapsed = 5;
+            state.tick = 5;
+            state = game.lockStormRouteWindow(state, "storm-rift-breaker");
+            const lockedSurface = game.surveyCockpitSurface(state);
+            console.log(JSON.stringify({
+              chartTarget: chartSurface.stormTarget,
+              chartActions: chartSurface.actions,
+              anchorTarget: anchorSurface.stormTarget,
+              anchorActions: anchorSurface.actions,
+              lockedTarget: lockedSurface.stormTarget,
+              lockedActions: lockedSurface.actions,
+              stormText: lockedSurface.stormText,
+              stormWindowText: lockedSurface.stormWindowText,
+              stormAnchorText: lockedSurface.stormAnchorText,
+              stormRows: lockedSurface.stormRows,
+              services: lockedSurface.services.map((service) => [service.id, service.status, service.enabled]),
+              contract: state.contract,
+              target: game.targetSummary(state),
+            }));
+            """
+        )
+
+        self.assertIn("Rift Breaker Front / uncharted", result["chartTarget"]["chartText"])
+        self.assertIn("opens 4s", result["chartTarget"]["windowText"])
+        self.assertIn("intensity 1.8", result["chartTarget"]["exposureText"])
+        self.assertIn("150cr reward", result["chartTarget"]["rewardText"])
+        self.assertIn("scan +0.75", result["chartTarget"]["supportText"])
+        self.assertTrue(result["chartActions"]["canScan"])
+
+        self.assertIn("Rift Breaker Front / charted", result["anchorTarget"]["chartText"])
+        self.assertTrue(result["anchorActions"]["canDeployStormAnchor"])
+
+        self.assertIn("Storm Cartography / Rift Breaker Front / window locked", result["stormText"])
+        self.assertIn("window locked", result["stormWindowText"])
+        self.assertIn("Relay Anchor / deployed", result["stormAnchorText"])
+        self.assertIn("reroute 0/2 salvage", result["lockedTarget"]["exposureText"])
+        self.assertTrue(result["lockedActions"]["canMaintainStormAnchor"])
+        self.assertTrue(result["lockedActions"]["canRerouteStormSalvage"])
+        self.assertTrue(result["lockedActions"]["canCountermeasureStorm"])
+        self.assertEqual("window locked", result["stormRows"][0]["state"])
+        self.assertIn(["chart-processors", "installed", False], result["services"])
+        self.assertIn(["storm-plating", "installed", False], result["services"])
+        self.assertEqual(1, result["contract"]["deliveredStormCharts"])
+        self.assertEqual("storm", result["target"]["kind"])
+        self.assertEqual("deployed", result["target"]["anchorStatus"])
 
     def test_station_service_surface_shows_consequences_and_decoy_readiness(self) -> None:
         result = self.run_node(
