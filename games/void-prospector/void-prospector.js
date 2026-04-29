@@ -72,6 +72,8 @@ const VoidProspector = (() => {
         "recovery drones",
         "escort drones",
         "signal jammers",
+        "chart processors",
+        "storm plating",
       ],
     },
     contract: {
@@ -127,6 +129,22 @@ const VoidProspector = (() => {
           cost: 90,
           convoyAmbushMitigation: 0.24,
           countermeasureCharges: 1,
+        },
+        {
+          id: "chart-processors",
+          name: "Chart Processors",
+          cost: 105,
+          stormScanBonus: 0.75,
+          stormWindowBonus: 3,
+          stormPayoutBonus: 0.08,
+        },
+        {
+          id: "storm-plating",
+          name: "Storm Plating",
+          cost: 125,
+          stormAnchorIntegrity: 18,
+          stormHazardMitigation: 0.32,
+          salvageRiskMitigation: 0.12,
         },
       ],
       sectors: [
@@ -323,6 +341,55 @@ const VoidProspector = (() => {
               beaconDeployRange: 13,
             },
           ],
+          stormCharts: [
+            {
+              id: "storm-rift-breaker",
+              name: "Rift Breaker Front",
+              type: "charged storm front",
+              family: "route-window",
+              prerequisiteLabel: "Rift Lens hazard chart",
+              prerequisites: {
+                completedSectorIds: ["spoke-approach"],
+                scannedAnomalyIds: ["anomaly-rift-lens"],
+                hazardChartedSectorIds: ["rift-shelf"],
+              },
+              position: { x: -34, y: 5, z: -32 },
+              radius: 6.2,
+              scanDifficulty: 3.2,
+              intensity: 1.8,
+              safeWindow: {
+                opensAt: 4,
+                closesAt: 18,
+              },
+              anchor: {
+                id: "anchor-rift-breaker",
+                name: "Rift Breaker Relay Anchor",
+                position: { x: -26, y: 3, z: -40 },
+                radius: 4.4,
+                integrity: 58,
+              },
+              convoyRouteIds: ["convoy-rift-relay"],
+              salvageSiteIds: ["salvage-rift-hulk", "salvage-rift-volatile"],
+              rewardCredits: 150,
+              rewardVariance: 18,
+              surveyReward: 28,
+              ladderScore: 44,
+              convoyAmbushReduction: 9,
+              convoyHazardReduction: 0.45,
+              convoyPayoutBonus: 0.08,
+              salvageRiskReduction: 0.16,
+              hazardMitigation: 0.35,
+              piratePressureClear: 8,
+              anchorDeployRange: 12,
+              failureIntegrity: 14,
+              partialIntegrity: 36,
+              partialPayoutRate: 0.55,
+              missedHullDamage: 8,
+              missedFuelDrain: 10,
+              missedHazardExposure: 1.4,
+              missedPiratePressure: 12,
+            },
+          ],
           unlocks: ["umbra-trench"],
         },
         {
@@ -463,6 +530,218 @@ const VoidProspector = (() => {
               beaconDeployRange: 13,
             },
           ],
+          stormCharts: [
+            {
+              id: "storm-umbra-knife-wake",
+              name: "Knife Wake Storm Corridor",
+              type: "pirate-shadowed storm corridor",
+              family: "blackbox-route",
+              prerequisiteLabel: "Black Pylon chart and Knife Wake blackbox",
+              prerequisites: {
+                completedSectorIds: ["rift-shelf"],
+                scannedAnomalyIds: ["anomaly-black-pylon"],
+                salvageManifestIds: ["salvage-umbra-blackbox"],
+                hazardChartedSectorIds: ["umbra-trench"],
+              },
+              position: { x: 20, y: 6, z: -58 },
+              radius: 7,
+              scanDifficulty: 3.8,
+              intensity: 2.35,
+              safeWindow: {
+                opensAt: 6,
+                closesAt: 20,
+              },
+              anchor: {
+                id: "anchor-umbra-knife-wake",
+                name: "Knife Wake Relay Anchor",
+                position: { x: 16, y: 4, z: -48 },
+                radius: 4.8,
+                integrity: 66,
+              },
+              convoyRouteIds: ["convoy-umbra-blackbox"],
+              salvageSiteIds: ["salvage-umbra-vault", "salvage-umbra-blackbox"],
+              rewardCredits: 240,
+              rewardVariance: 28,
+              surveyReward: 44,
+              ladderScore: 76,
+              convoyAmbushReduction: 13,
+              convoyHazardReduction: 0.68,
+              convoyPayoutBonus: 0.11,
+              salvageRiskReduction: 0.2,
+              hazardMitigation: 0.5,
+              piratePressureClear: 12,
+              anchorDeployRange: 12,
+              failureIntegrity: 18,
+              partialIntegrity: 44,
+              partialPayoutRate: 0.5,
+              missedHullDamage: 13,
+              missedFuelDrain: 15,
+              missedHazardExposure: 2.2,
+              missedPiratePressure: 18,
+            },
+          ],
+          unlocks: ["tempest-verge"],
+        },
+        {
+          id: "tempest-verge",
+          name: "Tempest Verge",
+          tier: 4,
+          condition: "Storm-gated relay verge",
+          charterTitle: "Tempest Verge Cartography",
+          objective: "Scan the verge eye, mine 14 ore, lock one storm window, and bank a storm route payout.",
+          requiredOre: 14,
+          requiredScans: 1,
+          requiredSalvageValue: 0,
+          requiredRelics: 0,
+          requiredStormCharts: 1,
+          requiredStormPayout: 200,
+          rewardCredits: 420,
+          surveyReward: 125,
+          salvageReward: 55,
+          stormReward: 90,
+          oreValueBonus: 17,
+          oreReserveBonus: 3,
+          hazard: {
+            status: "tempest verge",
+            intensity: 2.7,
+            fuelDrainPerSecond: 0.62,
+            hullDamagePerSecond: 1.05,
+            warningThreshold: 3.5,
+          },
+          pirate: {
+            spawnTick: 8,
+            driftSpeed: 6,
+            pressureRate: 1.28,
+            hullDamagePerSecond: 3.8,
+          },
+          anomalies: [
+            {
+              id: "anomaly-tempest-eye",
+              name: "Tempest Eye",
+              position: { x: -18, y: 7, z: -62 },
+              radius: 6,
+              scanDifficulty: 3.6,
+              surveyValue: 72,
+              chartsHazard: true,
+            },
+            {
+              id: "anomaly-verge-spire",
+              name: "Verge Signal Spire",
+              position: { x: 38, y: 5, z: -48 },
+              radius: 4.8,
+              scanDifficulty: 3.1,
+              surveyValue: 58,
+              chartsHazard: false,
+            },
+          ],
+          salvageSites: [
+            {
+              id: "salvage-tempest-spool",
+              name: "Tempest Relay Spool",
+              type: "relay-cache",
+              family: "manifest",
+              position: { x: 26, y: 2, z: -30 },
+              radius: 4.5,
+              scanDifficulty: 3,
+              confidenceThreshold: 0.7,
+              extractionDifficulty: 2.4,
+              remainingSalvage: 2,
+              rewardValue: 82,
+              valueVariance: 18,
+              relicReward: 0,
+              volatility: 0.52,
+              failureThreshold: 1.05,
+              piratePressure: 24,
+              hazardExposure: 1.6,
+              failureHullDamage: 11,
+              scanValue: 32,
+            },
+          ],
+          convoyRoutes: [
+            {
+              id: "convoy-tempest-relay",
+              name: "Tempest Relay Convoy",
+              type: "storm relay convoy",
+              family: "verge-relay",
+              prerequisiteLabel: "Umbra completion and Tempest Eye storm window",
+              prerequisites: {
+                completedSectorIds: ["umbra-trench"],
+                scannedAnomalyIds: ["anomaly-tempest-eye"],
+                hazardChartedSectorIds: ["tempest-verge"],
+                stormChartIds: ["storm-tempest-verge"],
+              },
+              beacon: {
+                id: "beacon-tempest-relay",
+                name: "Tempest Relay Beacon",
+                position: { x: -6, y: 5, z: -50 },
+                radius: 5,
+                integrity: 70,
+              },
+              startPosition: { x: -6, y: 5, z: -50 },
+              endPosition: { x: 42, y: 3, z: -22 },
+              cargoValue: 470,
+              valueVariance: 50,
+              payoutCredits: 560,
+              progressRate: 0.18,
+              escortIntegrity: 92,
+              ambushPressure: 56,
+              hazardExposure: 3,
+              failureIntegrity: 26,
+              partialIntegrity: 58,
+              partialPayoutRate: 0.46,
+              ladderScore: 115,
+              beaconDeployRange: 13,
+            },
+          ],
+          stormCharts: [
+            {
+              id: "storm-tempest-verge",
+              name: "Tempest Verge Safe Window",
+              type: "deep storm gate",
+              family: "late-run-gate",
+              prerequisiteLabel: "Umbra completion and Tempest Eye chart",
+              prerequisites: {
+                completedSectorIds: ["umbra-trench"],
+                scannedAnomalyIds: ["anomaly-tempest-eye"],
+                hazardChartedSectorIds: ["tempest-verge"],
+              },
+              position: { x: -12, y: 8, z: -54 },
+              radius: 7.5,
+              scanDifficulty: 4.2,
+              intensity: 2.9,
+              safeWindow: {
+                opensAt: 8,
+                closesAt: 23,
+              },
+              anchor: {
+                id: "anchor-tempest-verge",
+                name: "Tempest Verge Relay Anchor",
+                position: { x: -8, y: 6, z: -46 },
+                radius: 5,
+                integrity: 74,
+              },
+              convoyRouteIds: ["convoy-tempest-relay"],
+              salvageSiteIds: ["salvage-tempest-spool"],
+              rewardCredits: 330,
+              rewardVariance: 36,
+              surveyReward: 62,
+              ladderScore: 118,
+              convoyAmbushReduction: 17,
+              convoyHazardReduction: 0.9,
+              convoyPayoutBonus: 0.14,
+              salvageRiskReduction: 0.24,
+              hazardMitigation: 0.65,
+              piratePressureClear: 16,
+              anchorDeployRange: 13,
+              failureIntegrity: 22,
+              partialIntegrity: 50,
+              partialPayoutRate: 0.48,
+              missedHullDamage: 18,
+              missedFuelDrain: 20,
+              missedHazardExposure: 2.8,
+              missedPiratePressure: 24,
+            },
+          ],
           unlocks: [],
         },
       ],
@@ -488,6 +767,17 @@ const VoidProspector = (() => {
       countermeasureWindow: 0.78,
       countermeasurePressureDrop: 19,
       countermeasureIntegrity: 12,
+    },
+    stormCartography: {
+      version: "0.4.0",
+      releaseLabel: "Storm Cartography",
+      scanRange: 18,
+      baseScanPower: 1,
+      anchorDeployRange: 12,
+      anchorMaintenanceIntegrity: 24,
+      countermeasureIntegrity: 16,
+      countermeasureWindowBonus: 4,
+      countermeasureHazardClear: 0.65,
     },
     asteroidField: {
       miningRange: 9,
@@ -714,6 +1004,11 @@ const VoidProspector = (() => {
       relicsRecovered: base.relicsRecovered || 0,
       convoyScore: base.convoyScore || 0,
       completedConvoyRouteIds: uniqueList(base.completedConvoyRouteIds || []),
+      stormScore: base.stormScore || 0,
+      completedStormChartIds: uniqueList(base.completedStormChartIds || []),
+      failedStormChartIds: uniqueList(base.failedStormChartIds || []),
+      partialStormChartIds: uniqueList(base.partialStormChartIds || []),
+      anchoredStormChartIds: uniqueList(base.anchoredStormChartIds || []),
       hazardCharts: { ...(base.hazardCharts || {}) },
       lastChoice: base.lastChoice || "spoke-approach",
       lastCompletedSectorId: base.lastCompletedSectorId || null,
@@ -734,6 +1029,11 @@ const VoidProspector = (() => {
       convoyEscortIntegrity: base.convoyEscortIntegrity || 0,
       convoyAmbushMitigation: base.convoyAmbushMitigation || 0,
       convoyPayoutBonus: base.convoyPayoutBonus || 0,
+      stormScanBonus: base.stormScanBonus || 0,
+      stormAnchorIntegrity: base.stormAnchorIntegrity || 0,
+      stormWindowBonus: base.stormWindowBonus || 0,
+      stormHazardMitigation: base.stormHazardMitigation || 0,
+      stormPayoutBonus: base.stormPayoutBonus || 0,
       lastService: base.lastService || "none",
       countermeasureStatus: base.countermeasureStatus || "idle",
     };
@@ -750,6 +1050,11 @@ const VoidProspector = (() => {
       state.convoyEscortIntegrity += service.convoyEscortIntegrity || 0;
       state.convoyAmbushMitigation += service.convoyAmbushMitigation || 0;
       state.convoyPayoutBonus += service.convoyPayoutBonus || 0;
+      state.stormScanBonus += service.stormScanBonus || 0;
+      state.stormAnchorIntegrity += service.stormAnchorIntegrity || 0;
+      state.stormWindowBonus += service.stormWindowBonus || 0;
+      state.stormHazardMitigation += service.stormHazardMitigation || 0;
+      state.stormPayoutBonus += service.stormPayoutBonus || 0;
     });
     return state;
   }
@@ -911,6 +1216,128 @@ const VoidProspector = (() => {
     };
   }
 
+  function createStormCharts(
+    seed = DEFAULT_SEED,
+    sectorInput = GAME_DATA.surveyLadder.defaultSectorId,
+    stationServices = createStationServiceState(),
+    options = {}
+  ) {
+    const sector = typeof sectorInput === "string" ? sectorById(sectorInput) : sectorInput;
+    const base = options.storm || {};
+    const chartMemory = base.chartMemory || {};
+    const random = createRng(seed + sector.tier * 19013 + 13007);
+    return (sector.stormCharts || []).map((chart, index) => {
+      const remembered = chartMemory[chart.id] || {};
+      const rememberedStorm = remembered.stormState || {};
+      const rewardCredits = (chart.rewardCredits || 0) + (chart.rewardVariance ? Math.floor(random() * chart.rewardVariance) : 0);
+      const maxAnchorIntegrity = Math.max(
+        rememberedStorm.maxAnchorIntegrity || 0,
+        (chart.anchor && chart.anchor.integrity ? chart.anchor.integrity : 60) + (stationServices.stormAnchorIntegrity || 0)
+      );
+      const safeWindow = {
+        opensAt: chart.safeWindow ? chart.safeWindow.opensAt || 0 : 0,
+        closesAt: (chart.safeWindow ? chart.safeWindow.closesAt || 0 : 0) + (stationServices.stormWindowBonus || 0),
+        locked: false,
+        lockedAt: null,
+        missed: false,
+        ...clone(rememberedStorm.safeWindow || {}),
+      };
+      return {
+        ...clone(chart),
+        rewardCredits,
+        scanSignature: `storm-${sector.id}-${seed}-${index + 1}`,
+        position: clone(chart.position || (chart.anchor ? chart.anchor.position : GAME_DATA.ship.startPosition)),
+        radius: chart.radius || 5,
+        prerequisiteStatus: {
+          ready: false,
+          missing: [],
+          label: chart.prerequisiteLabel || "storm prerequisites",
+        },
+        stormState: {
+          status: "locked",
+          progress: 0,
+          charted: false,
+          anchorDeployed: false,
+          anchorIntegrity: 0,
+          maxAnchorIntegrity,
+          safeWindow,
+          payoutCredits: rewardCredits,
+          deliveredValue: 0,
+          partialPayoutCredits: 0,
+          failureReason: null,
+          outcome: "none",
+          countermeasureUsed: false,
+          salvageReroutes: [],
+          lastTouchedTick: null,
+          ...clone(rememberedStorm),
+          maxAnchorIntegrity,
+          safeWindow,
+        },
+      };
+    });
+  }
+
+  function createStormCartographyState(options = {}, stationServices = createStationServiceState(), stormCharts = []) {
+    const base = options.storm || {};
+    return {
+      version: GAME_DATA.stormCartography.version,
+      releaseLabel: GAME_DATA.stormCartography.releaseLabel,
+      activeChartId: base.activeChartId || null,
+      completedChartIds: uniqueList(base.completedChartIds || []),
+      failedChartIds: uniqueList(base.failedChartIds || []),
+      partialChartIds: uniqueList(base.partialChartIds || []),
+      anchoredChartIds: uniqueList(base.anchoredChartIds || []),
+      payoutBanked: base.payoutBanked || 0,
+      stormScore: base.stormScore || 0,
+      anchorsDeployed: base.anchorsDeployed || 0,
+      windowsLocked: base.windowsLocked || 0,
+      salvageReroutes: base.salvageReroutes || 0,
+      scanPower: GAME_DATA.stormCartography.baseScanPower + (stationServices.stormScanBonus || 0),
+      scanRange: GAME_DATA.stormCartography.scanRange,
+      supportIntegrity: stationServices.stormAnchorIntegrity || 0,
+      supportMitigation: stationServices.stormHazardMitigation || 0,
+      windowBonus: stationServices.stormWindowBonus || 0,
+      payoutBonus: stationServices.stormPayoutBonus || 0,
+      status: base.status || (stormCharts.length ? "storm charts available" : "no storm charts"),
+      lastOutcome: base.lastOutcome || "none",
+      chartMemory: base.chartMemory || {},
+    };
+  }
+
+  function stormChartMemoryFromCharts(charts = []) {
+    return charts.reduce((memory, chart) => {
+      memory[chart.id] = {
+        stormState: clone(chart.stormState),
+      };
+      return memory;
+    }, {});
+  }
+
+  function stormPersistence(state) {
+    return {
+      activeChartId: state.storm.activeChartId,
+      completedChartIds: state.storm.completedChartIds,
+      failedChartIds: state.storm.failedChartIds,
+      partialChartIds: state.storm.partialChartIds,
+      anchoredChartIds: state.storm.anchoredChartIds,
+      payoutBanked: state.storm.payoutBanked,
+      stormScore: state.storm.stormScore,
+      anchorsDeployed: state.storm.anchorsDeployed,
+      windowsLocked: state.storm.windowsLocked,
+      salvageReroutes: state.storm.salvageReroutes,
+      status: state.storm.status,
+      lastOutcome: state.storm.lastOutcome,
+      chartMemory: {
+        ...(state.storm.chartMemory || {}),
+        ...stormChartMemoryFromCharts(state.stormCharts || []),
+      },
+    };
+  }
+
+  function stormChartById(state, chartId) {
+    return (state.stormCharts || []).find((chart) => chart.id === chartId) || null;
+  }
+
   function convoyRouteMemoryFromRoutes(routes = []) {
     return routes.reduce((memory, route) => {
       memory[route.id] = {
@@ -955,21 +1382,74 @@ const VoidProspector = (() => {
     );
   }
 
-  function convoyPrerequisiteStatus(route, state) {
-    const requirements = route.prerequisites || {};
-    const missing = [];
-    const scannedAnomalyIds = uniqueList([
+  function currentScannedAnomalyIds(state) {
+    return uniqueList([
       ...(state.ladder.scannedAnomalyIds || []),
       ...(state.anomalies || [])
         .filter((anomaly) => anomaly.scanState && anomaly.scanState.scanned)
         .map((anomaly) => anomaly.id),
     ]);
-    const salvageManifestIds = uniqueList([
+  }
+
+  function currentSalvageManifestIds(state) {
+    return uniqueList([
       ...(state.ladder.salvageManifestIds || []),
       ...(state.salvageSites || [])
         .filter((site) => site.family === "manifest" && site.salvageState && site.salvageState.recoveredValue > 0)
         .map((site) => site.id),
     ]);
+  }
+
+  function stormChartPrerequisiteStatus(chart, state) {
+    const requirements = chart.prerequisites || {};
+    const missing = [];
+    const scannedAnomalyIds = currentScannedAnomalyIds(state);
+    const salvageManifestIds = currentSalvageManifestIds(state);
+    (requirements.completedSectorIds || []).forEach((sectorId) => {
+      if (!(state.ladder.completedSectorIds || []).includes(sectorId)) {
+        missing.push(`complete ${sectorById(sectorId).name}`);
+      }
+    });
+    (requirements.scannedAnomalyIds || []).forEach((anomalyId) => {
+      if (!scannedAnomalyIds.includes(anomalyId)) {
+        missing.push(`scan ${anomalyId}`);
+      }
+    });
+    (requirements.salvageManifestIds || []).forEach((siteId) => {
+      if (!salvageManifestIds.includes(siteId)) {
+        missing.push(`recover ${siteId}`);
+      }
+    });
+    (requirements.hazardChartedSectorIds || []).forEach((sectorId) => {
+      if (!(state.ladder.hazardCharts || {})[sectorId]) {
+        missing.push(`chart ${sectorById(sectorId).name}`);
+      }
+    });
+    (requirements.stormChartIds || []).forEach((chartId) => {
+      const requiredChart = stormChartById(state, chartId);
+      const lockedWindow = Boolean(
+        requiredChart &&
+          requiredChart.stormState &&
+          requiredChart.stormState.safeWindow &&
+          requiredChart.stormState.safeWindow.locked &&
+          requiredChart.stormState.outcome === "none"
+      );
+      if (!(state.ladder.completedStormChartIds || []).includes(chartId) && !lockedWindow) {
+        missing.push(`lock ${chartId}`);
+      }
+    });
+    return {
+      ready: missing.length === 0,
+      missing,
+      label: chart.prerequisiteLabel || "storm prerequisites",
+    };
+  }
+
+  function convoyPrerequisiteStatus(route, state) {
+    const requirements = route.prerequisites || {};
+    const missing = [];
+    const scannedAnomalyIds = currentScannedAnomalyIds(state);
+    const salvageManifestIds = currentSalvageManifestIds(state);
 
     (requirements.completedSectorIds || []).forEach((sectorId) => {
       if (!(state.ladder.completedSectorIds || []).includes(sectorId)) {
@@ -989,6 +1469,19 @@ const VoidProspector = (() => {
     (requirements.hazardChartedSectorIds || []).forEach((sectorId) => {
       if (!(state.ladder.hazardCharts || {})[sectorId]) {
         missing.push(`chart ${sectorById(sectorId).name}`);
+      }
+    });
+    (requirements.stormChartIds || []).forEach((chartId) => {
+      const chart = stormChartById(state, chartId);
+      const lockedWindow = Boolean(
+        chart &&
+          chart.stormState &&
+          chart.stormState.safeWindow &&
+          chart.stormState.safeWindow.locked &&
+          chart.stormState.outcome === "none"
+      );
+      if (!(state.ladder.completedStormChartIds || []).includes(chartId) && !lockedWindow) {
+        missing.push(`lock ${chartId}`);
       }
     });
 
@@ -1079,6 +1572,167 @@ const VoidProspector = (() => {
     };
   }
 
+  function stormWindowTiming(chart, state) {
+    const safeWindow = chart.stormState.safeWindow || {};
+    const opensAt = safeWindow.opensAt || 0;
+    const closesAt = safeWindow.closesAt || 0;
+    const elapsed = state.elapsed || 0;
+    return {
+      opensAt,
+      closesAt,
+      remaining: round(Math.max(0, closesAt - elapsed), 2),
+      open: elapsed >= opensAt && elapsed <= closesAt,
+      pending: elapsed < opensAt,
+      missed: elapsed > closesAt && !safeWindow.locked,
+      locked: Boolean(safeWindow.locked),
+      lockedAt: safeWindow.lockedAt,
+    };
+  }
+
+  function stormChartReadiness(state, chartId) {
+    const chart = stormChartById(state, chartId);
+    if (!chart) {
+      return {
+        chartId,
+        ready: false,
+        missing: ["unknown storm chart"],
+        canScan: false,
+        canDeployAnchor: false,
+        canMaintainAnchor: false,
+        canLockWindow: false,
+      };
+    }
+    const prerequisites = stormChartPrerequisiteStatus(chart, state);
+    const timing = stormWindowTiming(chart, state);
+    const terminal = ["complete", "partial", "failed"].includes(chart.stormState.outcome);
+    return {
+      chartId: chart.id,
+      ready: prerequisites.ready,
+      missing: prerequisites.missing,
+      label: prerequisites.label,
+      charted: chart.stormState.charted,
+      anchorDeployed: chart.stormState.anchorDeployed,
+      anchorIntegrity: chart.stormState.anchorIntegrity,
+      maxAnchorIntegrity: chart.stormState.maxAnchorIntegrity,
+      safeWindow: timing,
+      canScan: prerequisites.ready && !chart.stormState.charted && !terminal,
+      canDeployAnchor: prerequisites.ready && chart.stormState.charted && !chart.stormState.anchorDeployed && !terminal,
+      canMaintainAnchor: prerequisites.ready && chart.stormState.anchorDeployed && !terminal,
+      canLockWindow:
+        prerequisites.ready &&
+        chart.stormState.charted &&
+        chart.stormState.anchorDeployed &&
+        !chart.stormState.safeWindow.locked &&
+        timing.open &&
+        !terminal,
+    };
+  }
+
+  function syncStormDerivedState(state) {
+    if (!state.storm || !state.stormCharts) {
+      return state;
+    }
+    let activeChart = null;
+    state.storm.scanPower = GAME_DATA.stormCartography.baseScanPower + (state.stationServices ? state.stationServices.stormScanBonus || 0 : 0);
+    state.storm.supportIntegrity = state.stationServices ? state.stationServices.stormAnchorIntegrity || 0 : 0;
+    state.storm.supportMitigation = state.stationServices ? state.stationServices.stormHazardMitigation || 0 : 0;
+    state.storm.windowBonus = state.stationServices ? state.stationServices.stormWindowBonus || 0 : 0;
+    state.storm.payoutBonus = state.stationServices ? state.stationServices.stormPayoutBonus || 0 : 0;
+    state.stormCharts.forEach((chart) => {
+      chart.prerequisiteStatus = stormChartPrerequisiteStatus(chart, state);
+      const supportedAnchorMax = (chart.anchor && chart.anchor.integrity ? chart.anchor.integrity : 60) + state.storm.supportIntegrity;
+      chart.stormState.maxAnchorIntegrity = Math.max(chart.stormState.maxAnchorIntegrity || 0, supportedAnchorMax);
+      if (!chart.stormState.safeWindow.locked) {
+        chart.stormState.safeWindow.closesAt = (chart.safeWindow ? chart.safeWindow.closesAt || 0 : 0) + state.storm.windowBonus;
+      }
+      const terminal = ["complete", "partial", "failed"].includes(chart.stormState.outcome);
+      if (terminal) {
+        return;
+      }
+      if (!chart.prerequisiteStatus.ready) {
+        chart.stormState.status = "locked";
+        return;
+      }
+      if (!chart.stormState.charted) {
+        chart.stormState.status = chart.stormState.status === "scanning" ? "scanning" : "uncharted";
+        activeChart = activeChart || chart;
+        return;
+      }
+      if (!chart.stormState.anchorDeployed) {
+        chart.stormState.status = "charted";
+        activeChart = activeChart || chart;
+        return;
+      }
+      if (!chart.stormState.safeWindow.locked) {
+        const timing = stormWindowTiming(chart, state);
+        chart.stormState.status = timing.missed ? "window missed" : timing.pending ? "anchor ready" : "window open";
+        activeChart = activeChart || chart;
+        return;
+      }
+      chart.stormState.status = "window locked";
+      activeChart = activeChart || chart;
+    });
+    if (activeChart) {
+      state.storm.activeChartId = activeChart.id;
+      state.storm.status = `${activeChart.name} ${activeChart.stormState.status}`;
+    } else if (state.stormCharts.length) {
+      state.storm.activeChartId = null;
+      state.storm.status = "storm charts settled";
+    } else {
+      state.storm.activeChartId = null;
+      state.storm.status = "no storm charts";
+    }
+    return state;
+  }
+
+  function stormWindowModifierForRoute(state, route) {
+    const modifier = {
+      active: false,
+      chartId: null,
+      ambushReduction: 0,
+      hazardReduction: 0,
+      payoutBonus: 0,
+      anchorIntegrity: 0,
+    };
+    (state.stormCharts || []).forEach((chart) => {
+      if (
+        !(chart.convoyRouteIds || []).includes(route.id) ||
+        !chart.stormState.safeWindow.locked ||
+        chart.stormState.outcome !== "none"
+      ) {
+        return;
+      }
+      modifier.active = true;
+      modifier.chartId = chart.id;
+      modifier.ambushReduction = Math.max(modifier.ambushReduction, chart.convoyAmbushReduction || 0);
+      modifier.hazardReduction = Math.max(modifier.hazardReduction, chart.convoyHazardReduction || 0);
+      modifier.payoutBonus = Math.max(
+        modifier.payoutBonus,
+        (chart.convoyPayoutBonus || 0) + (state.stationServices ? state.stationServices.stormPayoutBonus || 0 : 0)
+      );
+      modifier.anchorIntegrity = Math.max(modifier.anchorIntegrity, chart.stormState.anchorIntegrity || 0);
+    });
+    return modifier;
+  }
+
+  function stormSalvageRiskMitigation(site, state) {
+    let mitigation = 0;
+    (state.stormCharts || []).forEach((chart) => {
+      const rerouted = (site.salvageState.stormReroute || {}).chartId === chart.id;
+      const lockedWindow =
+        (chart.salvageSiteIds || []).includes(site.id) &&
+        chart.stormState.safeWindow.locked &&
+        chart.stormState.outcome === "none";
+      if (lockedWindow || rerouted) {
+        mitigation = Math.max(
+          mitigation,
+          (chart.salvageRiskReduction || 0) + (state.stationServices ? (state.stationServices.stormHazardMitigation || 0) * 0.25 : 0)
+        );
+      }
+    });
+    return mitigation;
+  }
+
   function createSectorContract(sector) {
     return {
       id: `charter-${sector.id}`,
@@ -1088,6 +1742,8 @@ const VoidProspector = (() => {
       requiredScans: sector.requiredScans,
       requiredSalvageValue: sector.requiredSalvageValue || 0,
       requiredRelics: sector.requiredRelics || 0,
+      requiredStormCharts: sector.requiredStormCharts || 0,
+      requiredStormPayout: sector.requiredStormPayout || 0,
       rewardCredits: sector.rewardCredits,
       status: "active",
       sectorId: sector.id,
@@ -1098,6 +1754,8 @@ const VoidProspector = (() => {
       deliveredSalvageValue: 0,
       deliveredRelics: 0,
       deliveredConvoyValue: 0,
+      deliveredStormCharts: 0,
+      deliveredStormPayout: 0,
       completedAt: null,
     };
   }
@@ -1198,6 +1856,7 @@ const VoidProspector = (() => {
     const anomalies = createAnomalyNodes(seed, sector);
     const salvageSites = createSalvageSites(seed, sector);
     const convoyRoutes = createConvoyRoutes(seed, sector, stationServices, options);
+    const stormCharts = createStormCharts(seed, sector, stationServices, options);
     const ship = {
       name: GAME_DATA.ship.name,
       position: clone(GAME_DATA.ship.startPosition),
@@ -1233,6 +1892,8 @@ const VoidProspector = (() => {
       salvage: createSalvageState(options, stationServices, salvageSites),
       convoyRoutes,
       convoy: createConvoyState(options, stationServices, convoyRoutes),
+      stormCharts,
+      storm: createStormCartographyState(options, stationServices, stormCharts),
       station: {
         ...clone(GAME_DATA.station),
         docked: false,
@@ -1298,6 +1959,14 @@ const VoidProspector = (() => {
         convoyFailures: 0,
         convoyPartialPayouts: 0,
         convoyCountermeasures: 0,
+        stormChartsScanned: 0,
+        stormAnchorsDeployed: 0,
+        stormWindowsLocked: 0,
+        stormPayouts: 0,
+        stormFailures: 0,
+        stormPartialPayouts: 0,
+        stormCountermeasures: 0,
+        stormSalvageReroutes: 0,
         countermeasuresDeployed: 0,
         sorties: options.runCount || 1,
       },
@@ -1337,10 +2006,17 @@ const VoidProspector = (() => {
       position: route.beacon.position,
       name: route.beacon.name,
     }));
+    const stormTargets = (state.stormCharts || []).map((chart) => ({
+      kind: "storm",
+      id: chart.id,
+      position: chart.position,
+      name: chart.name,
+    }));
     return [
       ...asteroidTargets,
       ...salvageTargets,
       ...convoyTargets,
+      ...stormTargets,
       ...anomalyTargets,
       { kind: "station", id: state.station.id, position: state.station.position, name: state.station.name },
       { kind: "pirate", id: state.pirate.id, position: state.pirate.position, name: state.pirate.name },
@@ -1363,6 +2039,9 @@ const VoidProspector = (() => {
     if (target.kind === "convoy") {
       return convoyRouteById(state, target.id);
     }
+    if (target.kind === "storm") {
+      return stormChartById(state, target.id);
+    }
     if (target.kind === "station") {
       return state.station;
     }
@@ -1378,6 +2057,14 @@ const VoidProspector = (() => {
     }
     if (state.contract.status === "complete") {
       return `${state.contract.title} complete. Restart into ${state.ladder.recommendedSectorId}.`;
+    }
+    if (state.storm && state.storm.activeChartId) {
+      const chart = stormChartById(state, state.storm.activeChartId);
+      if (chart && chart.stormState.safeWindow.locked && chart.stormState.outcome === "none") {
+        return `Hold ${chart.name}: window ${stormWindowTiming(chart, state).remaining}s / anchor ${Math.round(
+          chart.stormState.anchorIntegrity
+        )} integrity.`;
+      }
     }
     if (state.convoy && state.convoy.activeRouteId) {
       const route = convoyRouteById(state, state.convoy.activeRouteId);
@@ -1414,6 +2101,14 @@ const VoidProspector = (() => {
       }
       return `Recover ${state.contract.requiredRelics - (state.contract.deliveredRelics || 0)} derelict relic.`;
     }
+    if ((state.contract.requiredStormCharts || 0) > (state.contract.deliveredStormCharts || 0)) {
+      return `Chart ${state.contract.requiredStormCharts - (state.contract.deliveredStormCharts || 0)} storm window in ${
+        sectorById(state.ladder.currentSectorId).name
+      }.`;
+    }
+    if ((state.contract.requiredStormPayout || 0) > (state.contract.deliveredStormPayout || 0)) {
+      return `Bank ${state.contract.requiredStormPayout - (state.contract.deliveredStormPayout || 0)}cr from storm-cartography routes.`;
+    }
     if ((state.salvage.holdValue > 0 || state.salvage.relicsInHold > 0) && state.station.proximity.dockable) {
       return "Dock at Frontier Spoke to bank salvage value and relic manifests.";
     }
@@ -1441,6 +2136,7 @@ const VoidProspector = (() => {
       state.station.docked = false;
     }
 
+    syncStormDerivedState(state);
     syncConvoyDerivedState(state);
 
     const selected = findTarget(state);
@@ -1471,6 +2167,14 @@ const VoidProspector = (() => {
         : 1;
     const relicProgress =
       state.contract.requiredRelics > 0 ? Math.min(1, (state.contract.deliveredRelics || 0) / state.contract.requiredRelics) : 1;
+    const stormChartProgress =
+      state.contract.requiredStormCharts > 0
+        ? Math.min(1, (state.contract.deliveredStormCharts || 0) / state.contract.requiredStormCharts)
+        : 1;
+    const stormPayoutProgress =
+      state.contract.requiredStormPayout > 0
+        ? Math.min(1, (state.contract.deliveredStormPayout || 0) / state.contract.requiredStormPayout)
+        : 1;
     const progressParts = [oreProgress];
     if (state.contract.requiredScans > 0) {
       progressParts.push(scanProgress);
@@ -1480,6 +2184,12 @@ const VoidProspector = (() => {
     }
     if (state.contract.requiredRelics > 0) {
       progressParts.push(relicProgress);
+    }
+    if (state.contract.requiredStormCharts > 0) {
+      progressParts.push(stormChartProgress);
+    }
+    if (state.contract.requiredStormPayout > 0) {
+      progressParts.push(stormPayoutProgress);
     }
     state.contract.progress = round(
       progressParts.reduce((total, progress) => total + progress, 0) / progressParts.length,
@@ -1774,10 +2484,365 @@ const VoidProspector = (() => {
     return syncDerivedState(next);
   }
 
+  function stormAnchorInRange(state, chart) {
+    const range = chart.anchorDeployRange || GAME_DATA.stormCartography.anchorDeployRange;
+    const anchorPosition = chart.anchor ? chart.anchor.position : chart.position;
+    const anchorRadius = chart.anchor ? chart.anchor.radius || 0 : chart.radius || 0;
+    return distance(state.ship.position, anchorPosition) <= range + anchorRadius;
+  }
+
+  function scanStormChart(state, deltaSeconds = 1) {
+    const dt = Math.max(0, Math.min(deltaSeconds, 2));
+    const next = clone(state);
+    if (next.run.status === "failed" || next.run.status === "complete") {
+      next.storm.status = "run closed";
+      return syncDerivedState(next);
+    }
+    const target = findTarget(next);
+    if (!target || next.target.kind !== "storm") {
+      next.storm.status = "no storm lock";
+      return syncDerivedState(next);
+    }
+    const readiness = stormChartReadiness(next, target.id);
+    if (!readiness.ready) {
+      target.stormState.status = "locked";
+      next.storm.status = `locked: ${readiness.missing.join(", ")}`;
+      return syncDerivedState(next);
+    }
+    const range = distance(next.ship.position, target.position);
+    if (range > next.storm.scanRange + target.radius) {
+      next.storm.status = "out of storm scan range";
+      return syncDerivedState(next);
+    }
+    if (target.stormState.charted) {
+      target.stormState.status = "charted";
+      next.storm.status = `${target.name} already charted`;
+      return syncDerivedState(next);
+    }
+
+    target.stormState.status = "scanning";
+    target.stormState.progress += next.storm.scanPower * dt;
+    target.stormState.lastTouchedTick = next.tick;
+    next.scanning.active = true;
+    next.scanning.targetId = target.id;
+    next.scanning.lastScan = clamp(target.stormState.progress / target.scanDifficulty, 0, 1);
+    next.scanning.status = `storm chart ${Math.round(next.scanning.lastScan * 100)}%`;
+    if (target.stormState.progress >= target.scanDifficulty) {
+      target.stormState.progress = target.scanDifficulty;
+      target.stormState.charted = true;
+      target.stormState.status = "charted";
+      next.storm.status = `${target.name} charted`;
+      next.storm.lastOutcome = `${target.name} charted`;
+      next.contract.deliveredStormCharts = (next.contract.deliveredStormCharts || 0) + 1;
+      next.ladder.stormScore += target.surveyReward || 0;
+      next.ladder.hazardCharts[next.ladder.currentSectorId] = true;
+      next.hazard.surveyed = true;
+      next.hazard.status = "charted";
+      next.hazard.exposure = Math.max(0, round(next.hazard.exposure - (target.hazardMitigation || 0), 3));
+      next.stats.stormChartsScanned += 1;
+      next.log.unshift({ tick: next.tick, message: `${target.name} charted into Storm Cartography.` });
+    }
+    return syncDerivedState(next);
+  }
+
+  function deployStormAnchor(state, chartId) {
+    const next = syncDerivedState(clone(state));
+    const chart = stormChartById(next, chartId);
+    if (!chart) {
+      next.storm.status = "unknown storm chart";
+      return syncDerivedState(next);
+    }
+    const readiness = stormChartReadiness(next, chartId);
+    if (!readiness.ready || !chart.stormState.charted) {
+      chart.stormState.status = "locked";
+      next.storm.status = `locked: ${readiness.missing.join(", ") || "chart storm front"}`;
+      return syncDerivedState(next);
+    }
+    if (!stormAnchorInRange(next, chart)) {
+      chart.stormState.status = "anchor out of range";
+      next.storm.status = `${chart.anchor.name} out of range`;
+      return syncDerivedState(next);
+    }
+    if (chart.stormState.anchorDeployed) {
+      chart.stormState.status = "anchor deployed";
+      next.storm.status = `${chart.anchor.name} already deployed`;
+      return syncDerivedState(next);
+    }
+
+    chart.stormState.anchorDeployed = true;
+    chart.stormState.anchorIntegrity = chart.stormState.maxAnchorIntegrity;
+    chart.stormState.status = "anchor deployed";
+    chart.stormState.lastTouchedTick = next.tick;
+    next.storm.anchorsDeployed += 1;
+    next.storm.anchoredChartIds = uniqueList([...next.storm.anchoredChartIds, chart.id]);
+    next.ladder.anchoredStormChartIds = uniqueList([...(next.ladder.anchoredStormChartIds || []), chart.id]);
+    next.hazard.exposure = Math.max(0, round(next.hazard.exposure - 0.35, 3));
+    next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (chart.piratePressureClear || 0) * 0.25, 2));
+    next.stats.stormAnchorsDeployed += 1;
+    next.storm.lastOutcome = `${chart.anchor.name} deployed`;
+    next.log.unshift({ tick: next.tick, message: `${chart.anchor.name} deployed for ${chart.name}.` });
+    return syncDerivedState(next);
+  }
+
+  function maintainStormAnchor(state, chartId) {
+    const next = syncDerivedState(clone(state));
+    const chart = stormChartById(next, chartId);
+    if (!chart) {
+      next.storm.status = "unknown storm chart";
+      return syncDerivedState(next);
+    }
+    if (!chart.stormState.anchorDeployed) {
+      return deployStormAnchor(next, chartId);
+    }
+    if (!stormAnchorInRange(next, chart) && !next.station.proximity.dockable) {
+      chart.stormState.status = "anchor maintenance out of range";
+      next.storm.status = `${chart.anchor.name} maintenance out of range`;
+      return syncDerivedState(next);
+    }
+    const integrityGain =
+      GAME_DATA.stormCartography.anchorMaintenanceIntegrity + Math.round((next.stationServices.stormAnchorIntegrity || 0) * 0.35);
+    chart.stormState.anchorIntegrity = Math.min(
+      chart.stormState.maxAnchorIntegrity,
+      round(chart.stormState.anchorIntegrity + integrityGain, 2)
+    );
+    chart.stormState.status = "anchor maintained";
+    chart.stormState.lastTouchedTick = next.tick;
+    next.hazard.exposure = Math.max(0, round(next.hazard.exposure - (chart.hazardMitigation || 0), 3));
+    next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (chart.piratePressureClear || 0) * 0.35, 2));
+    next.storm.lastOutcome = `${chart.anchor.name} maintained`;
+    next.log.unshift({ tick: next.tick, message: `${chart.anchor.name} maintained; storm interference dropped.` });
+    return syncDerivedState(next);
+  }
+
+  function applyStormWindowBenefits(state, chart) {
+    const next = state;
+    (chart.convoyRouteIds || []).forEach((routeId) => {
+      const route = convoyRouteById(next, routeId);
+      if (!route) {
+        return;
+      }
+      route.convoyState.ambushPressure = Math.max(0, round((route.convoyState.ambushPressure || route.ambushPressure || 0) - (chart.convoyAmbushReduction || 0), 2));
+      route.convoyState.hazardExposure = Math.max(0, round((route.convoyState.hazardExposure || route.hazardExposure || 0) - (chart.convoyHazardReduction || 0), 2));
+      route.convoyState.payoutCredits = Math.round(
+        (route.payoutCredits || route.cargoValue || 0) * (1 + (chart.convoyPayoutBonus || 0) + (next.stationServices.stormPayoutBonus || 0))
+      );
+      route.convoyState.stormWindowStatus = `locked ${chart.id}`;
+    });
+    (chart.salvageSiteIds || []).forEach((siteId) => {
+      const site = (next.salvageSites || []).find((candidate) => candidate.id === siteId);
+      if (site) {
+        site.salvageState.stormReroute = {
+          chartId: chart.id,
+          status: "window shielded",
+          riskReduction: chart.salvageRiskReduction || 0,
+        };
+      }
+    });
+    return next;
+  }
+
+  function missStormWindow(state, chart, reason = "safe window missed") {
+    const next = state;
+    chart.stormState.status = "failed";
+    chart.stormState.outcome = "failed";
+    chart.stormState.failureReason = reason;
+    chart.stormState.safeWindow.missed = true;
+    chart.stormState.lastTouchedTick = next.tick;
+    next.storm.failedChartIds = uniqueList([...next.storm.failedChartIds, chart.id]);
+    next.ladder.failedStormChartIds = uniqueList([...(next.ladder.failedStormChartIds || []), chart.id]);
+    next.ship.hull = Math.max(0, round(next.ship.hull - (chart.missedHullDamage || 0), 2));
+    next.ship.fuel = Math.max(0, round(next.ship.fuel - (chart.missedFuelDrain || 0), 2));
+    next.hazard.exposure = round(next.hazard.exposure + (chart.missedHazardExposure || 0), 3);
+    next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (chart.missedPiratePressure || 0), 2));
+    if (next.pirate.state === "dormant" && (chart.missedPiratePressure || 0) > 0) {
+      next.pirate.state = "shadowing";
+      next.pirate.encounterState = "contact";
+    }
+    next.storm.status = `${chart.name} failed`;
+    next.storm.lastOutcome = reason;
+    next.stats.stormFailures += 1;
+    next.log.unshift({ tick: next.tick, message: `${chart.name} failed: ${reason}.` });
+    return next;
+  }
+
+  function lockStormRouteWindow(state, chartId) {
+    const next = syncDerivedState(clone(state));
+    const chart = stormChartById(next, chartId);
+    if (!chart) {
+      next.storm.status = "unknown storm chart";
+      return syncDerivedState(next);
+    }
+    const readiness = stormChartReadiness(next, chartId);
+    if (!readiness.ready || !chart.stormState.charted || !chart.stormState.anchorDeployed) {
+      chart.stormState.status = "window locked out";
+      next.storm.status = `window locked out: ${readiness.missing.join(", ") || "chart and anchor required"}`;
+      return syncDerivedState(next);
+    }
+    const timing = stormWindowTiming(chart, next);
+    if (timing.pending) {
+      chart.stormState.status = `window opens at ${timing.opensAt}`;
+      next.storm.status = chart.stormState.status;
+      return syncDerivedState(next);
+    }
+    if (timing.missed) {
+      missStormWindow(next, chart, "safe window missed before anchor lock");
+      return syncDerivedState(next);
+    }
+    if (chart.stormState.safeWindow.locked) {
+      chart.stormState.status = "window locked";
+      next.storm.status = `${chart.name} already locked`;
+      return syncDerivedState(next);
+    }
+    chart.stormState.safeWindow.locked = true;
+    chart.stormState.safeWindow.lockedAt = next.elapsed;
+    chart.stormState.status = "window locked";
+    chart.stormState.lastTouchedTick = next.tick;
+    next.storm.activeChartId = chart.id;
+    next.storm.windowsLocked += 1;
+    next.stats.stormWindowsLocked += 1;
+    next.hazard.exposure = Math.max(0, round(next.hazard.exposure - (chart.hazardMitigation || 0), 3));
+    next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (chart.piratePressureClear || 0), 2));
+    applyStormWindowBenefits(next, chart);
+    next.storm.lastOutcome = `${chart.name} window locked`;
+    next.log.unshift({ tick: next.tick, message: `${chart.name} safe window locked through ${chart.anchor.name}.` });
+    return syncDerivedState(next);
+  }
+
+  function stabilizeStormWindow(state, chartId) {
+    const next = syncDerivedState(clone(state));
+    const chart = stormChartById(next, chartId);
+    if (!chart) {
+      next.storm.status = "unknown storm chart";
+      return syncDerivedState(next);
+    }
+    if (!chart.stormState.safeWindow.locked || chart.stormState.outcome !== "none") {
+      next.storm.status = "no active storm window";
+      return syncDerivedState(next);
+    }
+    if (!next.stationServices || next.stationServices.countermeasureCharges <= 0) {
+      next.stationServices = next.stationServices || createStationServiceState();
+      next.stationServices.countermeasureStatus = "no charge";
+      return syncDerivedState(next);
+    }
+    next.stationServices.countermeasureCharges -= 1;
+    next.stationServices.countermeasureStatus = "storm burst";
+    chart.stormState.countermeasureUsed = true;
+    chart.stormState.anchorIntegrity = Math.min(
+      chart.stormState.maxAnchorIntegrity,
+      round(chart.stormState.anchorIntegrity + GAME_DATA.stormCartography.countermeasureIntegrity, 2)
+    );
+    chart.stormState.safeWindow.closesAt = round(
+      chart.stormState.safeWindow.closesAt + GAME_DATA.stormCartography.countermeasureWindowBonus,
+      2
+    );
+    next.hazard.exposure = Math.max(0, round(next.hazard.exposure - GAME_DATA.stormCartography.countermeasureHazardClear, 3));
+    next.pirate.pressure = Math.max(0, round(next.pirate.pressure - 18, 2));
+    next.stats.countermeasuresDeployed += 1;
+    next.stats.stormCountermeasures += 1;
+    next.storm.lastOutcome = `${chart.name} stabilized`;
+    applyStormWindowBenefits(next, chart);
+    next.log.unshift({ tick: next.tick, message: `Countermeasure stabilized ${chart.name}.` });
+    return syncDerivedState(next);
+  }
+
+  function rerouteStormSalvage(state, siteId, chartId) {
+    const next = syncDerivedState(clone(state));
+    const chart = stormChartById(next, chartId);
+    const site = (next.salvageSites || []).find((candidate) => candidate.id === siteId);
+    if (!chart || !site) {
+      next.storm.status = "unknown storm salvage reroute";
+      return syncDerivedState(next);
+    }
+    if (!chart.stormState.safeWindow.locked || chart.stormState.outcome !== "none" || !(chart.salvageSiteIds || []).includes(site.id)) {
+      next.storm.status = `${site.name} has no storm window`;
+      return syncDerivedState(next);
+    }
+    site.salvageState.stormReroute = {
+      chartId: chart.id,
+      status: "rerouted",
+      riskReduction: chart.salvageRiskReduction || 0,
+    };
+    chart.stormState.salvageReroutes = uniqueList([...(chart.stormState.salvageReroutes || []), site.id]);
+    next.storm.salvageReroutes += 1;
+    next.stats.stormSalvageReroutes += 1;
+    next.hazard.exposure = Math.max(0, round(next.hazard.exposure - (chart.hazardMitigation || 0) * 0.5, 3));
+    next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (chart.piratePressureClear || 0) * 0.5, 2));
+    next.salvage.lastOutcome = `${site.name} storm reroute`;
+    next.storm.lastOutcome = `${site.name} rerouted through ${chart.name}`;
+    next.log.unshift({ tick: next.tick, message: `${site.name} rerouted through ${chart.name}.` });
+    return syncDerivedState(next);
+  }
+
+  function resolveStormWindow(state, chartId) {
+    const next = syncDerivedState(clone(state));
+    const chart = stormChartById(next, chartId);
+    if (!chart) {
+      next.storm.status = "unknown storm chart";
+      return syncDerivedState(next);
+    }
+    if (["complete", "partial", "failed"].includes(chart.stormState.outcome)) {
+      return syncDerivedState(next);
+    }
+    if (!chart.stormState.safeWindow.locked) {
+      if (stormWindowTiming(chart, next).missed) {
+        missStormWindow(next, chart, "safe window missed before route lock");
+      } else {
+        next.storm.status = `${chart.name} window not locked`;
+      }
+      return syncDerivedState(next);
+    }
+    if (chart.stormState.anchorIntegrity <= (chart.failureIntegrity || 0)) {
+      missStormWindow(next, chart, "relay anchor collapsed");
+      return syncDerivedState(next);
+    }
+    const partial =
+      chart.stormState.anchorIntegrity < (chart.partialIntegrity || chart.stormState.maxAnchorIntegrity * 0.6) ||
+      (next.elapsed || 0) > (chart.stormState.safeWindow.closesAt || 0);
+    const payoutRate = partial ? chart.partialPayoutRate || 0.5 : 1;
+    const payout = Math.round((chart.stormState.payoutCredits || chart.rewardCredits || 0) * payoutRate * (1 + (next.stationServices.stormPayoutBonus || 0)));
+    chart.stormState.status = partial ? "partial" : "complete";
+    chart.stormState.outcome = partial ? "partial" : "complete";
+    chart.stormState.deliveredValue = payout;
+    chart.stormState.partialPayoutCredits = partial ? payout : 0;
+    chart.stormState.failureReason = partial ? "anchor losses narrowed the storm window" : null;
+    chart.stormState.lastTouchedTick = next.tick;
+    next.storm.completedChartIds = uniqueList([...next.storm.completedChartIds, chart.id]);
+    next.ladder.completedStormChartIds = uniqueList([...(next.ladder.completedStormChartIds || []), chart.id]);
+    if (partial) {
+      next.storm.partialChartIds = uniqueList([...next.storm.partialChartIds, chart.id]);
+      next.ladder.partialStormChartIds = uniqueList([...(next.ladder.partialStormChartIds || []), chart.id]);
+      next.stats.stormPartialPayouts += 1;
+    }
+    next.storm.payoutBanked += payout;
+    next.storm.stormScore += partial ? Math.ceil((chart.ladderScore || 0) * 0.55) : chart.ladderScore || 0;
+    next.ladder.stormScore += partial ? Math.ceil((chart.ladderScore || 0) * 0.55) : chart.ladderScore || 0;
+    next.credits += payout;
+    next.contract.deliveredStormPayout = (next.contract.deliveredStormPayout || 0) + payout;
+    next.stats.stormPayouts += payout;
+    next.storm.status = `${chart.name} ${chart.stormState.status}`;
+    next.storm.lastOutcome = `${payout}cr ${chart.stormState.status}`;
+    next.log.unshift({
+      tick: next.tick,
+      message: `${chart.name} ${partial ? "held partially" : "held"} for ${payout} credits.`,
+    });
+    return syncDerivedState(next);
+  }
+
   function salvageRisk(site, state) {
     const confidenceGap = Math.max(0, (site.confidenceThreshold || 0.65) - site.salvageState.scanConfidence);
     const phaseRisk = (site.riskPhase || 0) * 0.08;
-    return round(clamp((site.volatility || 0) + confidenceGap + phaseRisk - (state.salvage.riskMitigation || 0), 0, 1.5), 3);
+    return round(
+      clamp(
+        (site.volatility || 0) +
+          confidenceGap +
+          phaseRisk -
+          (state.salvage.riskMitigation || 0) -
+          stormSalvageRiskMitigation(site, state),
+        0,
+        1.5
+      ),
+      3
+    );
   }
 
   function scanSalvageTarget(state, deltaSeconds = 1) {
@@ -1992,7 +3057,9 @@ const VoidProspector = (() => {
       state.contract.deliveredOre >= state.contract.requiredOre &&
       state.contract.deliveredScans >= state.contract.requiredScans &&
       (state.contract.deliveredSalvageValue || 0) >= (state.contract.requiredSalvageValue || 0) &&
-      (state.contract.deliveredRelics || 0) >= (state.contract.requiredRelics || 0)
+      (state.contract.deliveredRelics || 0) >= (state.contract.requiredRelics || 0) &&
+      (state.contract.deliveredStormCharts || 0) >= (state.contract.requiredStormCharts || 0) &&
+      (state.contract.deliveredStormPayout || 0) >= (state.contract.requiredStormPayout || 0)
     );
   }
 
@@ -2006,6 +3073,9 @@ const VoidProspector = (() => {
       next.ladder.surveyScore += sector.surveyReward || 0;
       if ((sector.requiredSalvageValue || 0) > 0 && (next.contract.deliveredSalvageValue || 0) >= sector.requiredSalvageValue) {
         next.ladder.salvageScore += sector.salvageReward || 0;
+      }
+      if ((sector.requiredStormCharts || 0) > 0 && (next.contract.deliveredStormCharts || 0) >= sector.requiredStormCharts) {
+        next.ladder.stormScore += sector.stormReward || 0;
       }
       next.ladder.lastCompletedSectorId = sector.id;
     }
@@ -2128,6 +3198,11 @@ const VoidProspector = (() => {
     next.stationServices.convoyEscortIntegrity += service.convoyEscortIntegrity || 0;
     next.stationServices.convoyAmbushMitigation += service.convoyAmbushMitigation || 0;
     next.stationServices.convoyPayoutBonus += service.convoyPayoutBonus || 0;
+    next.stationServices.stormScanBonus += service.stormScanBonus || 0;
+    next.stationServices.stormAnchorIntegrity += service.stormAnchorIntegrity || 0;
+    next.stationServices.stormWindowBonus += service.stormWindowBonus || 0;
+    next.stationServices.stormHazardMitigation += service.stormHazardMitigation || 0;
+    next.stationServices.stormPayoutBonus += service.stormPayoutBonus || 0;
     next.stationServices.lastService = `${service.name} purchased`;
     next.log.unshift({ tick: next.tick, message: `${service.name} purchased for the next survey push.` });
     return syncDerivedState(next);
@@ -2136,6 +3211,12 @@ const VoidProspector = (() => {
   function deployCountermeasure(state) {
     if (state.convoy && state.convoy.activeRouteId) {
       return deployConvoyCountermeasure(state);
+    }
+    if (state.storm && state.storm.activeChartId) {
+      const chart = stormChartById(state, state.storm.activeChartId);
+      if (chart && chart.stormState.safeWindow.locked && chart.stormState.outcome === "none") {
+        return stabilizeStormWindow(state, chart.id);
+      }
     }
     const next = clone(state);
     if (!next.stationServices || next.stationServices.countermeasureCharges <= 0) {
@@ -2267,22 +3348,24 @@ const VoidProspector = (() => {
       0,
       round((route.ambushPressure || 0) - (next.stationServices.convoyAmbushMitigation || 0) * 100, 2)
     );
+    const stormModifier = stormWindowModifierForRoute(next, route);
     route.convoyState.status = "enroute";
     route.convoyState.progress = 0;
     route.convoyState.position = clone(route.startPosition || route.beacon.position);
     route.convoyState.escortIntegrity = escortIntegrity;
     route.convoyState.maxEscortIntegrity = escortIntegrity;
     route.convoyState.cargoValue = route.cargoValue;
-    route.convoyState.payoutCredits = route.payoutCredits || route.cargoValue;
+    route.convoyState.payoutCredits = Math.round((route.payoutCredits || route.cargoValue) * (1 + stormModifier.payoutBonus));
     route.convoyState.deliveredValue = 0;
-    route.convoyState.ambushPressure = ambushPressure;
-    route.convoyState.hazardExposure = route.hazardExposure || 0;
+    route.convoyState.ambushPressure = Math.max(0, round(ambushPressure - stormModifier.ambushReduction, 2));
+    route.convoyState.hazardExposure = Math.max(0, round((route.hazardExposure || 0) - stormModifier.hazardReduction, 2));
     route.convoyState.failureReason = null;
     route.convoyState.startedAt = next.tick;
     route.convoyState.completedAt = null;
     route.convoyState.countermeasureUsed = false;
     route.convoyState.formationStatus = "forming";
     route.convoyState.lastDamage = 0;
+    route.convoyState.stormWindowStatus = stormModifier.active ? `locked ${stormModifier.chartId}` : "none";
     next.convoy.activeRouteId = route.id;
     next.convoy.status = `${route.name} enroute`;
     next.stats.convoysStarted += 1;
@@ -2290,7 +3373,7 @@ const VoidProspector = (() => {
       next.pirate.state = "shadowing";
       next.pirate.encounterState = "contact";
     }
-    next.pirate.pressure = Math.min(100, round(next.pirate.pressure + ambushPressure * 0.2, 2));
+    next.pirate.pressure = Math.min(100, round(next.pirate.pressure + route.convoyState.ambushPressure * 0.2, 2));
     next.log.unshift({ tick: next.tick, message: `${route.name} started with ${escortIntegrity} escort integrity.` });
     return syncDerivedState(next);
   }
@@ -2322,18 +3405,20 @@ const VoidProspector = (() => {
     const beaconScale = route.beaconState.deployed
       ? 1 - clamp(route.beaconState.integrity / Math.max(1, route.beaconState.maxIntegrity), 0, 1) * 0.18
       : 1;
+    const stormModifier = stormWindowModifierForRoute(next, route);
+    const stormScale = stormModifier.active ? 0.72 : 1;
     const countermeasureScale = route.convoyState.countermeasureUsed ? 0.62 : 1;
     const formationScale = inFormation ? 0.68 : 1.35;
     const ambushDamage =
-      Math.max(0, route.convoyState.ambushPressure || 0) * 0.028 * dt * countermeasureScale * formationScale;
-    const hazardDamage = (route.convoyState.hazardExposure || 0) * 0.34 * dt * chartScale * beaconScale;
+      Math.max(0, route.convoyState.ambushPressure || 0) * 0.028 * dt * countermeasureScale * formationScale * stormScale;
+    const hazardDamage = (route.convoyState.hazardExposure || 0) * 0.34 * dt * chartScale * beaconScale * stormScale;
     const damage = round(ambushDamage + hazardDamage, 2);
 
     route.convoyState.escortIntegrity = Math.max(0, round(route.convoyState.escortIntegrity - damage, 2));
     route.convoyState.lastDamage = damage;
     route.convoyState.formationStatus = inFormation ? "tight" : "straggling";
     route.convoyState.status = inFormation ? "enroute" : "straggling";
-    route.beaconState.integrity = Math.max(0, round(route.beaconState.integrity - dt * (inFormation ? 0.35 : 0.75), 2));
+    route.beaconState.integrity = Math.max(0, round(route.beaconState.integrity - dt * (inFormation ? 0.35 : 0.75) * stormScale, 2));
     next.convoy.escortLosses = round(next.convoy.escortLosses + damage, 2);
     next.hazard.exposure = round(next.hazard.exposure + (route.convoyState.hazardExposure || 0) * dt * (hazardCharted ? 0.055 : 0.1), 3);
     next.pirate.pressure = Math.min(
@@ -2473,7 +3558,8 @@ const VoidProspector = (() => {
       state.stats.salvageSitesLocked === 0 &&
       state.salvage.holdValue === 0 &&
       state.salvage.relicsInHold === 0 &&
-      (!state.convoy || (state.stats.convoysStarted === 0 && state.convoy.payoutBanked === 0))
+      (!state.convoy || (state.stats.convoysStarted === 0 && state.convoy.payoutBanked === 0)) &&
+      (!state.storm || (state.stats.stormChartsScanned === 0 && state.storm.payoutBanked === 0 && state.storm.windowsLocked === 0))
     );
   }
 
@@ -2504,6 +3590,7 @@ const VoidProspector = (() => {
         abandoned: current.salvage.abandoned,
       },
       convoy: convoyPersistence(current),
+      storm: stormPersistence(current),
       sectorId: sector.id,
     });
     next.ladder.lastChoice = `sector ${sector.name}`;
@@ -2530,6 +3617,7 @@ const VoidProspector = (() => {
         abandoned: state.salvage.abandoned,
       },
       convoy: convoyPersistence(state),
+      storm: stormPersistence(state),
       sectorId,
     });
     next.log.unshift({
@@ -2545,7 +3633,13 @@ const VoidProspector = (() => {
       return next;
     }
     const chartBonus = next.hazard.surveyed ? 0.55 : 0;
-    const effectiveIntensity = Math.max(0, next.hazard.intensity - (next.hazard.mitigation || 0) - chartBonus);
+    const stormBonus = (next.stormCharts || []).reduce((bonus, chart) => {
+      if (chart.stormState.safeWindow.locked && chart.stormState.outcome === "none") {
+        return Math.max(bonus, (chart.hazardMitigation || 0) + (next.stationServices.stormHazardMitigation || 0));
+      }
+      return bonus;
+    }, 0);
+    const effectiveIntensity = Math.max(0, next.hazard.intensity - (next.hazard.mitigation || 0) - chartBonus - stormBonus);
     next.hazard.effectiveIntensity = round(effectiveIntensity, 3);
     if (effectiveIntensity <= 0) {
       next.hazard.status = next.hazard.surveyed ? "charted" : "suppressed";
@@ -2560,6 +3654,27 @@ const VoidProspector = (() => {
     } else {
       next.hazard.status = next.hazard.surveyed ? "charted" : sectorById(next.ladder.currentSectorId).hazard.status;
     }
+    return next;
+  }
+
+  function updateStormWindows(state, deltaSeconds) {
+    const next = state;
+    if (!next.storm || !next.stormCharts) {
+      return next;
+    }
+    const dt = Math.max(0, Math.min(deltaSeconds, 5));
+    next.stormCharts.forEach((chart) => {
+      if (!chart.stormState.safeWindow.locked || chart.stormState.outcome !== "none") {
+        return;
+      }
+      const mitigation = next.stationServices ? next.stationServices.stormHazardMitigation || 0 : 0;
+      const decay = Math.max(0.12, (chart.intensity || 0) - mitigation) * dt * 0.38;
+      chart.stormState.anchorIntegrity = Math.max(0, round(chart.stormState.anchorIntegrity - decay, 2));
+      chart.stormState.status = (next.elapsed || 0) > (chart.stormState.safeWindow.closesAt || 0) ? "window closing" : "window locked";
+      if (chart.stormState.anchorIntegrity <= (chart.failureIntegrity || 0)) {
+        missStormWindow(next, chart, "relay anchor collapsed under storm load");
+      }
+    });
     return next;
   }
 
@@ -2610,6 +3725,7 @@ const VoidProspector = (() => {
     next.elapsed = round(next.elapsed + dt, 3);
     next = updatePirateState(next, dt);
     next = updateHazardState(next, dt);
+    next = updateStormWindows(next, dt);
     if (next.convoy && next.convoy.activeRouteId) {
       next = advanceConvoyRoute(next, dt);
     }
@@ -2620,7 +3736,12 @@ const VoidProspector = (() => {
       next = next.target.kind === "salvage" ? extractSalvageTarget(next, dt) : mineTarget(next, dt);
     }
     if (input.scan) {
-      next = next.target.kind === "salvage" ? scanSalvageTarget(next, dt) : scanTarget(next, dt);
+      next =
+        next.target.kind === "salvage"
+          ? scanSalvageTarget(next, dt)
+          : next.target.kind === "storm"
+            ? scanStormChart(next, dt)
+            : scanTarget(next, dt);
     }
     if (input.interact) {
       next = dockAtStation(next);
@@ -2744,6 +3865,16 @@ const VoidProspector = (() => {
         convoyScore: state.ladder.convoyScore,
         completedRouteIds: state.ladder.completedConvoyRouteIds.slice(),
       },
+      storm: {
+        version: state.storm.version,
+        releaseLabel: state.storm.releaseLabel,
+        status: state.storm.status,
+        payoutBanked: state.storm.payoutBanked,
+        stormScore: state.ladder.stormScore,
+        completedChartIds: state.ladder.completedStormChartIds.slice(),
+        failedChartIds: state.ladder.failedStormChartIds.slice(),
+        partialChartIds: state.ladder.partialStormChartIds.slice(),
+      },
     };
   }
 
@@ -2784,6 +3915,7 @@ const VoidProspector = (() => {
         extractionProgress: round(site.salvageState.extractionProgress, 3),
         status: site.salvageState.status,
         risk: salvageRisk(site, state),
+        stormReroute: site.salvageState.stormReroute || null,
       })),
     };
   }
@@ -2838,6 +3970,78 @@ const VoidProspector = (() => {
           countermeasureUsed: route.convoyState.countermeasureUsed,
           formationStatus: route.convoyState.formationStatus,
           lastDamage: route.convoyState.lastDamage,
+          stormWindowStatus: route.convoyState.stormWindowStatus || "none",
+        },
+      })),
+    };
+  }
+
+  function stormSummary(state) {
+    return {
+      version: state.storm.version,
+      releaseLabel: state.storm.releaseLabel,
+      status: state.storm.status,
+      activeChartId: state.storm.activeChartId,
+      completedChartIds: state.storm.completedChartIds.slice(),
+      failedChartIds: state.storm.failedChartIds.slice(),
+      partialChartIds: state.storm.partialChartIds.slice(),
+      anchoredChartIds: state.storm.anchoredChartIds.slice(),
+      payoutBanked: state.storm.payoutBanked,
+      stormScore: state.ladder.stormScore,
+      anchorsDeployed: state.storm.anchorsDeployed,
+      windowsLocked: state.storm.windowsLocked,
+      salvageReroutes: state.storm.salvageReroutes,
+      scanPower: state.storm.scanPower,
+      scanRange: state.storm.scanRange,
+      supportIntegrity: state.stationServices.stormAnchorIntegrity || 0,
+      supportMitigation: state.stationServices.stormHazardMitigation || 0,
+      windowBonus: state.stationServices.stormWindowBonus || 0,
+      payoutBonus: state.stationServices.stormPayoutBonus || 0,
+      contract: {
+        requiredStormCharts: state.contract.requiredStormCharts || 0,
+        deliveredStormCharts: state.contract.deliveredStormCharts || 0,
+        requiredStormPayout: state.contract.requiredStormPayout || 0,
+        deliveredStormPayout: state.contract.deliveredStormPayout || 0,
+      },
+      charts: (state.stormCharts || []).map((chart) => ({
+        id: chart.id,
+        name: chart.name,
+        type: chart.type,
+        family: chart.family,
+        intensity: chart.intensity,
+        prerequisitesReady: chart.prerequisiteStatus.ready,
+        missingPrerequisites: chart.prerequisiteStatus.missing.slice(),
+        rewardCredits: chart.stormState.payoutCredits,
+        surveyReward: chart.surveyReward || 0,
+        ladderScore: chart.ladderScore || 0,
+        safeWindow: stormWindowTiming(chart, state),
+        anchor: {
+          id: chart.anchor.id,
+          name: chart.anchor.name,
+          deployed: chart.stormState.anchorDeployed,
+          integrity: chart.stormState.anchorIntegrity,
+          maxIntegrity: chart.stormState.maxAnchorIntegrity,
+        },
+        modifiers: {
+          convoyRouteIds: (chart.convoyRouteIds || []).slice(),
+          salvageSiteIds: (chart.salvageSiteIds || []).slice(),
+          convoyAmbushReduction: chart.convoyAmbushReduction || 0,
+          convoyHazardReduction: chart.convoyHazardReduction || 0,
+          convoyPayoutBonus: chart.convoyPayoutBonus || 0,
+          salvageRiskReduction: chart.salvageRiskReduction || 0,
+          hazardMitigation: chart.hazardMitigation || 0,
+          piratePressureClear: chart.piratePressureClear || 0,
+        },
+        storm: {
+          status: chart.stormState.status,
+          progress: chart.stormState.progress,
+          charted: chart.stormState.charted,
+          outcome: chart.stormState.outcome,
+          deliveredValue: chart.stormState.deliveredValue,
+          partialPayoutCredits: chart.stormState.partialPayoutCredits,
+          failureReason: chart.stormState.failureReason,
+          countermeasureUsed: chart.stormState.countermeasureUsed,
+          salvageReroutes: (chart.stormState.salvageReroutes || []).slice(),
         },
       })),
     };
@@ -3039,6 +4243,12 @@ const VoidProspector = (() => {
     if (state.contract.requiredRelics > 0) {
       objectiveParts.push(`${state.contract.deliveredRelics}/${state.contract.requiredRelics} relic`);
     }
+    if (state.contract.requiredStormCharts > 0) {
+      objectiveParts.push(`${state.contract.deliveredStormCharts}/${state.contract.requiredStormCharts} storm`);
+    }
+    if (state.contract.requiredStormPayout > 0) {
+      objectiveParts.push(`${state.contract.deliveredStormPayout}/${state.contract.requiredStormPayout}cr storm`);
+    }
 
     return {
       titleText: `${summary.releaseLabel} v${summary.version} + ${salvage.releaseLabel} v${salvage.version} + ${convoy.releaseLabel} v${convoy.version} / tier ${summary.tier}`,
@@ -3088,7 +4298,7 @@ const VoidProspector = (() => {
       convoyRoutes: convoy.routes,
       convoyRows,
       actions: {
-        canScan: canAct && target.kind === "anomaly",
+        canScan: canAct && (target.kind === "anomaly" || target.kind === "storm"),
         canScanSalvage: canAct && target.kind === "salvage",
         canExtractSalvage: canAct && target.kind === "salvage",
         canAbandonSalvage:
@@ -3171,6 +4381,12 @@ const VoidProspector = (() => {
       status = `${target.convoyState.status} / beacon ${target.beaconState.status} / escort ${Math.round(
         target.convoyState.escortIntegrity
       )}/${Math.round(target.convoyState.maxEscortIntegrity)} / ambush ${target.convoyState.ambushPressure}`;
+    } else if (state.target.kind === "storm") {
+      const timing = stormWindowTiming(target, state);
+      const progress = Math.round((target.stormState.progress / target.scanDifficulty) * 100);
+      status = `${target.stormState.status} / chart ${progress}% / window ${timing.open ? "open" : timing.pending ? "pending" : timing.locked ? "locked" : "missed"} / anchor ${Math.round(
+        target.stormState.anchorIntegrity
+      )}/${Math.round(target.stormState.maxAnchorIntegrity)}`;
     } else if (state.target.kind === "station") {
       status = state.station.proximity.dockable ? "dockable" : "stand off";
     } else if (state.target.kind === "pirate") {
@@ -3212,6 +4428,22 @@ const VoidProspector = (() => {
       summary.hazardExposure = target.convoyState.hazardExposure;
       summary.payoutCredits = target.convoyState.payoutCredits;
       summary.deliveredValue = target.convoyState.deliveredValue;
+    }
+    if (state.target.kind === "storm") {
+      summary.type = target.type;
+      summary.family = target.family;
+      summary.intensity = target.intensity;
+      summary.charted = target.stormState.charted;
+      summary.anchorId = target.anchor.id;
+      summary.anchorStatus = target.stormState.anchorDeployed ? "deployed" : "undeployed";
+      summary.anchorIntegrity = target.stormState.anchorIntegrity;
+      summary.maxAnchorIntegrity = target.stormState.maxAnchorIntegrity;
+      summary.safeWindow = stormWindowTiming(target, state);
+      summary.rewardCredits = target.stormState.payoutCredits;
+      summary.prerequisitesReady = target.prerequisiteStatus.ready;
+      summary.missingPrerequisites = target.prerequisiteStatus.missing.slice();
+      summary.outcome = target.stormState.outcome;
+      summary.deliveredValue = target.stormState.deliveredValue;
     }
     return summary;
   }
@@ -3550,7 +4782,11 @@ const VoidProspector = (() => {
         currentState.target.kind === "salvage" ? extractSalvageTarget(currentState, 1) : mineTarget(currentState, 1);
     } else if (action === "scan") {
       currentState =
-        currentState.target.kind === "salvage" ? scanSalvageTarget(currentState, 1) : scanTarget(currentState, 1);
+        currentState.target.kind === "salvage"
+          ? scanSalvageTarget(currentState, 1)
+          : currentState.target.kind === "storm"
+            ? scanStormChart(currentState, 1)
+            : scanTarget(currentState, 1);
     } else if (action === "beacon") {
       if (currentState.target.kind === "convoy") {
         const route = convoyRouteById(currentState, currentState.target.id);
@@ -3558,10 +4794,18 @@ const VoidProspector = (() => {
           route && route.beaconState.deployed
             ? maintainRouteBeacon(currentState, currentState.target.id)
             : deployRouteBeacon(currentState, currentState.target.id);
+      } else if (currentState.target.kind === "storm") {
+        const chart = stormChartById(currentState, currentState.target.id);
+        currentState =
+          chart && chart.stormState.anchorDeployed
+            ? maintainStormAnchor(currentState, currentState.target.id)
+            : deployStormAnchor(currentState, currentState.target.id);
       }
     } else if (action === "convoy") {
       if (currentState.target.kind === "convoy") {
         currentState = startConvoyRoute(currentState, currentState.target.id);
+      } else if (currentState.target.kind === "storm") {
+        currentState = lockStormRouteWindow(currentState, currentState.target.id);
       }
     } else if (action === "abandon-salvage") {
       currentState = abandonSalvageTarget(currentState);
@@ -4323,17 +5567,21 @@ const VoidProspector = (() => {
     createAnomalyNodes,
     createSalvageSites,
     createConvoyRoutes,
+    createStormCharts,
     createSurveyLadderState,
     createConvoyState,
+    createStormCartographyState,
     applyFlightInput,
     stepSpaceflight,
     mineTarget,
     scanTarget,
+    scanStormChart,
     scanSalvageTarget,
     extractSalvageTarget,
     abandonSalvageTarget,
     salvageRisk,
     convoyRouteReadiness,
+    stormChartReadiness,
     deployRouteBeacon,
     maintainRouteBeacon,
     startConvoyRoute,
@@ -4341,6 +5589,12 @@ const VoidProspector = (() => {
     applyConvoyInterdiction,
     resolveConvoyPayout,
     deployConvoyCountermeasure,
+    deployStormAnchor,
+    maintainStormAnchor,
+    lockStormRouteWindow,
+    stabilizeStormWindow,
+    rerouteStormSalvage,
+    resolveStormWindow,
     dockAtStation,
     purchaseUpgrade,
     purchaseStationService,
@@ -4357,6 +5611,7 @@ const VoidProspector = (() => {
     surveySummary,
     salvageSummary,
     convoySummary,
+    stormSummary,
     surveyCockpitSurface,
     stationServiceSummary,
     targetSummary,

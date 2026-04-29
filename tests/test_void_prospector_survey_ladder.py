@@ -17,6 +17,8 @@ class VoidProspectorSurveyLadderTests(unittest.TestCase):
             console.log(JSON.stringify({
               version: state.ladder.version,
               releaseLabel: state.ladder.releaseLabel,
+              stormVersion: state.storm.version,
+              stormLabel: state.storm.releaseLabel,
               sectorId: state.ladder.currentSectorId,
               currentTier: state.ladder.currentTier,
               sectorCount: game.GAME_DATA.surveyLadder.sectors.length,
@@ -32,9 +34,11 @@ class VoidProspectorSurveyLadderTests(unittest.TestCase):
 
         self.assertEqual("0.1.0", result["version"])
         self.assertEqual("Survey Ladder", result["releaseLabel"])
+        self.assertEqual("0.4.0", result["stormVersion"])
+        self.assertEqual("Storm Cartography", result["stormLabel"])
         self.assertEqual("spoke-approach", result["sectorId"])
         self.assertEqual(1, result["currentTier"])
-        self.assertGreaterEqual(result["sectorCount"], 3)
+        self.assertGreaterEqual(result["sectorCount"], 4)
         self.assertEqual(8, result["defaultOre"])
         self.assertEqual(0, result["defaultScans"])
         self.assertEqual(160, result["defaultReward"])

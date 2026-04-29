@@ -39,6 +39,8 @@ class VoidProspectorBeaconConvoyTests(unittest.TestCase):
               salvageVersion: rift.salvage.version,
               convoyVersion: rift.convoy.version,
               convoyLabel: rift.convoy.releaseLabel,
+              stormVersion: rift.storm.version,
+              stormChartIds: game.stormSummary(rift).charts.map((chart) => chart.id),
               riftRoute: game.convoySummary(rift).routes[0],
               umbraRoute: game.convoySummary(umbra).routes[0],
               target: game.targetSummary(targeted),
@@ -52,6 +54,8 @@ class VoidProspectorBeaconConvoyTests(unittest.TestCase):
         self.assertEqual("0.2.0", result["salvageVersion"])
         self.assertEqual("0.3.0", result["convoyVersion"])
         self.assertEqual("Beacon Convoy", result["convoyLabel"])
+        self.assertEqual("0.4.0", result["stormVersion"])
+        self.assertIn("storm-rift-breaker", result["stormChartIds"])
         self.assertGreaterEqual(result["routeCount"], 2)
         self.assertEqual("convoy-rift-relay", result["riftRoute"]["id"])
         self.assertFalse(result["riftRoute"]["prerequisitesReady"])
