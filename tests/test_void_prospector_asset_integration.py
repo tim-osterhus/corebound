@@ -121,6 +121,31 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*storm[^"\'\)\s]*\.png')
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*anchor[^"\'\)\s]*\.png')
 
+    def test_knife_wake_visuals_are_procedural_and_reuse_existing_pirate_asset_only(self) -> None:
+        script = source_text("void-prospector.js")
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        manifest_paths = {asset["path"].removeprefix("games/void-prospector/") for asset in manifest["assets"]}
+
+        for token in (
+            "createInterdictionMesh",
+            "syncInterdictionMeshes",
+            "interdictionMeshes",
+            "new THREE.ConeGeometry",
+            "new THREE.LineSegments",
+            "new THREE.OctahedronGeometry",
+            "new THREE.TetrahedronGeometry",
+            "state.target.kind === \"interdiction\"",
+            "interdictionTarget",
+            "interdictionRows",
+        ):
+            self.assertIn(token, script)
+
+        self.assertIn("assets/pirate-marker.png", manifest_paths)
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*interdiction[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*distress[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*decoy[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*patrol[^"\'\)\s]*\.png')
+
     def test_game_data_exposes_asset_manifest_paths_for_state_checks(self) -> None:
         assets = json.loads(self.run_node("game.GAME_DATA.assets"))
 

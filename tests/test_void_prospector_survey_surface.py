@@ -27,10 +27,13 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "salvage-readout",
             "convoy-readout",
             "storm-readout",
+            "interdiction-readout",
             "beacon-readout",
             "ambush-readout",
             "storm-window-readout",
             "storm-anchor-readout",
+            "interdiction-raid-readout",
+            "interdiction-lure-readout",
             "service-readout",
             "scan-action",
             "beacon-action",
@@ -52,12 +55,19 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "storm-exposure-state",
             "storm-reward-state",
             "storm-support-state",
+            "interdiction-cell-state",
+            "interdiction-marker-state",
+            "interdiction-window-state",
+            "interdiction-exposure-state",
+            "interdiction-reward-state",
+            "interdiction-support-state",
             "survey-panel",
             "ladder-title",
             "ladder-status-surface",
             "sector-list",
             "convoy-list",
             "storm-list",
+            "interdiction-list",
             "sector-select",
             "sector-action",
             "service-probes-action",
@@ -68,21 +78,24 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "service-jammers-action",
             "service-chart-processors-action",
             "service-storm-plating-action",
+            "service-patrol-uplink-action",
             "countermeasure-action",
             "event-log",
         ):
             self.assertIn(hook, html)
 
-        self.assertIn("v0.4.0 Storm Cartography", html)
-        self.assertIn("C scan or lock", html)
-        self.assertIn("B deploy anchor/beacon", html)
+        self.assertIn("v0.5.0 Knife Wake Interdiction", html)
+        self.assertIn("C scan or transponder", html)
+        self.assertIn("B anchor/beacon/marker", html)
         self.assertIn("Space/M mine or extract", html)
         self.assertIn('aria-label="Survey Ladder controls"', html)
         self.assertIn('aria-label="Selected salvage target state"', html)
         self.assertIn('aria-label="Selected convoy route state"', html)
         self.assertIn('aria-label="Selected storm chart state"', html)
+        self.assertIn('aria-label="Selected interdiction cell state"', html)
         self.assertIn('aria-label="Convoy route state"', html)
         self.assertIn('aria-label="Storm chart state"', html)
+        self.assertIn('aria-label="Knife Wake interdiction state"', html)
 
     def test_survey_surface_css_keeps_desktop_and_narrow_layout_contracts(self) -> None:
         css = read_game_file("void-prospector.css")
@@ -96,13 +109,16 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             ".salvage-target-data",
             ".convoy-target-data",
             ".storm-target-data",
+            ".interdiction-target-data",
             ".convoy-list",
             ".convoy-row",
             ".storm-list",
             ".storm-row",
+            ".interdiction-list",
+            ".interdiction-row",
             ".event-log",
             "max-height: calc(100vh - 96px)",
-            "max-height: min(170px, max(150px, calc(100vh - 550px)))",
+            "max-height: min(220px, max(170px, calc(100vh - 520px)))",
             "overflow: auto",
             "grid-template-columns: repeat(auto-fit, minmax(96px, 1fr))",
             "@media (max-height: 700px) and (min-width: 981px)",
@@ -119,6 +135,7 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         self.assertIn("width: calc(100vw - 24px)", css)
         self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr))", css)
         self.assertIn('.storm-row[data-state="window locked"]', css)
+        self.assertIn('.interdiction-row[data-state="distress marker armed"]', css)
         self.assertNotIn("border-radius: 12px", css)
         self.assertNotIn("overflow-x: scroll", css)
 
@@ -356,6 +373,94 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         self.assertEqual(1, result["contract"]["deliveredStormCharts"])
         self.assertEqual("storm", result["target"]["kind"])
         self.assertEqual("deployed", result["target"]["anchorStatus"])
+
+    def test_knife_wake_surface_exposes_cell_actions_support_and_consequences(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/void-prospector/void-prospector.js");
+            const ladder = {
+              currentSectorId: "rift-shelf",
+              recommendedSectorId: "rift-shelf",
+              unlockedSectorIds: ["spoke-approach", "rift-shelf"],
+              completedSectorIds: ["spoke-approach"],
+              scannedAnomalyIds: ["anomaly-rift-lens"],
+            };
+            let state = game.createInitialState({ seed: 48, sectorId: "rift-shelf", ladder, credits: 520 });
+            state.ship.position = { ...state.station.position };
+            state = game.dockAtStation(state);
+            state = game.purchaseStationService(state, "patrol-uplink");
+            state.ship.position = { ...state.convoyRoutes[0].beacon.position };
+            state = game.deployRouteBeacon(state, "convoy-rift-relay");
+            state = game.setTarget(state, "interdiction", "cell-rift-decoy-net");
+            state.ship.position = { ...state.interdictionCells[0].position };
+            const readySurface = game.surveyCockpitSurface(state);
+            state = game.scanInterdictionTransponder(state, "cell-rift-decoy-net", 2);
+            const scannedSurface = game.surveyCockpitSurface(state);
+            state = game.placeInterdictionMarker(state, "cell-rift-decoy-net", "distress");
+            const markerSurface = game.surveyCockpitSurface(state);
+            state = game.deployInterdictionLure(state, "cell-rift-decoy-net");
+            const lureSurface = game.surveyCockpitSurface(state);
+            state.elapsed = 5;
+            state.tick = 5;
+            state = game.resolveInterdictionRaid(state, "cell-rift-decoy-net", "escort");
+            const resolvedSurface = game.surveyCockpitSurface(state);
+            console.log(JSON.stringify({
+              readyTitle: readySurface.titleText,
+              readyText: readySurface.interdictionText,
+              readyTarget: readySurface.interdictionTarget,
+              readyActions: readySurface.actions,
+              scannedActions: scannedSurface.actions,
+              markerTarget: markerSurface.interdictionTarget,
+              markerRows: markerSurface.interdictionRows,
+              markerActions: markerSurface.actions,
+              lureTarget: lureSurface.interdictionTarget,
+              lureText: lureSurface.interdictionLureText,
+              resolvedText: resolvedSurface.interdictionText,
+              resolvedTarget: resolvedSurface.interdictionTarget,
+              resolvedLog: resolvedSurface.log,
+              services: readySurface.services.map((service) => [service.id, service.status, service.enabled]),
+              serviceText: readySurface.serviceText,
+              target: game.targetSummary(state),
+              stats: state.stats,
+              contract: state.contract,
+              routeStatus: state.convoyRoutes[0].convoyState.interdictionStatus,
+              salvageShield: state.salvageSites[0].salvageState.interdictionShield,
+            }));
+            """
+        )
+
+        self.assertIn("Knife Wake Interdiction v0.5.0", result["readyTitle"])
+        self.assertIn("Knife Wake Interdiction / Rift Decoy Net", result["readyText"])
+        self.assertIn("Rift Decoy Net / distress lure / raider-cell", result["readyTarget"]["cellText"])
+        self.assertIn("raid 28 / convoy 1 / salvage 1 / storm 1", result["readyTarget"]["exposureText"])
+        self.assertIn("scan +0.85 / patrol +14 / raid -28% / window +3s / payout +10% / 1 burst", result["readyTarget"]["supportText"])
+        self.assertTrue(result["readyActions"]["canScanInterdiction"])
+        self.assertTrue(result["readyActions"]["canScan"])
+        self.assertFalse(result["readyActions"]["canPlaceInterdictionMarker"])
+
+        self.assertTrue(result["scannedActions"]["canPlaceInterdictionMarker"])
+        self.assertTrue(result["scannedActions"]["canCountermeasureInterdiction"])
+        self.assertIn("marker distress / lure no / scan yes", result["markerTarget"]["markerText"])
+        self.assertIn("window marked", result["markerTarget"]["windowText"])
+        self.assertEqual("distress marker armed", result["markerRows"][0]["state"])
+        self.assertTrue(result["markerActions"]["canDeployInterdictionLure"])
+
+        self.assertIn("marker distress / lure yes / scan yes", result["lureTarget"]["markerText"])
+        self.assertIn("marker distress / lure yes", result["lureText"])
+        self.assertIn("Rift Decoy Net / success", result["resolvedText"])
+        self.assertIn("success", result["resolvedTarget"]["rewardText"])
+        self.assertIn("Rift Decoy Net broken", result["resolvedLog"][0])
+        self.assertIn(["patrol-uplink", "installed", False], result["services"])
+        self.assertIn("Patrol Uplink", result["serviceText"])
+        self.assertEqual("interdiction", result["target"]["kind"])
+        self.assertEqual("success", result["target"]["outcome"])
+        self.assertEqual(1, result["stats"]["interdictionTranspondersScanned"])
+        self.assertEqual(1, result["stats"]["interdictionMarkersPlaced"])
+        self.assertEqual(1, result["stats"]["interdictionLuresDeployed"])
+        self.assertEqual(1, result["stats"]["interdictionRaidsResolved"])
+        self.assertEqual(1, result["contract"]["deliveredInterdictions"])
+        self.assertIn("cell-rift-decoy-net success", result["routeStatus"])
+        self.assertEqual("protected", result["salvageShield"]["status"])
 
     def test_station_service_surface_shows_consequences_and_decoy_readiness(self) -> None:
         result = self.run_node(

@@ -104,6 +104,7 @@ input {
 .salvage-target-data,
 .convoy-target-data,
 .storm-target-data,
+.interdiction-target-data,
 .control-strip {
   color: var(--muted);
   font-size: 0.72rem;
@@ -206,7 +207,7 @@ input {
   left: 18px;
   bottom: 112px;
   width: min(392px, calc(100vw - 36px));
-  max-height: min(170px, max(150px, calc(100vh - 550px)));
+  max-height: min(220px, max(170px, calc(100vh - 520px)));
   overflow: auto;
 }
 
@@ -263,7 +264,8 @@ input {
 
 .sector-list,
 .convoy-list,
-.storm-list {
+.storm-list,
+.interdiction-list {
   display: grid;
   gap: 0;
   border-bottom: 1px solid var(--line-soft);
@@ -271,7 +273,8 @@ input {
 
 .sector-row,
 .convoy-row,
-.storm-row {
+.storm-row,
+.interdiction-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
@@ -283,7 +286,8 @@ input {
 
 .sector-row:first-child,
 .convoy-row:first-child,
-.storm-row:first-child {
+.storm-row:first-child,
+.interdiction-row:first-child {
   border-top: 0;
 }
 
@@ -293,13 +297,16 @@ input {
 .convoy-row span,
 .storm-row strong,
 .storm-row span,
+.interdiction-row strong,
+.interdiction-row span,
 .event-log li {
   overflow-wrap: anywhere;
 }
 
 .sector-row strong,
 .convoy-row strong,
-.storm-row strong {
+.storm-row strong,
+.interdiction-row strong {
   color: var(--text);
   font-size: 0.82rem;
   font-weight: 600;
@@ -307,7 +314,8 @@ input {
 
 .sector-row span,
 .convoy-row span,
-.storm-row span {
+.storm-row span,
+.interdiction-row span {
   color: var(--muted);
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -331,11 +339,24 @@ input {
 .storm-row[data-state="charted"],
 .storm-row[data-state="anchor ready"],
 .storm-row[data-state="window open"],
-.storm-row[data-state="window locked"] {
+.storm-row[data-state="window locked"],
+.interdiction-row[data-state="transponder quiet"],
+.interdiction-row[data-state="transponder scanned"],
+.interdiction-row[data-state="distress marker armed"],
+.interdiction-row[data-state="distress window open"],
+.interdiction-row[data-state="lure armed"],
+.interdiction-row[data-state="lure active"],
+.interdiction-row[data-state="success"] {
   background: rgba(75, 214, 192, 0.08);
 }
 
-.convoy-row[data-state="needs beacon"] {
+.convoy-row[data-state="needs beacon"],
+.interdiction-row[data-state="awaiting response window"],
+.interdiction-row[data-state="raid window open"],
+.interdiction-row[data-state="decoy marker armed"],
+.interdiction-row[data-state="decoy window open"],
+.interdiction-row[data-state="partial"],
+.interdiction-row[data-state="lure aging"] {
   background: rgba(208, 179, 106, 0.08);
 }
 
@@ -348,7 +369,10 @@ input {
 .convoy-row[data-state="no-route"],
 .storm-row[data-state="locked"],
 .storm-row[data-state="failed"],
-.storm-row[data-state="no-chart"] {
+.storm-row[data-state="no-chart"],
+.interdiction-row[data-state="locked"],
+.interdiction-row[data-state="failed"],
+.interdiction-row[data-state="no-cell"] {
   color: var(--dim);
   opacity: 0.66;
 }
@@ -425,6 +449,7 @@ input {
 .salvage-target-data span,
 .convoy-target-data span,
 .storm-target-data span,
+.interdiction-target-data span,
 .action-panel button {
   min-height: 32px;
   padding: 8px;
@@ -433,7 +458,8 @@ input {
   overflow-wrap: anywhere;
 }
 
-.storm-target-data {
+.storm-target-data,
+.interdiction-target-data {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;

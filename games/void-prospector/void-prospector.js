@@ -5363,6 +5363,74 @@ const VoidProspector = (() => {
     };
   }
 
+  function interdictionResponseText(timing) {
+    if (!timing) {
+      return "window none";
+    }
+    if (timing.locked) {
+      return `window marked / ${timing.remaining}s remaining`;
+    }
+    if (timing.open) {
+      return `window open / ${timing.remaining}s remaining`;
+    }
+    if (timing.pending) {
+      return `opens ${timing.opensAt}s / closes ${timing.closesAt}s`;
+    }
+    if (timing.missed) {
+      return "window missed";
+    }
+    return `window ${timing.opensAt}-${timing.closesAt}s`;
+  }
+
+  function interdictionSupportText(interdiction, state) {
+    const parts = [];
+    if (interdiction.scanPower > GAME_DATA.knifeWakeInterdiction.baseScanPower) {
+      parts.push(`scan +${round(interdiction.scanPower - GAME_DATA.knifeWakeInterdiction.baseScanPower, 2)}`);
+    }
+    if (interdiction.supportIntegrity > 0) {
+      parts.push(`patrol +${Math.round(interdiction.supportIntegrity)}`);
+    }
+    if (interdiction.supportMitigation > 0) {
+      parts.push(`raid -${Math.round(interdiction.supportMitigation * 100)}%`);
+    }
+    if (interdiction.responseWindowBonus > 0) {
+      parts.push(`window +${Math.round(interdiction.responseWindowBonus)}s`);
+    }
+    if (interdiction.payoutBonus > 0) {
+      parts.push(`payout +${Math.round(interdiction.payoutBonus * 100)}%`);
+    }
+    if (state.stationServices.countermeasureCharges > 0) {
+      parts.push(`${state.stationServices.countermeasureCharges} burst`);
+    }
+    return parts.length ? parts.join(" / ") : "support none";
+  }
+
+  function interdictionCellSurface(cell, supportText) {
+    if (!cell) {
+      return {
+        name: "No interdiction cell",
+        cellText: "cell none",
+        markerText: "marker none / lure no",
+        windowText: "window none",
+        exposureText: "convoy 0 / salvage 0 / storm 0",
+        rewardText: "reward 0cr",
+        supportText,
+      };
+    }
+    const marker = cell.state.markerPlaced ? cell.state.markerType : "none";
+    const lure = cell.state.lureDeployed ? "yes" : "no";
+    const stateText = cell.prerequisitesReady ? cell.state.status : `locked: ${cell.missingPrerequisites.slice(0, 2).join(" + ") || "prereq"}`;
+    return {
+      name: cell.name,
+      cellText: `${cell.name} / ${cell.type} / ${cell.family}`,
+      markerText: `marker ${marker} / lure ${lure} / scan ${cell.state.transponderScanned ? "yes" : "no"}`,
+      windowText: interdictionResponseText(cell.responseWindow),
+      exposureText: `raid ${Math.round(cell.raidPressure)} / convoy ${cell.targets.convoyRouteIds.length} / salvage ${cell.targets.salvageSiteIds.length} / storm ${cell.targets.stormChartIds.length}`,
+      rewardText: `${cell.rewardCredits}cr reward / score ${cell.ladderScore} / ${stateText}`,
+      supportText,
+    };
+  }
+
   function surveyCockpitSurface(state) {
     const summary = surveySummary(state);
     const salvage = salvageSummary(state);
@@ -5475,6 +5543,8 @@ const VoidProspector = (() => {
     const selectedInterdictionTerminal = selectedInterdictionCell
       ? ["success", "partial", "failed"].includes(selectedInterdictionCell.interdictionState.outcome)
       : false;
+    const interdictionSupport = interdictionSupportText(interdiction, state);
+    const interdictionTarget = interdictionCellSurface(selectedInterdiction || interdictionFocus, interdictionSupport);
     const convoyRows =
       convoy.routes.length > 0
         ? convoy.routes.map((route) => ({
@@ -5517,6 +5587,26 @@ const VoidProspector = (() => {
               name: "No storm chart",
               state: "no-chart",
               primaryText: "no storm front in this sector",
+              detailText: "choose a higher tier route",
+            },
+          ];
+    const interdictionRows =
+      interdiction.cells.length > 0
+        ? interdiction.cells.map((cell) => ({
+            id: cell.id,
+            name: cell.name,
+            state: cell.state.status,
+            primaryText: `${cell.state.status} / ${interdictionResponseText(cell.responseWindow)}`,
+            detailText: cell.prerequisitesReady
+              ? `raid ${Math.round(cell.raidPressure)} / marker ${cell.state.markerType || "none"} / ${cell.rewardCredits}cr`
+              : cell.missingPrerequisites.slice(0, 2).join(" + ") || "locked",
+          }))
+        : [
+            {
+              id: "no-interdiction-cell",
+              name: "No Knife Wake cell",
+              state: "no-cell",
+              primaryText: "no pirate cell in this sector",
               detailText: "choose a higher tier route",
             },
           ];
@@ -5583,6 +5673,14 @@ const VoidProspector = (() => {
             interdictionFocus.raidPressure
           )}`
         : `${interdiction.releaseLabel} / no cell`,
+      interdictionRaidText: interdictionFocus
+        ? `raid ${Math.round(interdictionFocus.raidPressure)} / ${interdictionFocus.type} / ${interdictionFocus.state.outcome}`
+        : "raid none",
+      interdictionLureText: interdictionFocus
+        ? `marker ${interdictionFocus.state.markerType || "none"} / lure ${
+            interdictionFocus.state.lureDeployed ? "yes" : "no"
+          } / ${interdictionResponseText(interdictionFocus.responseWindow)}`
+        : "marker none",
       stormWindowText: stormTarget.windowText,
       stormAnchorText: stormTarget.anchorText,
       salvageTarget: {
@@ -5607,6 +5705,8 @@ const VoidProspector = (() => {
       convoySupportText: supportText,
       stormTarget,
       stormSupportText: stormSupport,
+      interdictionTarget,
+      interdictionSupportText: interdictionSupport,
       serviceText:
         serviceNames.length > 0
           ? `${serviceNames.join(" + ")} / ${state.stationServices.countermeasureCharges} burst`
@@ -5620,6 +5720,7 @@ const VoidProspector = (() => {
       stormCharts: storm.charts,
       stormRows,
       interdictionCells: interdiction.cells,
+      interdictionRows,
       actions: {
         canScan:
           canAct &&
@@ -5686,6 +5787,14 @@ const VoidProspector = (() => {
             activeStorm &&
               activeStorm.safeWindow.locked &&
               activeStorm.storm.outcome === "none" &&
+              state.stationServices.countermeasureCharges > 0
+          ),
+        canCountermeasureInterdiction:
+          canAct &&
+          Boolean(
+            activeInterdiction &&
+              activeInterdiction.state.transponderScanned &&
+              activeInterdiction.state.outcome === "none" &&
               state.stationServices.countermeasureCharges > 0
           ),
         canScanInterdiction:
@@ -5886,10 +5995,13 @@ const VoidProspector = (() => {
     dom.salvage = document.getElementById("salvage-readout");
     dom.convoy = document.getElementById("convoy-readout");
     dom.storm = document.getElementById("storm-readout");
+    dom.interdiction = document.getElementById("interdiction-readout");
     dom.beacon = document.getElementById("beacon-readout");
     dom.ambush = document.getElementById("ambush-readout");
     dom.stormWindow = document.getElementById("storm-window-readout");
     dom.stormAnchor = document.getElementById("storm-anchor-readout");
+    dom.interdictionRaid = document.getElementById("interdiction-raid-readout");
+    dom.interdictionLure = document.getElementById("interdiction-lure-readout");
     dom.upgrade = document.getElementById("upgrade-readout");
     dom.service = document.getElementById("service-readout");
     dom.target = document.getElementById("target-readout");
@@ -5915,6 +6027,12 @@ const VoidProspector = (() => {
     dom.stormExposureState = document.getElementById("storm-exposure-state");
     dom.stormRewardState = document.getElementById("storm-reward-state");
     dom.stormSupportState = document.getElementById("storm-support-state");
+    dom.interdictionCellState = document.getElementById("interdiction-cell-state");
+    dom.interdictionMarkerState = document.getElementById("interdiction-marker-state");
+    dom.interdictionWindowState = document.getElementById("interdiction-window-state");
+    dom.interdictionExposureState = document.getElementById("interdiction-exposure-state");
+    dom.interdictionRewardState = document.getElementById("interdiction-reward-state");
+    dom.interdictionSupportState = document.getElementById("interdiction-support-state");
     dom.mineAction = document.getElementById("mine-action");
     dom.scanAction = document.getElementById("scan-action");
     dom.beaconAction = document.getElementById("beacon-action");
@@ -5928,6 +6046,7 @@ const VoidProspector = (() => {
     dom.sectorList = document.getElementById("sector-list");
     dom.convoyList = document.getElementById("convoy-list");
     dom.stormList = document.getElementById("storm-list");
+    dom.interdictionList = document.getElementById("interdiction-list");
     dom.sectorSelect = document.getElementById("sector-select");
     dom.sectorAction = document.getElementById("sector-action");
     dom.serviceProbesAction = document.getElementById("service-probes-action");
@@ -5938,6 +6057,7 @@ const VoidProspector = (() => {
     dom.serviceJammersAction = document.getElementById("service-jammers-action");
     dom.serviceChartProcessorsAction = document.getElementById("service-chart-processors-action");
     dom.serviceStormPlatingAction = document.getElementById("service-storm-plating-action");
+    dom.servicePatrolUplinkAction = document.getElementById("service-patrol-uplink-action");
     dom.countermeasureAction = document.getElementById("countermeasure-action");
     dom.eventLog = document.getElementById("event-log");
   }
@@ -6014,6 +6134,30 @@ const VoidProspector = (() => {
     });
   }
 
+  function renderInterdictionRows(surface) {
+    if (!dom.interdictionList) {
+      return;
+    }
+    const signature = surface.interdictionRows.map((cell) => `${cell.id}:${cell.state}:${cell.primaryText}:${cell.detailText}`).join("|");
+    if (dom.interdictionList.dataset.signature === signature) {
+      return;
+    }
+    dom.interdictionList.dataset.signature = signature;
+    dom.interdictionList.replaceChildren();
+    surface.interdictionRows.forEach((cell) => {
+      const row = document.createElement("div");
+      row.className = "interdiction-row";
+      row.dataset.state = cell.state;
+
+      const name = document.createElement("strong");
+      name.textContent = cell.name;
+      const state = document.createElement("span");
+      state.textContent = `${cell.primaryText} / ${cell.detailText}`;
+      row.append(name, state);
+      dom.interdictionList.append(row);
+    });
+  }
+
   function renderSectorSelect(surface, state) {
     if (!dom.sectorSelect) {
       return;
@@ -6072,6 +6216,7 @@ const VoidProspector = (() => {
     renderSectorRows(surface);
     renderConvoyRows(surface);
     renderStormRows(surface);
+    renderInterdictionRows(surface);
     renderSectorSelect(surface, state);
     renderEventLog(surface);
 
@@ -6086,11 +6231,13 @@ const VoidProspector = (() => {
     renderServiceButton(dom.serviceJammersAction, surface, "signal-jammers", "Jammers");
     renderServiceButton(dom.serviceChartProcessorsAction, surface, "chart-processors", "Processors");
     renderServiceButton(dom.serviceStormPlatingAction, surface, "storm-plating", "Plating");
+    renderServiceButton(dom.servicePatrolUplinkAction, surface, "patrol-uplink", "Patrol");
     if (dom.countermeasureAction) {
       dom.countermeasureAction.disabled = !(
         surface.actions.countermeasureReady ||
         surface.actions.canCountermeasureConvoy ||
-        surface.actions.canCountermeasureStorm
+        surface.actions.canCountermeasureStorm ||
+        surface.actions.canCountermeasureInterdiction
       );
       dom.countermeasureAction.textContent = `Burst ${surface.actions.countermeasureText}`;
     }
@@ -6145,10 +6292,13 @@ const VoidProspector = (() => {
     dom.salvage.textContent = surface.salvageText;
     dom.convoy.textContent = surface.convoyText;
     dom.storm.textContent = surface.stormText;
+    dom.interdiction.textContent = surface.interdictionText;
     dom.beacon.textContent = surface.beaconText;
     dom.ambush.textContent = surface.ambushText;
     dom.stormWindow.textContent = surface.stormWindowText;
     dom.stormAnchor.textContent = surface.stormAnchorText;
+    dom.interdictionRaid.textContent = surface.interdictionRaidText;
+    dom.interdictionLure.textContent = surface.interdictionLureText;
     dom.upgrade.textContent = upgrade.text;
     dom.service.textContent = surface.serviceText;
     dom.target.textContent = `${target.kind} / ${target.name} / ${target.distance}m`;
@@ -6174,6 +6324,12 @@ const VoidProspector = (() => {
     dom.stormExposureState.textContent = surface.stormTarget.exposureText;
     dom.stormRewardState.textContent = surface.stormTarget.rewardText;
     dom.stormSupportState.textContent = surface.stormTarget.supportText;
+    dom.interdictionCellState.textContent = surface.interdictionTarget.cellText;
+    dom.interdictionMarkerState.textContent = surface.interdictionTarget.markerText;
+    dom.interdictionWindowState.textContent = surface.interdictionTarget.windowText;
+    dom.interdictionExposureState.textContent = surface.interdictionTarget.exposureText;
+    dom.interdictionRewardState.textContent = surface.interdictionTarget.rewardText;
+    dom.interdictionSupportState.textContent = surface.interdictionTarget.supportText;
 
     dom.hull.closest(".readout").dataset.tone = cssToneForPercent(state.ship.hull);
     dom.fuel.closest(".readout").dataset.tone = cssToneForPercent(state.ship.fuel);
@@ -6228,6 +6384,33 @@ const VoidProspector = (() => {
         : stormFocus
           ? "warn"
           : "signal";
+    const interdictionFocus =
+      (state.interdiction.activeCellId && interdictionCellById(state, state.interdiction.activeCellId)) ||
+      (state.interdictionCells || []).find((cell) => cell.interdictionState.status !== "locked" && cell.interdictionState.outcome === "none") ||
+      (state.interdictionCells || [])[0] ||
+      null;
+    const interdictionTiming = interdictionFocus ? interdictionResponseTiming(interdictionFocus, state) : null;
+    const interdictionTerminal = interdictionFocus && ["success", "partial", "failed"].includes(interdictionFocus.interdictionState.outcome);
+    const interdictionTone =
+      interdictionTerminal && interdictionFocus.interdictionState.outcome === "failed"
+        ? "danger"
+        : interdictionTerminal && interdictionFocus.interdictionState.outcome === "success"
+          ? "signal"
+          : interdictionFocus && interdictionFocus.interdictionState.raidPressure > 48
+            ? "danger"
+            : interdictionFocus
+              ? "warn"
+              : "signal";
+    dom.interdiction.closest(".readout").dataset.tone = interdictionTone;
+    dom.interdictionRaid.closest(".readout").dataset.tone = interdictionTone;
+    dom.interdictionLure.closest(".readout").dataset.tone =
+      interdictionFocus && (interdictionFocus.interdictionState.lureDeployed || interdictionFocus.interdictionState.markerPlaced)
+        ? "signal"
+        : interdictionTiming && interdictionTiming.missed
+          ? "danger"
+          : interdictionFocus
+            ? "warn"
+            : "signal";
     dom.service.closest(".readout").dataset.tone =
       state.stationServices.countermeasureCharges > 0 || state.stationServices.purchased.length > 0 ? "signal" : "warn";
     if (dom.mineAction) {
@@ -6378,6 +6561,8 @@ const VoidProspector = (() => {
       currentState = purchaseStationService(currentState, "chart-processors");
     } else if (action === "service-storm-plating") {
       currentState = purchaseStationService(currentState, "storm-plating");
+    } else if (action === "service-patrol-uplink") {
+      currentState = purchaseStationService(currentState, "patrol-uplink");
     } else if (action === "countermeasure") {
       currentState = deployCountermeasure(currentState);
     } else if (action === "sector") {
@@ -6468,6 +6653,9 @@ const VoidProspector = (() => {
     }
     if (dom.serviceStormPlatingAction) {
       dom.serviceStormPlatingAction.addEventListener("click", () => performAction("service-storm-plating"));
+    }
+    if (dom.servicePatrolUplinkAction) {
+      dom.servicePatrolUplinkAction.addEventListener("click", () => performAction("service-patrol-uplink"));
     }
     if (dom.countermeasureAction) {
       dom.countermeasureAction.addEventListener("click", () => performAction("countermeasure"));
@@ -6932,6 +7120,148 @@ const VoidProspector = (() => {
     });
   }
 
+  function createInterdictionMesh(THREE, cell) {
+    const group = new THREE.Group();
+    group.userData.interdictionCellId = cell.id;
+    const familyColor = cell.family === "pirate-den" ? 0xd46857 : cell.family === "salvage-raid" ? 0xd0b36a : 0x8ea1ff;
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: familyColor,
+      transparent: true,
+      opacity: 0.34,
+      side: THREE.DoubleSide,
+    });
+    const coneMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd46857,
+      transparent: true,
+      opacity: 0.18,
+      wireframe: true,
+    });
+    const markerMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4bd6c0,
+      transparent: true,
+      opacity: 0.42,
+    });
+    const lureMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd0b36a,
+      transparent: true,
+      opacity: 0.34,
+    });
+    const routeMaterial = new THREE.LineBasicMaterial({
+      color: familyColor,
+      transparent: true,
+      opacity: 0.28,
+    });
+
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(cell.radius || 5, 0.07, 6, 64), ringMaterial);
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+
+    const cone = new THREE.Mesh(new THREE.ConeGeometry((cell.radius || 5) * 0.82, (cell.radius || 5) * 1.6, 5, 1, true), coneMaterial);
+    cone.position.y = (cell.radius || 5) * 0.45;
+    cone.rotation.x = Math.PI;
+    group.add(cone);
+
+    const buoy = new THREE.Group();
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, (cell.radius || 5) * 0.86, 6), markerMaterial);
+    mast.position.y = (cell.radius || 5) * 0.42;
+    buoy.add(mast);
+    const beacon = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 0), markerMaterial);
+    beacon.position.y = (cell.radius || 5) * 0.92;
+    buoy.add(beacon);
+    group.add(buoy);
+
+    const lure = new THREE.Group();
+    for (let index = 0; index < 3; index += 1) {
+      const decoy = new THREE.Mesh(new THREE.TetrahedronGeometry(0.36, 0), lureMaterial);
+      const angle = index * 2.1;
+      decoy.position.set(Math.cos(angle) * (cell.radius || 5) * 0.58, 0.34, Math.sin(angle) * (cell.radius || 5) * 0.58);
+      lure.add(decoy);
+    }
+    group.add(lure);
+
+    const patrol = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-(cell.radius || 5), 0.12, 0),
+        new THREE.Vector3(cell.radius || 5, 0.12, 0),
+        new THREE.Vector3(0, 0.12, -(cell.radius || 5)),
+        new THREE.Vector3(0, 0.12, cell.radius || 5),
+      ]),
+      routeMaterial
+    );
+    group.add(patrol);
+
+    group.userData.ringMaterial = ringMaterial;
+    group.userData.coneMaterial = coneMaterial;
+    group.userData.markerMaterial = markerMaterial;
+    group.userData.lureMaterial = lureMaterial;
+    group.userData.routeMaterial = routeMaterial;
+    group.userData.ring = ring;
+    group.userData.cone = cone;
+    group.userData.buoy = buoy;
+    group.userData.lure = lure;
+    group.userData.patrol = patrol;
+    return group;
+  }
+
+  function syncInterdictionMeshes(handle, state, timeSeconds = 0) {
+    const { THREE } = handle;
+    const activeIds = new Set((state.interdictionCells || []).map((cell) => cell.id));
+    handle.objects.interdictionMeshes.forEach((mesh, cellId) => {
+      if (!activeIds.has(cellId)) {
+        handle.scene.remove(mesh);
+        handle.objects.interdictionMeshes.delete(cellId);
+      }
+    });
+    (state.interdictionCells || []).forEach((cell) => {
+      if (!handle.objects.interdictionMeshes.has(cell.id)) {
+        const mesh = createInterdictionMesh(THREE, cell);
+        handle.objects.interdictionMeshes.set(cell.id, mesh);
+        handle.scene.add(mesh);
+      }
+      const mesh = handle.objects.interdictionMeshes.get(cell.id);
+      const ready = cell.prerequisiteStatus && cell.prerequisiteStatus.ready;
+      const terminal = ["success", "partial", "failed"].includes(cell.interdictionState.outcome);
+      const scanned = cell.interdictionState.transponderScanned;
+      const marked = cell.interdictionState.markerPlaced;
+      const lured = cell.interdictionState.lureDeployed;
+      const timing = interdictionResponseTiming(cell, state);
+      const raidRatio = clamp((cell.interdictionState.raidPressure || cell.raidPressure || 0) / 70, 0, 1);
+      const tone =
+        terminal && cell.interdictionState.outcome === "success"
+          ? 0x4bd6c0
+          : terminal && cell.interdictionState.outcome === "partial"
+            ? 0xd0b36a
+            : terminal
+              ? 0xd46857
+              : marked
+                ? cell.interdictionState.markerType === "decoy"
+                  ? 0xd0b36a
+                  : 0x4bd6c0
+                : scanned
+                  ? 0x8ea1ff
+                  : 0xd46857;
+
+      mesh.position.set(cell.position.x, cell.position.y, cell.position.z);
+      mesh.rotation.y = timeSeconds * (lured ? 0.46 : marked ? 0.3 : 0.16);
+      mesh.visible = true;
+      mesh.scale.setScalar(ready ? 1 : 0.82);
+      mesh.userData.ringMaterial.color.setHex(tone);
+      mesh.userData.ringMaterial.opacity = terminal ? 0.22 : ready ? 0.28 + raidRatio * 0.28 : 0.14;
+      mesh.userData.coneMaterial.color.setHex(tone);
+      mesh.userData.coneMaterial.opacity = terminal ? 0.08 : ready ? 0.12 + raidRatio * 0.18 : 0.06;
+      mesh.userData.routeMaterial.color.setHex(tone);
+      mesh.userData.routeMaterial.opacity = ready ? 0.24 + raidRatio * 0.24 : 0.12;
+      mesh.userData.markerMaterial.color.setHex(marked ? tone : 0x59655f);
+      mesh.userData.markerMaterial.opacity = marked ? 0.76 : scanned ? 0.36 : 0.18;
+      mesh.userData.lureMaterial.opacity = lured ? 0.74 : 0.18;
+      mesh.userData.buoy.visible = scanned || marked || ready;
+      mesh.userData.lure.visible = lured || (ready && scanned);
+      mesh.userData.lure.rotation.y = -timeSeconds * 0.7;
+      mesh.userData.patrol.visible = ready || scanned || marked;
+      mesh.userData.ring.scale.setScalar(timing.open || timing.locked ? 1 + Math.sin(timeSeconds * 1.8) * 0.035 : 1);
+    });
+  }
+
   function createPirateMesh(THREE, assets = {}) {
     const group = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
@@ -7075,6 +7405,14 @@ const VoidProspector = (() => {
       scene.add(mesh);
     });
 
+    const interdictionMeshes = new Map();
+    (state.interdictionCells || []).forEach((cell) => {
+      const mesh = createInterdictionMesh(THREE, cell);
+      mesh.position.set(cell.position.x, cell.position.y, cell.position.z);
+      interdictionMeshes.set(cell.id, mesh);
+      scene.add(mesh);
+    });
+
     const pirate = createPirateMesh(THREE, sceneAssets);
     scene.add(pirate);
 
@@ -7096,6 +7434,7 @@ const VoidProspector = (() => {
         salvageMeshes,
         convoyMeshes,
         stormMeshes,
+        interdictionMeshes,
         pirate,
         targetRing,
         miningBeam,
@@ -7142,6 +7481,7 @@ const VoidProspector = (() => {
     syncSalvageMeshes(handle, state);
     syncConvoyMeshes(handle, state, timeSeconds);
     syncStormMeshes(handle, state, timeSeconds);
+    syncInterdictionMeshes(handle, state, timeSeconds);
     (state.salvageSites || []).forEach((site) => {
       const mesh = handle.objects.salvageMeshes.get(site.id);
       if (!mesh) {
