@@ -1,11 +1,20 @@
 {
-  "base": "http://127.0.0.1:8123",
+  "base": "http://127.0.0.1:8137",
+  "screenshots": {
+    "arcadeDesktop": "_visual-check/iron-lantern-descent-assets/browser-smoke-arcade-card.png",
+    "directDesktop": "_visual-check/iron-lantern-descent-assets/browser-smoke-desktop.png",
+    "directFaultlineStake": "_visual-check/iron-lantern-descent-assets/browser-smoke-faultline-stake.png",
+    "directNarrow": "_visual-check/iron-lantern-descent-assets/browser-smoke-mobile.png"
+  },
   "arcade": {
     "desktop": {
       "title": "Millrace Arcade",
       "hasIronCard": 1,
       "hasDirectLaunch": 1,
-      "hasSnapshotLink": 1,
+      "hasSnapshot010": 1,
+      "hasSnapshot001": 1,
+      "versionText": "playable / v0.1.0",
+      "releaseLabel": "v0.1.0 Faultline Survey",
       "overflow": {
         "width": 1280,
         "scrollWidth": 1280,
@@ -13,8 +22,12 @@
       }
     },
     "narrow": {
+      "title": "Millrace Arcade",
       "hasIronCard": 1,
-      "hasSnapshotLink": 1,
+      "hasSnapshot010": 1,
+      "hasSnapshot001": 1,
+      "versionText": "playable / v0.1.0",
+      "releaseLabel": "v0.1.0 Faultline Survey",
       "overflow": {
         "width": 390,
         "scrollWidth": 390,
@@ -24,53 +37,84 @@
   },
   "direct": {
     "desktop": {
-      "renderer": "EXTRACTED / LOCAL RENDERER + ASSETS",
+      "title": "Iron Lantern Descent",
+      "renderer": "active / local renderer + assets",
+      "eyebrow": "v0.1.0 faultline survey",
+      "surveyReadout": "Cinder Rib Fault / unmapped / 43m",
+      "stabilityReadout": "watched / 80% / 20p",
+      "tremorReadout": "stable 72s / slip seam",
+      "mapReadout": "0 / 3 map  0cr",
+      "position": "pos 0.0 / 8.0",
       "canvas": {
         "width": 1280,
         "height": 800,
-        "sampled": 4960,
-        "nonDark": 2199,
-        "bright": 935,
-        "nonDarkRatio": 0.4433467741935484,
-        "brightRatio": 0.18850806451612903
-      },
-      "startPosition": {
-        "x": 0,
-        "z": 8
-      },
-      "afterMovePosition": {
-        "x": 0,
-        "z": 5
-      },
-      "moved": 3,
-      "lanternReadout": "2 / 3 1 set",
-      "lightReadout": "lantern safe / 20m",
-      "samplesAfterMine": "1 / 4 32cr",
-      "miningAfterMine": "IDLE",
-      "creditsAfterLift": "32cr",
-      "runAfterLift": "EXTRACTED / LOCAL RENDERER + ASSETS",
-      "failurePath": {
-        "runStatus": "failed",
-        "failureReason": "oxygen depleted",
-        "objective": "Oxygen depleted. Restart from the lift.",
-        "oxygen": 0
+        "sampled": 39600,
+        "nonDark": 17757,
+        "bright": 7612,
+        "nonDarkRatio": 0.4484090909090909,
+        "brightRatio": 0.1922222222222222
       },
       "overflow": {
         "width": 1280,
         "scrollWidth": 1280,
         "overflowing": false
+      },
+      "surveyDecision": {
+        "afterForward": "pos 0.0 / -29.0",
+        "beforeStake": {
+          "position": "pos 18.0 / -29.0",
+          "surveyReadout": "Cinder Rib Fault / survey ready / 3m",
+          "stabilityReadout": "unstable / 54% / 46p"
+        },
+        "afterStake": {
+          "position": "pos 18.0 / -29.0",
+          "surveyReadout": "Cinder Rib Fault / staked / 3m",
+          "stabilityReadout": "stable / 86% / 14p",
+          "tremorReadout": "stable 63s / slip seam",
+          "mapReadout": "0 / 3 map  0cr",
+          "lastLog": "193 / Cinder Rib Fault survey stake planted in east-shelf.",
+          "surveyRows": [
+            {
+              "status": "unmapped",
+              "window": "stable",
+              "text": "Cinder Rib Faulteast-shelf / 3mslip seamstakedstable 63sstake set / brace none / cache none+46cr / +1 map"
+            },
+            {
+              "status": "unmapped",
+              "window": "pending",
+              "text": "Basalt Suturefault-gallery / 49mcompressive seamunmappedopens in 9sstake open / brace needed / cache sealed+78cr / +2 map"
+            }
+          ]
+        },
+        "lastLog": "193 / Cinder Rib Fault survey stake planted in east-shelf."
+      },
+      "afterStakeCanvas": {
+        "width": 1280,
+        "height": 800,
+        "sampled": 39600,
+        "nonDark": 19151,
+        "bright": 2011,
+        "nonDarkRatio": 0.4836111111111111,
+        "brightRatio": 0.050782828282828284
       }
     },
     "narrow": {
-      "renderer": "ACTIVE / LOCAL RENDERER + ASSETS",
+      "title": "Iron Lantern Descent",
+      "renderer": "active / local renderer + assets",
+      "eyebrow": "v0.1.0 faultline survey",
+      "surveyReadout": "Cinder Rib Fault / unmapped / 43m",
+      "stabilityReadout": "watched / 80% / 20p",
+      "tremorReadout": "stable 72s / slip seam",
+      "mapReadout": "0 / 3 map  0cr",
+      "position": "pos 0.0 / 8.0",
       "canvas": {
         "width": 390,
-        "height": 780,
-        "sampled": 5880,
-        "nonDark": 3556,
-        "bright": 1740,
-        "nonDarkRatio": 0.6047619047619047,
-        "brightRatio": 0.29591836734693877
+        "height": 800,
+        "sampled": 39600,
+        "nonDark": 24156,
+        "bright": 11047,
+        "nonDarkRatio": 0.61,
+        "brightRatio": 0.27896464646464647
       },
       "overflow": {
         "width": 390,
@@ -85,11 +129,7 @@
     "arcadeNarrow": true,
     "desktopCanvasNonblank": true,
     "narrowCanvasNonblank": true,
-    "movement": true,
-    "lantern": true,
-    "mining": true,
-    "liftReturn": true,
-    "failure": true,
+    "surveyDecision": true,
     "consoleClean": true,
     "directOverflow": true
   },
