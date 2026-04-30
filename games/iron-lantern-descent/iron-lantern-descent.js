@@ -1,0 +1,1298 @@
+"use strict";
+
+const IronLanternDescent = (() => {
+  const RENDERER_PATH = "vendor/three.min.js";
+  const DEFAULT_SEED = 37193;
+  const TWO_PI = Math.PI * 2;
+
+  const GAME_DATA = {
+    renderer: {
+      name: "Three.js",
+      path: RENDERER_PATH,
+      localOnly: true,
+    },
+    controls: {
+      forward: ["KeyW", "ArrowUp"],
+      back: ["KeyS", "ArrowDown"],
+      strafeLeft: ["KeyQ"],
+      strafeRight: ["KeyE"],
+      turnLeft: ["KeyA", "ArrowLeft"],
+      turnRight: ["KeyD", "ArrowRight"],
+      placeLantern: ["KeyL", "Space"],
+      mine: ["KeyM"],
+      scan: ["KeyC"],
+      interact: ["KeyF", "Enter"],
+      upgrade: ["KeyU"],
+      reset: ["KeyR"],
+    },
+    cave: {
+      floorY: 0,
+      playerY: 1.6,
+      wallHeight: 4.8,
+      passages: [
+        { id: "lift-bay", name: "Lift Bay", center: { x: 0, z: 8 }, size: { x: 15, z: 16 } },
+        { id: "main-cut", name: "Main Cut", center: { x: 0, z: -30 }, size: { x: 8, z: 72 } },
+        { id: "east-shelf", name: "East Shelf", center: { x: 15, z: -30 }, size: { x: 30, z: 11 } },
+        { id: "west-pocket", name: "West Pocket", center: { x: -14, z: -45 }, size: { x: 28, z: 12 } },
+        { id: "deep-room", name: "Deep Room", center: { x: 0, z: -70 }, size: { x: 24, z: 20 } },
+      ],
+    },
+    player: {
+      startPosition: { x: 0, y: 1.6, z: 8 },
+      startFacing: 0,
+      radius: 0.72,
+      walkSpeed: 7.4,
+      strafeSpeed: 5.8,
+      turnRate: 1.9,
+    },
+    camera: {
+      mode: "close-third",
+      distance: 8.5,
+      height: 4.6,
+      lookAhead: 5.5,
+      smoothing: 1,
+    },
+    oxygen: {
+      baseMax: 96,
+      baseDrainPerSecond: 1.08,
+      liftDrainMultiplier: 0.2,
+      lanternDrainMultiplier: 0.46,
+    },
+    light: {
+      headlampRadius: 14,
+      lanternBoost: 6,
+      hazardPenalty: 4,
+    },
+    lanterns: {
+      baseCharges: 3,
+      radius: 10.5,
+      safetyRadius: 8.5,
+    },
+    mining: {
+      range: 3.7,
+      drillPower: 1,
+      cargoCapacity: 4,
+    },
+    scanner: {
+      range: 31,
+      cooldownSeconds: 2.4,
+    },
+    lift: {
+      id: "descent-lift",
+      name: "Iron Lift",
+      position: { x: 0, y: 0, z: 11 },
+      radius: 4.2,
+    },
+    hazards: [
+      {
+        id: "gas-vent-east",
+        name: "Gas Vent",
+        position: { x: 12, y: 0, z: -31 },
+        radius: 6.4,
+        oxygenDrainPerSecond: 1.35,
+        visibilityPenalty: 2.4,
+      },
+      {
+        id: "blackout-crack",
+        name: "Blackout Crack",
+        position: { x: -9, y: 0, z: -47 },
+        radius: 5.8,
+        oxygenDrainPerSecond: 0.78,
+        visibilityPenalty: 4.2,
+      },
+    ],
+    sampleNodes: [
+      {
+        id: "sample-copper-iris",
+        name: "Copper Iris",
+        position: { x: 2.4, y: 0.7, z: -18 },
+        radius: 2.4,
+        value: 32,
+        difficulty: 1.4,
+        remaining: 1,
+      },
+      {
+        id: "sample-iron-bloom",
+        name: "Iron Bloom",
+        position: { x: 17, y: 0.7, z: -31 },
+        radius: 2.8,
+        value: 44,
+        difficulty: 1.8,
+        remaining: 1,
+      },
+      {
+        id: "sample-glass-vein",
+        name: "Glass Vein",
+        position: { x: -17, y: 0.7, z: -45 },
+        radius: 2.6,
+        value: 52,
+        difficulty: 2.1,
+        remaining: 1,
+      },
+      {
+        id: "sample-deep-lode",
+        name: "Deep Lode",
+        position: { x: 6, y: 0.7, z: -72 },
+        radius: 3.2,
+        value: 70,
+        difficulty: 2.5,
+        remaining: 2,
+      },
+    ],
+    upgrades: [
+      {
+        id: "tank-weave",
+        name: "Tank Weave",
+        cost: 60,
+        summary: "+24 oxygen on future runs",
+        effect: { oxygenMaxBonus: 24 },
+      },
+      {
+        id: "lantern-frame",
+        name: "Lantern Frame",
+        cost: 82,
+        summary: "+1 lantern charge on future runs",
+        effect: { lanternChargeBonus: 1 },
+      },
+      {
+        id: "focused-bit",
+        name: "Focused Bit",
+        cost: 95,
+        summary: "faster sample extraction",
+        effect: { drillPowerBonus: 0.42 },
+      },
+    ],
+  };
+
+  const dom = {};
+  const pressedControls = {};
+  let currentState = null;
+  let sceneHandle = null;
+  let lastFrameTime = 0;
+  let mouseDrag = false;
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function vector(x = 0, y = 0, z = 0) {
+    return { x, y, z };
+  }
+
+  function seededRandom(seed) {
+    let value = Math.floor(Math.abs(seed)) % 2147483647;
+    if (value === 0) {
+      value = 1;
+    }
+    return () => {
+      value = (value * 16807) % 2147483647;
+      return (value - 1) / 2147483646;
+    };
+  }
+
+  function distance(a, b) {
+    const dx = (a.x || 0) - (b.x || 0);
+    const dy = (a.y || 0) - (b.y || 0);
+    const dz = (a.z || 0) - (b.z || 0);
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  function normalizeAngle(angle) {
+    let normalized = angle % TWO_PI;
+    if (normalized < -Math.PI) {
+      normalized += TWO_PI;
+    }
+    if (normalized > Math.PI) {
+      normalized -= TWO_PI;
+    }
+    return normalized;
+  }
+
+  function directionFromFacing(facing) {
+    return {
+      x: Math.sin(facing),
+      y: 0,
+      z: -Math.cos(facing),
+    };
+  }
+
+  function rightFromFacing(facing) {
+    return {
+      x: Math.cos(facing),
+      y: 0,
+      z: Math.sin(facing),
+    };
+  }
+
+  function bearingTo(source, target, facing = 0) {
+    const dx = target.x - source.x;
+    const dz = target.z - source.z;
+    const worldAngle = Math.atan2(dx, -dz);
+    const relative = normalizeAngle(worldAngle - facing);
+    return Math.round(((relative + Math.PI) / TWO_PI) * 360) % 360;
+  }
+
+  function formatBearing(bearing) {
+    return `bearing ${String(Math.round(bearing)).padStart(3, "0")}`;
+  }
+
+  function cavePassageAt(position, radius = 0) {
+    return GAME_DATA.cave.passages.find((passage) => {
+      const halfX = passage.size.x / 2 - radius;
+      const halfZ = passage.size.z / 2 - radius;
+      return Math.abs(position.x - passage.center.x) <= halfX && Math.abs(position.z - passage.center.z) <= halfZ;
+    });
+  }
+
+  function isPointInPassage(position, radius = 0) {
+    return Boolean(cavePassageAt(position, radius));
+  }
+
+  function createSampleNodes(seed = DEFAULT_SEED) {
+    const random = seededRandom(seed);
+    return GAME_DATA.sampleNodes.map((node, index) => {
+      const jitter = index === 0 ? { x: 0, z: 0 } : { x: (random() - 0.5) * 1.2, z: (random() - 0.5) * 1.2 };
+      const position = {
+        x: Number((node.position.x + jitter.x).toFixed(2)),
+        y: node.position.y,
+        z: Number((node.position.z + jitter.z).toFixed(2)),
+      };
+      return {
+        ...clone(node),
+        position,
+        mineState: {
+          status: "ready",
+          progress: 0,
+          depleted: false,
+          lastYield: 0,
+        },
+      };
+    });
+  }
+
+  function createHazardZones() {
+    return GAME_DATA.hazards.map((hazard) => ({
+      ...clone(hazard),
+      active: false,
+      exposure: 0,
+      status: "clear",
+    }));
+  }
+
+  function upgradeCarryover(purchased) {
+    const carryover = {
+      oxygenMaxBonus: 0,
+      lanternChargeBonus: 0,
+      drillPowerBonus: 0,
+    };
+    purchased.forEach((id) => {
+      const upgrade = GAME_DATA.upgrades.find((entry) => entry.id === id);
+      if (!upgrade) {
+        return;
+      }
+      carryover.oxygenMaxBonus += upgrade.effect.oxygenMaxBonus || 0;
+      carryover.lanternChargeBonus += upgrade.effect.lanternChargeBonus || 0;
+      carryover.drillPowerBonus += upgrade.effect.drillPowerBonus || 0;
+    });
+    return carryover;
+  }
+
+  function createCameraState(player) {
+    const state = {
+      mode: GAME_DATA.camera.mode,
+      position: clone(player.position),
+      target: clone(player.position),
+      facing: player.facing,
+    };
+    return updateCameraState({ player, camera: state }).camera;
+  }
+
+  function createInitialState(options = {}) {
+    const seed = options.seed === undefined ? DEFAULT_SEED : options.seed;
+    const purchased = Array.isArray(options.upgrades)
+      ? options.upgrades.slice()
+      : Array.isArray(options.purchasedUpgrades)
+        ? options.purchasedUpgrades.slice()
+        : [];
+    const carryover = upgradeCarryover(purchased);
+    const oxygenMax = GAME_DATA.oxygen.baseMax + carryover.oxygenMaxBonus;
+    const lanternMax = GAME_DATA.lanterns.baseCharges + carryover.lanternChargeBonus;
+    const drillPower = GAME_DATA.mining.drillPower + carryover.drillPowerBonus;
+    const player = {
+      position: clone(GAME_DATA.player.startPosition),
+      facing: GAME_DATA.player.startFacing,
+      velocity: vector(),
+      radius: GAME_DATA.player.radius,
+      speed: GAME_DATA.player.walkSpeed,
+      strafeSpeed: GAME_DATA.player.strafeSpeed,
+      turnRate: GAME_DATA.player.turnRate,
+    };
+    const state = {
+      seed,
+      tick: 0,
+      elapsed: 0,
+      renderer: {
+        path: RENDERER_PATH,
+        status: "pending",
+      },
+      player,
+      movement: {
+        collision: {
+          passages: GAME_DATA.cave.passages.map((passage) => passage.id),
+          lastBlocked: false,
+          lastPassage: "lift-bay",
+        },
+      },
+      camera: createCameraState(player),
+      oxygen: {
+        current: oxygenMax,
+        max: oxygenMax,
+        baseDrainPerSecond: GAME_DATA.oxygen.baseDrainPerSecond,
+        lastDrainPerSecond: 0,
+      },
+      light: {
+        currentRadius: GAME_DATA.light.headlampRadius,
+        headlampRadius: GAME_DATA.light.headlampRadius,
+        status: "lamp stable",
+      },
+      lanterns: {
+        charges: lanternMax,
+        max: lanternMax,
+        anchors: [],
+        radius: GAME_DATA.lanterns.radius,
+        safetyRadius: GAME_DATA.lanterns.safetyRadius,
+        lastPlaced: null,
+      },
+      sampleNodes: createSampleNodes(seed),
+      mining: {
+        active: false,
+        targetId: null,
+        status: "idle",
+        range: GAME_DATA.mining.range,
+        drillPower,
+        lastYield: 0,
+      },
+      lift: {
+        ...clone(GAME_DATA.lift),
+        distance: 0,
+        bearing: 0,
+        docked: true,
+        status: "ready",
+        bankedSamples: 0,
+        lastBanked: 0,
+      },
+      hazardZones: createHazardZones(),
+      scanner: {
+        range: GAME_DATA.scanner.range,
+        cooldown: 0,
+        pulseAge: 0,
+        targetId: null,
+        targetKind: "sample",
+        liftBearing: 0,
+        status: "ready",
+      },
+      cargo: {
+        samples: 0,
+        value: 0,
+        capacity: GAME_DATA.mining.cargoCapacity,
+      },
+      credits: options.credits === undefined ? 0 : options.credits,
+      upgrades: {
+        purchased,
+        carryover,
+        available: clone(GAME_DATA.upgrades),
+        lastPurchase: null,
+      },
+      run: {
+        status: "active",
+        objective: "Descend, mark the route, sample ore, return to the lift.",
+        failureReason: null,
+        completeReason: null,
+        count: options.runCount || 1,
+      },
+      input: {
+        movement: clone(GAME_DATA.controls),
+      },
+      log: [{ tick: 0, message: "Iron Lift ready. Main cut is open." }],
+    };
+    return syncDerivedState(state);
+  }
+
+  function nearestSample(state) {
+    let closest = null;
+    state.sampleNodes.forEach((node) => {
+      if (node.mineState.depleted) {
+        return;
+      }
+      const nodeDistance = distance(state.player.position, node.position);
+      if (!closest || nodeDistance < closest.distance) {
+        closest = { node, distance: nodeDistance };
+      }
+    });
+    return closest;
+  }
+
+  function currentHazardExposure(state) {
+    return state.hazardZones.reduce(
+      (total, zone) => {
+        const zoneDistance = distance(state.player.position, zone.position);
+        const exposure = Math.max(0, 1 - zoneDistance / zone.radius);
+        return {
+          oxygenDrainPerSecond: total.oxygenDrainPerSecond + exposure * zone.oxygenDrainPerSecond,
+          visibilityPenalty: total.visibilityPenalty + exposure * zone.visibilityPenalty,
+          names: exposure > 0 ? total.names.concat(zone.name) : total.names,
+        };
+      },
+      { oxygenDrainPerSecond: 0, visibilityPenalty: 0, names: [] }
+    );
+  }
+
+  function coveredByLantern(state, radius = GAME_DATA.lanterns.safetyRadius) {
+    return state.lanterns.anchors.some((anchor) => distance(state.player.position, anchor.position) <= radius);
+  }
+
+  function oxygenDrainRate(state) {
+    if (state.run.status !== "active") {
+      return 0;
+    }
+    const hazard = currentHazardExposure(state);
+    let rate = state.oxygen.baseDrainPerSecond + hazard.oxygenDrainPerSecond;
+    if (state.lift.distance <= state.lift.radius) {
+      rate *= GAME_DATA.oxygen.liftDrainMultiplier;
+    } else if (coveredByLantern(state)) {
+      rate *= GAME_DATA.oxygen.lanternDrainMultiplier;
+    }
+    return Number(rate.toFixed(3));
+  }
+
+  function updateCameraState(state) {
+    const forward = directionFromFacing(state.player.facing);
+    const camera = state.camera || { mode: GAME_DATA.camera.mode };
+    camera.mode = GAME_DATA.camera.mode;
+    camera.position = {
+      x: state.player.position.x - forward.x * GAME_DATA.camera.distance,
+      y: state.player.position.y + GAME_DATA.camera.height,
+      z: state.player.position.z - forward.z * GAME_DATA.camera.distance,
+    };
+    camera.target = {
+      x: state.player.position.x + forward.x * GAME_DATA.camera.lookAhead,
+      y: state.player.position.y + 0.45,
+      z: state.player.position.z + forward.z * GAME_DATA.camera.lookAhead,
+    };
+    camera.facing = state.player.facing;
+    state.camera = camera;
+    return state;
+  }
+
+  function syncDerivedState(state) {
+    const passage = cavePassageAt(state.player.position, state.player.radius);
+    state.movement.collision.lastPassage = passage ? passage.id : "outside";
+    state.lift.distance = distance(state.player.position, state.lift.position);
+    state.lift.bearing = bearingTo(state.player.position, state.lift.position, state.player.facing);
+    state.lift.docked = state.lift.distance <= state.lift.radius;
+    state.lift.status = state.lift.docked ? "in range" : "away";
+
+    const hazard = currentHazardExposure(state);
+    state.hazardZones.forEach((zone) => {
+      const exposure = Math.max(0, 1 - distance(state.player.position, zone.position) / zone.radius);
+      zone.exposure = Number(exposure.toFixed(3));
+      zone.active = exposure > 0;
+      zone.status = exposure > 0 ? "exposed" : "clear";
+    });
+
+    const sample = nearestSample(state);
+    state.scanner.liftBearing = state.lift.bearing;
+    state.scanner.targetId = sample ? sample.node.id : state.lift.id;
+    state.scanner.targetKind = sample ? "sample" : "lift";
+    state.scanner.status = state.scanner.cooldown > 0 ? "recharging" : sample ? `${sample.node.name} ${Math.round(sample.distance)}m` : "return to lift";
+
+    const lanternBoost = coveredByLantern(state, GAME_DATA.lanterns.radius) ? GAME_DATA.light.lanternBoost : 0;
+    const radius = Math.max(6, GAME_DATA.light.headlampRadius + lanternBoost - hazard.visibilityPenalty);
+    const lanternCovered = coveredByLantern(state);
+    state.light.currentRadius = Number(radius.toFixed(1));
+    state.light.status = hazard.names.length
+      ? lanternCovered
+        ? `${hazard.names[0]} / lantern safe`
+        : `${hazard.names[0]} interference`
+      : lanternCovered
+        ? "lantern safe"
+        : "lamp stable";
+    state.oxygen.lastDrainPerSecond = oxygenDrainRate(state);
+
+    updateCameraState(state);
+    return state;
+  }
+
+  function resolveMovement(state, desired) {
+    const radius = state.player.radius;
+    const start = state.player.position;
+    const candidate = { x: desired.x, y: GAME_DATA.cave.playerY, z: desired.z };
+    if (isPointInPassage(candidate, radius)) {
+      return { position: candidate, blocked: false };
+    }
+    const xOnly = { x: desired.x, y: GAME_DATA.cave.playerY, z: start.z };
+    if (isPointInPassage(xOnly, radius)) {
+      return { position: xOnly, blocked: true };
+    }
+    const zOnly = { x: start.x, y: GAME_DATA.cave.playerY, z: desired.z };
+    if (isPointInPassage(zOnly, radius)) {
+      return { position: zOnly, blocked: true };
+    }
+    return { position: { ...start, y: GAME_DATA.cave.playerY }, blocked: true };
+  }
+
+  function applyMovement(state, controls, deltaSeconds) {
+    const next = state;
+    if (controls.turnLeft) {
+      next.player.facing -= next.player.turnRate * deltaSeconds;
+    }
+    if (controls.turnRight) {
+      next.player.facing += next.player.turnRate * deltaSeconds;
+    }
+    next.player.facing = normalizeAngle(next.player.facing);
+
+    const forward = directionFromFacing(next.player.facing);
+    const right = rightFromFacing(next.player.facing);
+    const forwardInput = (controls.forward ? 1 : 0) - (controls.back ? 1 : 0);
+    const strafeInput = (controls.strafeRight ? 1 : 0) - (controls.strafeLeft ? 1 : 0);
+    const dx =
+      forward.x * forwardInput * next.player.speed * deltaSeconds +
+      right.x * strafeInput * next.player.strafeSpeed * deltaSeconds;
+    const dz =
+      forward.z * forwardInput * next.player.speed * deltaSeconds +
+      right.z * strafeInput * next.player.strafeSpeed * deltaSeconds;
+    const desired = {
+      x: next.player.position.x + dx,
+      y: GAME_DATA.cave.playerY,
+      z: next.player.position.z + dz,
+    };
+    const resolved = resolveMovement(next, desired);
+    next.player.velocity = {
+      x: (resolved.position.x - next.player.position.x) / Math.max(deltaSeconds, 0.001),
+      y: 0,
+      z: (resolved.position.z - next.player.position.z) / Math.max(deltaSeconds, 0.001),
+    };
+    next.player.position = resolved.position;
+    next.movement.collision.lastBlocked = resolved.blocked;
+    return next;
+  }
+
+  function placeLantern(state) {
+    const next = clone(state);
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    if (next.lanterns.charges <= 0) {
+      next.lanterns.lastPlaced = "empty";
+      next.log.unshift({ tick: next.tick, message: "No lantern anchors remain." });
+      return syncDerivedState(next);
+    }
+    const anchor = {
+      id: `lantern-${String(next.lanterns.anchors.length + 1).padStart(2, "0")}`,
+      position: clone(next.player.position),
+      radius: next.lanterns.radius,
+      safetyRadius: next.lanterns.safetyRadius,
+      placedAt: next.elapsed,
+      status: "burning",
+    };
+    next.lanterns.anchors.push(anchor);
+    next.lanterns.charges -= 1;
+    next.lanterns.lastPlaced = anchor.id;
+    next.log.unshift({ tick: next.tick, message: `${anchor.id} set in ${next.movement.collision.lastPassage}.` });
+    return syncDerivedState(next);
+  }
+
+  function mineNearestSample(state, deltaSeconds = 1) {
+    const next = clone(state);
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const closest = nearestSample(next);
+    next.mining.active = true;
+    next.mining.lastYield = 0;
+    if (!closest || closest.distance > next.mining.range) {
+      next.mining.targetId = closest ? closest.node.id : null;
+      next.mining.status = closest ? "out of range" : "no sample";
+      return syncDerivedState(next);
+    }
+    if (next.cargo.samples >= next.cargo.capacity) {
+      next.mining.targetId = closest.node.id;
+      next.mining.status = "cargo full";
+      return syncDerivedState(next);
+    }
+
+    const node = next.sampleNodes.find((entry) => entry.id === closest.node.id);
+    node.mineState.progress += next.mining.drillPower * deltaSeconds;
+    next.mining.targetId = node.id;
+    next.mining.status = "cutting";
+
+    while (
+      node.mineState.progress >= node.difficulty &&
+      node.remaining > 0 &&
+      next.cargo.samples < next.cargo.capacity
+    ) {
+      node.mineState.progress -= node.difficulty;
+      node.remaining -= 1;
+      node.mineState.lastYield = node.value;
+      next.mining.lastYield += node.value;
+      next.cargo.samples += 1;
+      next.cargo.value += node.value;
+    }
+
+    if (node.remaining <= 0) {
+      node.mineState.status = "depleted";
+      node.mineState.depleted = true;
+      node.mineState.progress = 0;
+      next.mining.status = "sample secured";
+    } else if (next.mining.lastYield > 0) {
+      node.mineState.status = "parted";
+      next.mining.status = "sample secured";
+    } else {
+      node.mineState.status = "cutting";
+    }
+    return syncDerivedState(next);
+  }
+
+  function pulseScanner(state) {
+    const next = clone(state);
+    if (next.scanner.cooldown <= 0) {
+      next.scanner.cooldown = GAME_DATA.scanner.cooldownSeconds;
+      next.scanner.pulseAge = 0;
+      next.scanner.status = nearestSample(next) ? "pulse sent" : "lift only";
+      next.log.unshift({ tick: next.tick, message: `Scanner pulse: ${next.scanner.status}.` });
+    }
+    return syncDerivedState(next);
+  }
+
+  function returnToLift(state) {
+    const next = clone(state);
+    next.lift.distance = distance(next.player.position, next.lift.position);
+    if (next.lift.distance > next.lift.radius) {
+      next.lift.status = "too far";
+      return syncDerivedState(next);
+    }
+    const bankedValue = next.cargo.value;
+    const bankedSamples = next.cargo.samples;
+    next.credits += bankedValue;
+    next.lift.bankedSamples += bankedSamples;
+    next.lift.lastBanked = bankedValue;
+    next.cargo.samples = 0;
+    next.cargo.value = 0;
+    next.run.status = bankedSamples > 0 ? "extracted" : "active";
+    next.run.completeReason = bankedSamples > 0 ? "samples banked" : null;
+    next.run.objective = bankedSamples > 0 ? "Samples banked. Buy an upgrade or restart for another descent." : next.run.objective;
+    next.log.unshift({ tick: next.tick, message: `Lift banked ${bankedSamples} sample(s) for ${bankedValue}cr.` });
+    return syncDerivedState(next);
+  }
+
+  function nextAffordableUpgrade(state) {
+    return GAME_DATA.upgrades.find((upgrade) => !state.upgrades.purchased.includes(upgrade.id)) || null;
+  }
+
+  function purchaseUpgrade(state, upgradeId) {
+    const next = clone(state);
+    const upgrade = GAME_DATA.upgrades.find((entry) => entry.id === upgradeId) || nextAffordableUpgrade(next);
+    if (!upgrade) {
+      next.upgrades.lastPurchase = "complete";
+      return syncDerivedState(next);
+    }
+    if (next.upgrades.purchased.includes(upgrade.id)) {
+      next.upgrades.lastPurchase = "already owned";
+      return syncDerivedState(next);
+    }
+    if (next.credits < upgrade.cost) {
+      next.upgrades.lastPurchase = "insufficient credits";
+      return syncDerivedState(next);
+    }
+    next.credits -= upgrade.cost;
+    next.upgrades.purchased.push(upgrade.id);
+    next.upgrades.carryover = upgradeCarryover(next.upgrades.purchased);
+    next.upgrades.lastPurchase = upgrade.id;
+    next.log.unshift({ tick: next.tick, message: `${upgrade.name} purchased.` });
+    return syncDerivedState(next);
+  }
+
+  function resetRun(state) {
+    const next = createInitialState({
+      seed: state.seed,
+      credits: state.credits,
+      upgrades: state.upgrades.purchased,
+      runCount: state.run.count + 1,
+    });
+    next.log.unshift({ tick: 0, message: `Run ${next.run.count} initialized with carryover.` });
+    return syncDerivedState(next);
+  }
+
+  function stepRun(state, controls = {}, deltaSeconds = 1 / 60) {
+    let next = clone(state);
+    const delta = Math.max(0, Math.min(deltaSeconds, 0.25));
+    if (controls.reset) {
+      return resetRun(next);
+    }
+    if (controls.scan) {
+      next = pulseScanner(next);
+    }
+    if (controls.interact) {
+      next = returnToLift(next);
+    }
+    if (next.run.status === "active") {
+      next.tick += 1;
+      next.elapsed += delta;
+      next = applyMovement(next, controls, delta);
+      if (controls.mine) {
+        next = mineNearestSample(next, delta);
+      } else {
+        next.mining.active = false;
+        next.mining.status = "idle";
+        next.mining.lastYield = 0;
+      }
+      next.scanner.cooldown = Math.max(0, next.scanner.cooldown - delta);
+      next.scanner.pulseAge += delta;
+      next = syncDerivedState(next);
+      next.oxygen.current = Math.max(0, Number((next.oxygen.current - next.oxygen.lastDrainPerSecond * delta).toFixed(3)));
+      if (next.oxygen.current <= 0) {
+        next.run.status = "failed";
+        next.run.failureReason = "oxygen depleted";
+        next.run.objective = "Oxygen depleted. Restart from the lift.";
+        next.player.velocity = vector();
+      }
+    }
+    return syncDerivedState(next);
+  }
+
+  function cacheDom() {
+    const ids = [
+      "iron-lantern-descent",
+      "iron-lantern-scene",
+      "run-status",
+      "objective-readout",
+      "oxygen-readout",
+      "light-readout",
+      "lantern-readout",
+      "samples-readout",
+      "credits-readout",
+      "lift-readout",
+      "scanner-readout",
+      "hazard-readout",
+      "upgrade-readout",
+      "player-position-readout",
+      "player-facing-readout",
+      "collision-readout",
+      "mining-readout",
+      "target-name",
+      "sample-list",
+      "lantern-action",
+      "mine-action",
+      "scan-action",
+      "lift-action",
+      "upgrade-action",
+      "restart-action",
+    ];
+    ids.forEach((id) => {
+      dom[id] = document.getElementById(id);
+    });
+    dom.root = dom["iron-lantern-descent"];
+    dom.canvas = dom["iron-lantern-scene"];
+  }
+
+  function setReadoutTone(element, tone) {
+    const readout = element ? element.closest(".readout") : null;
+    if (readout) {
+      if (tone) {
+        readout.dataset.tone = tone;
+      } else {
+        delete readout.dataset.tone;
+      }
+    }
+  }
+
+  function renderHud(state) {
+    if (!dom.root) {
+      return;
+    }
+    const oxygenPercent = state.oxygen.current / state.oxygen.max;
+    const upgrade = nextAffordableUpgrade(state);
+    const hazardNames = state.hazardZones.filter((zone) => zone.active).map((zone) => zone.name);
+    const nearest = nearestSample(state);
+    dom["run-status"].textContent = `${state.run.status} / ${state.renderer.status}`;
+    dom["objective-readout"].textContent = state.run.objective;
+    dom["oxygen-readout"].textContent = `${Math.ceil(state.oxygen.current)} / ${state.oxygen.max}  -${state.oxygen.lastDrainPerSecond.toFixed(1)}/s`;
+    dom["light-readout"].textContent = `${state.light.status} / ${state.light.currentRadius}m`;
+    dom["lantern-readout"].textContent = `${state.lanterns.charges} / ${state.lanterns.max}  ${state.lanterns.anchors.length} set`;
+    dom["samples-readout"].textContent = `${state.cargo.samples} / ${state.cargo.capacity}  ${state.cargo.value}cr`;
+    dom["credits-readout"].textContent = `${state.credits}cr`;
+    dom["lift-readout"].textContent = `${formatBearing(state.lift.bearing)} / ${Math.round(state.lift.distance)}m`;
+    dom["scanner-readout"].textContent = state.scanner.status;
+    dom["hazard-readout"].textContent = hazardNames.length ? hazardNames.join(" + ") : "clear";
+    dom["upgrade-readout"].textContent = upgrade ? `${upgrade.name.toLowerCase()} / ${upgrade.cost}cr` : "all fitted";
+    dom["player-position-readout"].textContent = `pos ${state.player.position.x.toFixed(1)} / ${state.player.position.z.toFixed(1)}`;
+    dom["player-facing-readout"].textContent = formatBearing(bearingTo(state.player.position, {
+      x: state.player.position.x + directionFromFacing(state.player.facing).x,
+      y: state.player.position.y,
+      z: state.player.position.z + directionFromFacing(state.player.facing).z,
+    }));
+    dom["collision-readout"].textContent = state.movement.collision.lastBlocked
+      ? `blocked / ${state.movement.collision.lastPassage}`
+      : `clear / ${state.movement.collision.lastPassage}`;
+    dom["mining-readout"].textContent = state.mining.status;
+    dom["target-name"].textContent = nearest ? nearest.node.name : "Iron Lift";
+
+    setReadoutTone(dom["oxygen-readout"], oxygenPercent < 0.2 ? "danger" : oxygenPercent < 0.45 ? "warn" : null);
+    setReadoutTone(dom["hazard-readout"], hazardNames.length ? "danger" : null);
+    setReadoutTone(dom["lantern-readout"], state.lanterns.charges <= 0 ? "warn" : null);
+
+    dom["sample-list"].replaceChildren(
+      ...state.sampleNodes.map((node) => {
+        const item = document.createElement("li");
+        item.dataset.state = node.mineState.status;
+        item.textContent = `${node.name}: ${node.mineState.status} / ${node.remaining}`;
+        return item;
+      })
+    );
+  }
+
+  function controlForCode(code) {
+    return Object.entries(GAME_DATA.controls).find(([, codes]) => codes.includes(code))?.[0] || null;
+  }
+
+  function bindControls() {
+    window.addEventListener("keydown", (event) => {
+      const control = controlForCode(event.code);
+      if (!control) {
+        return;
+      }
+      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) {
+        event.preventDefault();
+      }
+      if (control === "placeLantern") {
+        currentState = placeLantern(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "scan") {
+        currentState = pulseScanner(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "interact") {
+        currentState = returnToLift(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "upgrade") {
+        currentState = purchaseUpgrade(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "reset") {
+        currentState = resetRun(currentState);
+        renderHud(currentState);
+        return;
+      }
+      pressedControls[control] = true;
+    });
+    window.addEventListener("keyup", (event) => {
+      const control = controlForCode(event.code);
+      if (control) {
+        pressedControls[control] = false;
+      }
+    });
+
+    dom["lantern-action"].addEventListener("click", () => {
+      currentState = placeLantern(currentState);
+      renderHud(currentState);
+    });
+    dom["mine-action"].addEventListener("click", () => {
+      currentState = mineNearestSample(currentState, 1.2);
+      renderHud(currentState);
+    });
+    dom["scan-action"].addEventListener("click", () => {
+      currentState = pulseScanner(currentState);
+      renderHud(currentState);
+    });
+    dom["lift-action"].addEventListener("click", () => {
+      currentState = returnToLift(currentState);
+      renderHud(currentState);
+    });
+    dom["upgrade-action"].addEventListener("click", () => {
+      currentState = purchaseUpgrade(currentState);
+      renderHud(currentState);
+    });
+    dom["restart-action"].addEventListener("click", () => {
+      currentState = resetRun(currentState);
+      renderHud(currentState);
+    });
+
+    dom.canvas.addEventListener("click", () => {
+      dom.root.focus();
+      if (dom.canvas.requestPointerLock) {
+        dom.canvas.requestPointerLock();
+      }
+    });
+    dom.canvas.addEventListener("mousedown", () => {
+      mouseDrag = true;
+    });
+    window.addEventListener("mouseup", () => {
+      mouseDrag = false;
+    });
+    window.addEventListener("mousemove", (event) => {
+      const locked = document.pointerLockElement === dom.canvas;
+      if (!currentState || (!locked && !mouseDrag)) {
+        return;
+      }
+      currentState.player.facing = normalizeAngle(currentState.player.facing + event.movementX * 0.0024);
+      currentState = syncDerivedState(currentState);
+    });
+  }
+
+  function createCaveGroup(THREE) {
+    const group = new THREE.Group();
+    const floorMaterial = new THREE.MeshStandardMaterial({
+      color: 0x111713,
+      roughness: 0.92,
+      metalness: 0.05,
+    });
+    const edgeMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1f2a25,
+      roughness: 0.95,
+      metalness: 0.03,
+    });
+    const railMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4bd6c0,
+      transparent: true,
+      opacity: 0.16,
+    });
+    GAME_DATA.cave.passages.forEach((passage) => {
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(passage.size.x, 0.16, passage.size.z), floorMaterial);
+      floor.position.set(passage.center.x, GAME_DATA.cave.floorY - 0.08, passage.center.z);
+      group.add(floor);
+
+      const north = new THREE.Mesh(new THREE.BoxGeometry(passage.size.x, 0.62, 0.34), edgeMaterial);
+      north.position.set(passage.center.x, 0.34, passage.center.z - passage.size.z / 2);
+      group.add(north);
+      const south = north.clone();
+      south.position.z = passage.center.z + passage.size.z / 2;
+      group.add(south);
+      const west = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.62, passage.size.z), edgeMaterial);
+      west.position.set(passage.center.x - passage.size.x / 2, 0.34, passage.center.z);
+      group.add(west);
+      const east = west.clone();
+      east.position.x = passage.center.x + passage.size.x / 2;
+      group.add(east);
+
+      const grid = new THREE.Mesh(new THREE.BoxGeometry(passage.size.x, 0.02, 0.08), railMaterial);
+      grid.position.set(passage.center.x, 0.04, passage.center.z);
+      group.add(grid);
+    });
+    return group;
+  }
+
+  function createLiftMesh(THREE) {
+    const group = new THREE.Group();
+    const metal = new THREE.MeshStandardMaterial({ color: 0x272f2b, roughness: 0.7, metalness: 0.35 });
+    const signal = new THREE.MeshBasicMaterial({ color: 0x4bd6c0 });
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.3, 4.6), metal);
+    deck.position.y = 0.1;
+    group.add(deck);
+    [-3.1, 3.1].forEach((x) => {
+      [-1.9, 1.9].forEach((z) => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.24, 3.6, 0.24), metal);
+        post.position.set(x, 1.8, z);
+        group.add(post);
+      });
+    });
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.2, 0.36), signal);
+    crown.position.set(0, 3.45, -2.2);
+    group.add(crown);
+    const lamp = new THREE.PointLight(0x4bd6c0, 1.4, 22);
+    lamp.position.set(0, 3.1, 0);
+    group.add(lamp);
+    group.position.set(GAME_DATA.lift.position.x, 0, GAME_DATA.lift.position.z);
+    return group;
+  }
+
+  function createPlayerMesh(THREE) {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.34, 0.42, 1.1, 12),
+      new THREE.MeshStandardMaterial({ color: 0xb7c2bd, roughness: 0.62, metalness: 0.18 })
+    );
+    body.position.y = 0.78;
+    group.add(body);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.5), new THREE.MeshBasicMaterial({ color: 0xc9a653 }));
+    lamp.position.set(0, 1.34, -0.34);
+    group.add(lamp);
+    return group;
+  }
+
+  function createSampleMesh(THREE, node) {
+    const group = new THREE.Group();
+    const crystal = new THREE.Mesh(
+      new THREE.ConeGeometry(0.72, 2.2, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0x57756c,
+        emissive: 0x102d28,
+        roughness: 0.38,
+        metalness: 0.18,
+      })
+    );
+    crystal.position.y = 1.1;
+    group.add(crystal);
+    const core = new THREE.PointLight(0x4bd6c0, 0.75, 10);
+    core.position.y = 1.4;
+    group.add(core);
+    group.position.set(node.position.x, 0, node.position.z);
+    return group;
+  }
+
+  function createHazardMesh(THREE, zone) {
+    const group = new THREE.Group();
+    const disk = new THREE.Mesh(
+      new THREE.CylinderGeometry(zone.radius, zone.radius, 0.05, 48),
+      new THREE.MeshBasicMaterial({ color: 0xd46857, transparent: true, opacity: 0.12 })
+    );
+    disk.position.y = 0.06;
+    group.add(disk);
+    const light = new THREE.PointLight(0xd46857, 0.42, zone.radius * 2.1);
+    light.position.y = 1.8;
+    group.add(light);
+    group.position.set(zone.position.x, 0, zone.position.z);
+    return group;
+  }
+
+  function createLanternMesh(THREE, anchor) {
+    const group = new THREE.Group();
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.32, 0.78, 10),
+      new THREE.MeshStandardMaterial({ color: 0x3b3422, roughness: 0.65, metalness: 0.36 })
+    );
+    base.position.y = 0.4;
+    group.add(base);
+    const flame = new THREE.Mesh(
+      new THREE.SphereGeometry(0.42, 12, 8),
+      new THREE.MeshBasicMaterial({ color: 0xc9a653, transparent: true, opacity: 0.86 })
+    );
+    flame.position.y = 1.0;
+    group.add(flame);
+    const light = new THREE.PointLight(0xc9a653, 2.1, anchor.radius);
+    light.position.y = 1.1;
+    group.add(light);
+    group.position.set(anchor.position.x, 0, anchor.position.z);
+    return group;
+  }
+
+  function createScene(canvas, state) {
+    const THREE = window.THREE;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050706);
+    scene.fog = new THREE.FogExp2(0x050706, 0.022);
+
+    const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 220);
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: false,
+      preserveDrawingBuffer: true,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    if ("outputEncoding" in renderer && THREE.sRGBEncoding) {
+      renderer.outputEncoding = THREE.sRGBEncoding;
+    }
+
+    scene.add(new THREE.HemisphereLight(0xb9c4be, 0x050706, 0.72));
+    scene.add(new THREE.AmbientLight(0x6d7772, 0.38));
+    const playerLamp = new THREE.PointLight(0xc9a653, 1.7, state.light.currentRadius);
+    scene.add(playerLamp);
+    const signalLight = new THREE.PointLight(0x4bd6c0, 1.05, 42);
+    signalLight.position.set(0, 3, -32);
+    scene.add(signalLight);
+
+    scene.add(createCaveGroup(THREE));
+    const lift = createLiftMesh(THREE);
+    scene.add(lift);
+    const player = createPlayerMesh(THREE);
+    scene.add(player);
+
+    const sampleMeshes = new Map();
+    state.sampleNodes.forEach((node) => {
+      const mesh = createSampleMesh(THREE, node);
+      sampleMeshes.set(node.id, mesh);
+      scene.add(mesh);
+    });
+
+    const hazardMeshes = new Map();
+    state.hazardZones.forEach((zone) => {
+      const mesh = createHazardMesh(THREE, zone);
+      hazardMeshes.set(zone.id, mesh);
+      scene.add(mesh);
+    });
+
+    const scannerRing = new THREE.Mesh(
+      new THREE.RingGeometry(3.8, 4.0, 48),
+      new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+    );
+    scannerRing.rotation.x = Math.PI / 2;
+    scannerRing.visible = false;
+    scene.add(scannerRing);
+
+    return {
+      THREE,
+      scene,
+      camera,
+      renderer,
+      objects: {
+        lift,
+        player,
+        playerLamp,
+        signalLight,
+        sampleMeshes,
+        hazardMeshes,
+        lanternMeshes: new Map(),
+        scannerRing,
+      },
+    };
+  }
+
+  function resizeScene(handle) {
+    const canvas = handle.renderer.domElement;
+    const width = Math.max(1, canvas.clientWidth);
+    const height = Math.max(1, canvas.clientHeight);
+    const pixelRatio = handle.renderer.getPixelRatio();
+    if (canvas.width !== Math.floor(width * pixelRatio) || canvas.height !== Math.floor(height * pixelRatio)) {
+      handle.renderer.setSize(width, height, false);
+      handle.camera.aspect = width / height;
+      handle.camera.updateProjectionMatrix();
+    }
+  }
+
+  function syncLanternMeshes(handle, state) {
+    state.lanterns.anchors.forEach((anchor) => {
+      if (!handle.objects.lanternMeshes.has(anchor.id)) {
+        const mesh = createLanternMesh(handle.THREE, anchor);
+        handle.objects.lanternMeshes.set(anchor.id, mesh);
+        handle.scene.add(mesh);
+      }
+    });
+  }
+
+  function updateScene(handle, state, timeSeconds) {
+    resizeScene(handle);
+    syncLanternMeshes(handle, state);
+    handle.objects.player.position.set(state.player.position.x, 0, state.player.position.z);
+    handle.objects.player.rotation.y = state.player.facing;
+    handle.objects.playerLamp.position.set(state.player.position.x, state.player.position.y + 0.4, state.player.position.z);
+    handle.objects.playerLamp.distance = state.light.currentRadius;
+
+    state.sampleNodes.forEach((node) => {
+      const mesh = handle.objects.sampleMeshes.get(node.id);
+      if (!mesh) {
+        return;
+      }
+      mesh.visible = !node.mineState.depleted;
+      mesh.rotation.y = timeSeconds * 0.2 + node.position.x;
+      mesh.scale.setScalar(node.mineState.status === "cutting" ? 1.12 : 1);
+    });
+
+    state.hazardZones.forEach((zone) => {
+      const mesh = handle.objects.hazardMeshes.get(zone.id);
+      if (!mesh) {
+        return;
+      }
+      mesh.visible = true;
+      mesh.scale.y = zone.active ? 1.24 : 1;
+      mesh.rotation.y = timeSeconds * 0.08;
+      mesh.children.forEach((child) => {
+        if (child.material) {
+          child.material.opacity = zone.active ? 0.2 : 0.1;
+        }
+      });
+    });
+
+    handle.objects.scannerRing.visible = state.scanner.cooldown > 0;
+    if (handle.objects.scannerRing.visible) {
+      const scale = Math.max(1, 1 + state.scanner.pulseAge * 3.8);
+      handle.objects.scannerRing.position.set(state.player.position.x, 0.1, state.player.position.z);
+      handle.objects.scannerRing.scale.setScalar(scale);
+      handle.objects.scannerRing.material.opacity = Math.max(0, 0.42 - state.scanner.pulseAge * 0.16);
+    }
+
+    handle.camera.position.set(state.camera.position.x, state.camera.position.y, state.camera.position.z);
+    handle.camera.lookAt(state.camera.target.x, state.camera.target.y, state.camera.target.z);
+    handle.renderer.render(handle.scene, handle.camera);
+  }
+
+  function animationFrame(now) {
+    if (!sceneHandle || !currentState) {
+      return;
+    }
+    const deltaSeconds = Math.min(0.05, (now - lastFrameTime) / 1000 || 0.016);
+    lastFrameTime = now;
+    currentState = stepRun(currentState, pressedControls, deltaSeconds);
+    updateScene(sceneHandle, currentState, now / 1000);
+    renderHud(currentState);
+    window.requestAnimationFrame(animationFrame);
+  }
+
+  function initDom() {
+    cacheDom();
+    if (!dom.root || !dom.canvas) {
+      return;
+    }
+    currentState = createInitialState();
+    bindControls();
+    if (!window.THREE) {
+      currentState.renderer.status = "blocked";
+      renderHud(currentState);
+      return;
+    }
+    try {
+      sceneHandle = createScene(dom.canvas, currentState);
+      currentState.renderer.status = "local renderer";
+      renderHud(currentState);
+      lastFrameTime = performance.now();
+      window.requestAnimationFrame(animationFrame);
+    } catch (error) {
+      currentState.renderer.status = "renderer blocked";
+      currentState.log.unshift({ tick: currentState.tick, message: error.message });
+      renderHud(currentState);
+    }
+  }
+
+  const api = {
+    GAME_DATA,
+    RENDERER_PATH,
+    createInitialState,
+    createSampleNodes,
+    createHazardZones,
+    stepRun,
+    applyMovement,
+    placeLantern,
+    mineNearestSample,
+    pulseScanner,
+    returnToLift,
+    purchaseUpgrade,
+    resetRun,
+    syncDerivedState,
+    oxygenDrainRate,
+    coveredByLantern,
+    currentHazardExposure,
+    nearestSample,
+    cavePassageAt,
+    isPointInPassage,
+    updateCameraState,
+    bearingTo,
+    formatBearing,
+    distance,
+  };
+
+  if (typeof window !== "undefined") {
+    window.IronLanternDescent = api;
+    window.addEventListener("DOMContentLoaded", initDom);
+  }
+
+  return api;
+})();
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = IronLanternDescent;
+}

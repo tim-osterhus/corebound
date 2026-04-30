@@ -1,0 +1,256 @@
+import json
+import subprocess
+import textwrap
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+GAME_DIR = ROOT / "games" / "iron-lantern-descent"
+
+
+class IronLanternDescentFoundationTests(unittest.TestCase):
+    def test_static_entrypoint_uses_local_renderer_and_hud_contract(self) -> None:
+        html = (GAME_DIR / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn("<title>Iron Lantern Descent</title>", html)
+        self.assertIn("iron-lantern-descent.css", html)
+        self.assertIn('src="vendor/three.min.js"', html)
+        self.assertIn("iron-lantern-descent.js", html)
+        self.assertNotIn("https://", html)
+        self.assertNotIn("http://", html)
+        for region in (
+            "iron-lantern-scene",
+            "lantern-hud",
+            "objective-readout",
+            "oxygen-readout",
+            "light-readout",
+            "lantern-readout",
+            "samples-readout",
+            "credits-readout",
+            "lift-readout",
+            "scanner-readout",
+            "hazard-readout",
+            "upgrade-readout",
+            "player-position-readout",
+            "player-facing-readout",
+            "collision-readout",
+            "mining-readout",
+            "sample-list",
+            "lantern-action",
+            "mine-action",
+            "scan-action",
+            "lift-action",
+            "upgrade-action",
+            "restart-action",
+            "control-strip",
+        ):
+            self.assertIn(region, html)
+
+        vendor = GAME_DIR / "vendor" / "three.min.js"
+        self.assertTrue(vendor.is_file())
+        self.assertIn("SPDX-License-Identifier: MIT", vendor.read_text(encoding="utf-8")[:180])
+
+    def test_state_data_exposes_cave_run_and_upgrade_seams(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+            const state = game.createInitialState({ seed: 41 });
+            console.log(JSON.stringify({
+              rendererPath: game.GAME_DATA.renderer.path,
+              localOnly: game.GAME_DATA.renderer.localOnly,
+              playerPosition: Boolean(state.player.position && Number.isFinite(state.player.position.z)),
+              facing: state.player.facing,
+              passageCount: game.GAME_DATA.cave.passages.length,
+              collisionPassages: state.movement.collision.passages.length,
+              oxygenCurrent: state.oxygen.current,
+              oxygenMax: state.oxygen.max,
+              lanternCharges: state.lanterns.charges,
+              sampleCount: state.sampleNodes.length,
+              sampleSeams: state.sampleNodes.every((node) => (
+                node.id &&
+                node.position &&
+                node.mineState &&
+                node.mineState.status === "ready" &&
+                node.remaining > 0 &&
+                node.value > 0
+              )),
+              liftStatus: state.lift.status,
+              hazardCount: state.hazardZones.length,
+              scannerRange: state.scanner.range,
+              runStatus: state.run.status,
+              credits: state.credits,
+              upgradeCount: state.upgrades.available.length,
+              carryoverKeys: Object.keys(state.upgrades.carryover).sort(),
+              cameraMode: state.camera.mode,
+              hasCameraVectors: Boolean(state.camera.position && state.camera.target),
+            }));
+            """
+        )
+
+        self.assertEqual("vendor/three.min.js", result["rendererPath"])
+        self.assertTrue(result["localOnly"])
+        self.assertTrue(result["playerPosition"])
+        self.assertEqual(0, result["facing"])
+        self.assertGreaterEqual(result["passageCount"], 4)
+        self.assertEqual(result["passageCount"], result["collisionPassages"])
+        self.assertEqual(96, result["oxygenCurrent"])
+        self.assertEqual(96, result["oxygenMax"])
+        self.assertEqual(3, result["lanternCharges"])
+        self.assertGreaterEqual(result["sampleCount"], 4)
+        self.assertTrue(result["sampleSeams"])
+        self.assertEqual("in range", result["liftStatus"])
+        self.assertGreaterEqual(result["hazardCount"], 1)
+        self.assertGreater(result["scannerRange"], 10)
+        self.assertEqual("active", result["runStatus"])
+        self.assertEqual(0, result["credits"])
+        self.assertGreaterEqual(result["upgradeCount"], 1)
+        self.assertEqual(["drillPowerBonus", "lanternChargeBonus", "oxygenMaxBonus"], result["carryoverKeys"])
+        self.assertEqual("close-third", result["cameraMode"])
+        self.assertTrue(result["hasCameraVectors"])
+
+    def test_core_controls_move_player_update_camera_collision_and_lift_bearing(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+            let state = game.createInitialState({ seed: 7 });
+            const start = JSON.parse(JSON.stringify(state));
+            state = game.stepRun(state, { forward: true, turnRight: true }, 1);
+            const afterMove = JSON.parse(JSON.stringify(state));
+            state.player.position = { x: 30, y: 1.6, z: afterMove.player.position.z };
+            state = game.syncDerivedState(state);
+            state = game.stepRun(state, { strafeRight: true }, 1);
+            console.log(JSON.stringify({
+              moved: game.distance(start.player.position, afterMove.player.position),
+              facingChanged: afterMove.player.facing !== start.player.facing,
+              oxygenSpent: start.oxygen.current - afterMove.oxygen.current,
+              cameraMoved: game.distance(start.camera.position, afterMove.camera.position),
+              liftBearing: afterMove.lift.bearing,
+              scannerLiftBearing: afterMove.scanner.liftBearing,
+              blocked: state.movement.collision.lastBlocked,
+              passage: afterMove.movement.collision.lastPassage,
+            }));
+            """
+        )
+
+        self.assertGreater(result["moved"], 1)
+        self.assertTrue(result["facingChanged"])
+        self.assertGreater(result["oxygenSpent"], 0)
+        self.assertGreater(result["cameraMoved"], 1)
+        self.assertIsInstance(result["liftBearing"], int)
+        self.assertEqual(result["liftBearing"], result["scannerLiftBearing"])
+        self.assertTrue(result["blocked"])
+        self.assertIn(result["passage"], ("lift-bay", "main-cut"))
+
+    def test_lantern_anchor_changes_inventory_and_pressure_seams(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+            let baseline = game.createInitialState({ seed: 5 });
+            baseline.player.position = { x: 12, y: 1.6, z: -31 };
+            baseline = game.syncDerivedState(baseline);
+            const hazardDrain = game.oxygenDrainRate(baseline);
+            let lit = game.placeLantern(baseline);
+            const litDrain = game.oxygenDrainRate(lit);
+            console.log(JSON.stringify({
+              chargesBefore: baseline.lanterns.charges,
+              chargesAfter: lit.lanterns.charges,
+              anchors: lit.lanterns.anchors.length,
+              anchorStatus: lit.lanterns.anchors[0].status,
+              covered: game.coveredByLantern(lit),
+              hazardDrain,
+              litDrain,
+              lightStatus: lit.light.status,
+            }));
+            """
+        )
+
+        self.assertEqual(3, result["chargesBefore"])
+        self.assertEqual(2, result["chargesAfter"])
+        self.assertEqual(1, result["anchors"])
+        self.assertEqual("burning", result["anchorStatus"])
+        self.assertTrue(result["covered"])
+        self.assertGreater(result["hazardDrain"], result["litDrain"])
+        self.assertIn("lantern", result["lightStatus"])
+
+    def test_mining_lift_return_and_upgrade_carryover(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+            let state = game.createInitialState({ seed: 19 });
+            const node = state.sampleNodes[3];
+            state.player.position = { x: node.position.x, y: 1.6, z: node.position.z };
+            state = game.syncDerivedState(state);
+            for (let pass = 0; pass < 6; pass += 1) {
+              state = game.mineNearestSample(state, 1);
+            }
+            const afterMine = JSON.parse(JSON.stringify(state));
+            state.player.position = { x: state.lift.position.x, y: 1.6, z: state.lift.position.z };
+            state = game.returnToLift(game.syncDerivedState(state));
+            const afterLift = JSON.parse(JSON.stringify(state));
+            state = game.purchaseUpgrade(state, "tank-weave");
+            const afterUpgrade = JSON.parse(JSON.stringify(state));
+            const nextRun = game.resetRun(state);
+            console.log(JSON.stringify({
+              cargoAfterMine: afterMine.cargo.samples,
+              valueAfterMine: afterMine.cargo.value,
+              nodeRemaining: afterMine.sampleNodes[3].remaining,
+              nodeStatus: afterMine.sampleNodes[3].mineState.status,
+              creditsAfterLift: afterLift.credits,
+              cargoAfterLift: afterLift.cargo.samples,
+              runAfterLift: afterLift.run.status,
+              purchased: afterUpgrade.upgrades.purchased,
+              creditsAfterUpgrade: afterUpgrade.credits,
+              nextOxygenMax: nextRun.oxygen.max,
+              nextRunCount: nextRun.run.count,
+            }));
+            """
+        )
+
+        self.assertEqual(2, result["cargoAfterMine"])
+        self.assertGreaterEqual(result["valueAfterMine"], 100)
+        self.assertEqual(0, result["nodeRemaining"])
+        self.assertEqual("depleted", result["nodeStatus"])
+        self.assertEqual(result["valueAfterMine"], result["creditsAfterLift"])
+        self.assertEqual(0, result["cargoAfterLift"])
+        self.assertEqual("extracted", result["runAfterLift"])
+        self.assertIn("tank-weave", result["purchased"])
+        self.assertLess(result["creditsAfterUpgrade"], result["creditsAfterLift"])
+        self.assertEqual(120, result["nextOxygenMax"])
+        self.assertEqual(2, result["nextRunCount"])
+
+    def test_oxygen_failure_is_reachable_and_readable(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+            let state = game.createInitialState({ seed: 23 });
+            state.player.position = { x: 12, y: 1.6, z: -31 };
+            state.oxygen.current = 0.25;
+            state = game.stepRun(game.syncDerivedState(state), { forward: true }, 1);
+            console.log(JSON.stringify({
+              runStatus: state.run.status,
+              failureReason: state.run.failureReason,
+              objective: state.run.objective,
+              oxygen: state.oxygen.current,
+            }));
+            """
+        )
+
+        self.assertEqual("failed", result["runStatus"])
+        self.assertEqual("oxygen depleted", result["failureReason"])
+        self.assertIn("Restart", result["objective"])
+        self.assertEqual(0, result["oxygen"])
+
+    def run_node(self, script: str) -> dict:
+        completed = subprocess.run(
+            ["node", "-e", textwrap.dedent(script)],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return json.loads(completed.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()
