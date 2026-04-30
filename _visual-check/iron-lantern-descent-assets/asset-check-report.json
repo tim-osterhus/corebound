@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "ok": true,
+  "asset_count": 5,
+  "assets": [
+    {
+      "path": "/mnt/f/_evolve/millrace-games/auto-games/games/iron-lantern-descent/assets/lantern-anchor.png",
+      "ok": true,
+      "issues": [],
+      "bytes": 40849,
+      "width": 256,
+      "height": 256,
+      "has_alpha_channel": true,
+      "has_transparency": true,
+      "alpha_coverage": 0.205810546875,
+      "content_bbox": [
+        79,
+        12,
+        177,
+        244
+      ]
+    },
+    {
+      "path": "/mnt/f/_evolve/millrace-games/auto-games/games/iron-lantern-descent/assets/mineral-vein-material.png",
+      "ok": true,
+      "issues": [],
+      "bytes": 549815,
+      "width": 512,
+      "height": 512,
+      "has_alpha_channel": false,
+      "has_transparency": false,
+      "alpha_coverage": 1.0,
+      "content_bbox": [
+        0,
+        0,
+        512,
+        512
+      ]
+    },
+    {
+      "path": "/mnt/f/_evolve/millrace-games/auto-games/games/iron-lantern-descent/assets/drill-tool.png",
+      "ok": true,
+      "issues": [],
+      "bytes": 49617,
+      "width": 256,
+      "height": 256,
+      "has_alpha_channel": true,
+      "has_transparency": true,
+      "alpha_coverage": 0.2711334228515625,
+      "content_bbox": [
+        10,
+        46,
+        246,
+        209
+      ]
+    },
+    {
+      "path": "/mnt/f/_evolve/millrace-games/auto-games/games/iron-lantern-descent/assets/oxygen-light-icons.png",
+      "ok": true,
+      "issues": [],
+      "bytes": 48603,
+      "width": 384,
+      "height": 128,
+      "has_alpha_channel": true,
+      "has_transparency": true,
+      "alpha_coverage": 0.3193766276041667,
+      "content_bbox": [
+        35,
+        10,
+        353,
+        115
+      ]
+    },
+    {
+      "path": "/mnt/f/_evolve/millrace-games/auto-games/games/iron-lantern-descent/assets/arcade-title-card.png",
+      "ok": true,
+      "issues": [],
+      "bytes": 629774,
+      "width": 800,
+      "height": 450,
+      "has_alpha_channel": false,
+      "has_transparency": false,
+      "alpha_coverage": 1.0,
+      "content_bbox": [
+        0,
+        0,
+        800,
+        450
+      ]
+    }
+  ]
+}

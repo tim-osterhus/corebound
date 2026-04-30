@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "live",
-    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.5.0 Rail Sabotage rail-security release, and Void Prospector's v0.4.0 Storm Cartography route-window release."
+    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.5.0 Rail Sabotage rail-security release, Void Prospector's v0.4.0 Storm Cartography route-window release, and Iron Lantern Descent's v0.0.1 lantern-route survival release."
   },
   "games": [
     {
@@ -180,6 +180,24 @@
           "commit": "0e11ee1760f67f8fc21d6b3817cb0b1ac8de3d70"
         }
       ]
+    },
+    {
+      "slug": "iron-lantern-descent",
+      "title": "Iron Lantern Descent",
+      "version": "0.0.1",
+      "status": "playable",
+      "summary": "Descend from the iron lift into a compact 3D cave, spend finite oxygen, place lantern anchors to keep the return route legible, drill mineral samples, dodge gas and blackout hazards, bank credits at the lift, and buy carryover upgrades for the next run.",
+      "path": "games/iron-lantern-descent/",
+      "thumbnail": "games/iron-lantern-descent/assets/arcade-title-card.png",
+      "release": {
+        "label": "v0.0.1 Lantern Route",
+        "copy": "Lantern Route opens Iron Lantern Descent with a local Three.js cave, oxygen pressure, route-marking lantern anchors, mineable mineral samples, scanner bearings, hazard zones, lift extraction, upgrade carryover, and original project-local lantern, mineral, drill, HUD icon, and title-card art."
+      },
+      "snapshot": {
+        "status": "deferred",
+        "version": "0.0.1",
+        "reason": "Snapshot continuity is reserved for the release-continuity work item after this asset and arcade surface pass."
+      }
     }
   ]
 }

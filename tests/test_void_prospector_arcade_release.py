@@ -89,25 +89,28 @@ class VoidProspectorArcadeReleaseTests(unittest.TestCase):
         self.assertEqual("games/void-prospector/versions/0.0.1/", first_snapshot["path"])
         self.assertEqual("v0.0.1 First Sortie", first_snapshot["label"])
 
-    def test_manifest_preserves_existing_games_while_listing_three_games(self) -> None:
+    def test_manifest_preserves_existing_games_while_listing_four_games(self) -> None:
         manifest = load_manifest()
         slugs = [game["slug"] for game in manifest["games"]]
 
-        self.assertEqual(["corebound", "dark-factory-dispatch", "void-prospector"], slugs)
+        self.assertEqual(["corebound", "dark-factory-dispatch", "void-prospector", "iron-lantern-descent"], slugs)
         self.assertEqual("0.7.0", game_by_slug("corebound")["version"])
         self.assertEqual("0.5.0", game_by_slug("dark-factory-dispatch")["version"])
         self.assertEqual("0.4.0", game_by_slug("void-prospector")["version"])
+        self.assertEqual("0.0.1", game_by_slug("iron-lantern-descent")["version"])
 
     def test_generated_arcade_output_lists_storm_cartography_card_snapshots_and_thumbnail(self) -> None:
         html = (ROOT / "index.html").read_text(encoding="utf-8")
 
-        self.assertIn("games <strong>3 games</strong>", html)
+        self.assertIn("games <strong>4 games</strong>", html)
         self.assertIn("Corebound", html)
         self.assertIn("Dark Factory Dispatch", html)
         self.assertIn("Void Prospector", html)
+        self.assertIn("Iron Lantern Descent", html)
         self.assertIn('href="games/corebound/"', html)
         self.assertIn('href="games/dark-factory-dispatch/"', html)
         self.assertIn('href="games/void-prospector/"', html)
+        self.assertIn('href="games/iron-lantern-descent/"', html)
         self.assertIn('src="games/void-prospector/assets/arcade-title-card.png"', html)
         self.assertIn("playable / v0.4.0", html)
         self.assertIn("v0.4.0 Storm Cartography", html)
@@ -132,7 +135,7 @@ class VoidProspectorArcadeReleaseTests(unittest.TestCase):
         self.assertIn("v0.0.1 First Sortie", html)
         self.assertIn("commit ", html)
         self.assertNotIn("Commit-backed Void Prospector snapshot", html)
-        self.assertNotIn("Snapshot deferred", html)
+        self.assertNotIn('aria-label="Void Prospector snapshot continuity"', html)
 
     def test_snapshot_directory_preserves_playable_static_storm_cartography_release(self) -> None:
         snapshot_dir = ROOT / "games" / "void-prospector" / "versions" / "0.4.0"

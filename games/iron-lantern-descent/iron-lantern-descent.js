@@ -2,10 +2,19 @@
 
 const IronLanternDescent = (() => {
   const RENDERER_PATH = "vendor/three.min.js";
+  const ASSET_PATHS = {
+    sourceManifest: "assets/asset-manifest.json",
+    lanternAnchor: "assets/lantern-anchor.png",
+    mineralVeinMaterial: "assets/mineral-vein-material.png",
+    drillTool: "assets/drill-tool.png",
+    oxygenLightIcons: "assets/oxygen-light-icons.png",
+    arcadeTitleCard: "assets/arcade-title-card.png",
+  };
   const DEFAULT_SEED = 37193;
   const TWO_PI = Math.PI * 2;
 
   const GAME_DATA = {
+    assets: ASSET_PATHS,
     renderer: {
       name: "Three.js",
       path: RENDERER_PATH,
@@ -1130,10 +1139,57 @@ const IronLanternDescent = (() => {
     });
   }
 
-  function createCaveGroup(THREE) {
+  function configureTexture(THREE, texture, options = {}) {
+    if (!texture) {
+      return null;
+    }
+    if ("colorSpace" in texture && THREE.SRGBColorSpace) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+    }
+    if (options.repeat) {
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(options.repeat.x, options.repeat.y);
+    }
+    texture.anisotropy = options.anisotropy || 4;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  function loadTexture(THREE, loader, path, options = {}) {
+    return new Promise((resolve) => {
+      const texture = loader.load(
+        path,
+        () => resolve(configureTexture(THREE, texture, options)),
+        undefined,
+        () => resolve(null)
+      );
+    });
+  }
+
+  function loadSceneAssets(THREE) {
+    const loader = new THREE.TextureLoader();
+    return Promise.all([
+      loadTexture(THREE, loader, ASSET_PATHS.lanternAnchor),
+      loadTexture(THREE, loader, ASSET_PATHS.mineralVeinMaterial, { repeat: { x: 2.4, y: 2.4 }, anisotropy: 6 }),
+      loadTexture(THREE, loader, ASSET_PATHS.drillTool),
+      loadTexture(THREE, loader, ASSET_PATHS.arcadeTitleCard),
+    ]).then(([lanternAnchor, mineralVeinMaterial, drillTool, arcadeTitleCard]) => ({
+      lanternAnchor,
+      mineralVeinMaterial,
+      drillTool,
+      arcadeTitleCard,
+    }));
+  }
+
+  function createCaveGroup(THREE, assets = {}) {
     const group = new THREE.Group();
     const floorMaterial = new THREE.MeshStandardMaterial({
       color: 0x111713,
+      map: assets.mineralVeinMaterial || null,
+      emissive: 0x061411,
+      emissiveMap: assets.mineralVeinMaterial || null,
+      emissiveIntensity: assets.mineralVeinMaterial ? 0.08 : 0,
       roughness: 0.92,
       metalness: 0.05,
     });
@@ -1196,7 +1252,7 @@ const IronLanternDescent = (() => {
     return group;
   }
 
-  function createPlayerMesh(THREE) {
+  function createPlayerMesh(THREE, assets = {}) {
     const group = new THREE.Group();
     const body = new THREE.Mesh(
       new THREE.CylinderGeometry(0.34, 0.42, 1.1, 12),
@@ -1207,16 +1263,31 @@ const IronLanternDescent = (() => {
     const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.5), new THREE.MeshBasicMaterial({ color: 0xc9a653 }));
     lamp.position.set(0, 1.34, -0.34);
     group.add(lamp);
+    if (assets.drillTool) {
+      const drill = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: assets.drillTool,
+          transparent: true,
+          depthWrite: false,
+        })
+      );
+      drill.position.set(0.56, 0.96, -0.28);
+      drill.scale.set(0.9, 0.9, 1);
+      group.add(drill);
+    }
     return group;
   }
 
-  function createSampleMesh(THREE, node) {
+  function createSampleMesh(THREE, node, assets = {}) {
     const group = new THREE.Group();
     const crystal = new THREE.Mesh(
       new THREE.ConeGeometry(0.72, 2.2, 6),
       new THREE.MeshStandardMaterial({
         color: 0x57756c,
+        map: assets.mineralVeinMaterial || null,
         emissive: 0x102d28,
+        emissiveMap: assets.mineralVeinMaterial || null,
+        emissiveIntensity: assets.mineralVeinMaterial ? 0.28 : 0.2,
         roughness: 0.38,
         metalness: 0.18,
       })
@@ -1245,7 +1316,7 @@ const IronLanternDescent = (() => {
     return group;
   }
 
-  function createLanternMesh(THREE, anchor) {
+  function createLanternMesh(THREE, anchor, assets = {}) {
     const group = new THREE.Group();
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.22, 0.32, 0.78, 10),
@@ -1259,6 +1330,18 @@ const IronLanternDescent = (() => {
     );
     flame.position.y = 1.0;
     group.add(flame);
+    if (assets.lanternAnchor) {
+      const marker = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: assets.lanternAnchor,
+          transparent: true,
+          depthWrite: false,
+        })
+      );
+      marker.position.y = 1.15;
+      marker.scale.set(2.0, 2.0, 1);
+      group.add(marker);
+    }
     const light = new THREE.PointLight(0xc9a653, 2.1, anchor.radius);
     light.position.y = 1.1;
     group.add(light);
@@ -1266,7 +1349,7 @@ const IronLanternDescent = (() => {
     return group;
   }
 
-  function createScene(canvas, state) {
+  function createScene(canvas, state, sceneAssets = {}) {
     const THREE = window.THREE;
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x050706);
@@ -1292,15 +1375,15 @@ const IronLanternDescent = (() => {
     signalLight.position.set(0, 3, -32);
     scene.add(signalLight);
 
-    scene.add(createCaveGroup(THREE));
+    scene.add(createCaveGroup(THREE, sceneAssets));
     const lift = createLiftMesh(THREE);
     scene.add(lift);
-    const player = createPlayerMesh(THREE);
+    const player = createPlayerMesh(THREE, sceneAssets);
     scene.add(player);
 
     const sampleMeshes = new Map();
     state.sampleNodes.forEach((node) => {
-      const mesh = createSampleMesh(THREE, node);
+      const mesh = createSampleMesh(THREE, node, sceneAssets);
       sampleMeshes.set(node.id, mesh);
       scene.add(mesh);
     });
@@ -1327,6 +1410,7 @@ const IronLanternDescent = (() => {
       scene,
       camera,
       renderer,
+      sceneAssets,
       objects: {
         lift,
         player,
@@ -1357,7 +1441,7 @@ const IronLanternDescent = (() => {
   function syncLanternMeshes(handle, state) {
     state.lanterns.anchors.forEach((anchor) => {
       if (!handle.objects.lanternMeshes.has(anchor.id)) {
-        const mesh = createLanternMesh(handle.THREE, anchor);
+        const mesh = createLanternMesh(handle.THREE, anchor, handle.sceneAssets || {});
         handle.objects.lanternMeshes.set(anchor.id, mesh);
         handle.scene.add(mesh);
       }
@@ -1474,17 +1558,21 @@ const IronLanternDescent = (() => {
       renderHud(currentState);
       return;
     }
-    try {
-      sceneHandle = createScene(dom.canvas, currentState);
-      currentState.renderer.status = "local renderer";
-      renderHud(currentState);
-      lastFrameTime = performance.now();
-      window.requestAnimationFrame(animationFrame);
-    } catch (error) {
-      currentState.renderer.status = "renderer blocked";
-      currentState.log.unshift({ tick: currentState.tick, message: error.message });
-      renderHud(currentState);
-    }
+    const startRenderer = (assets = {}) => {
+      try {
+        sceneHandle = createScene(dom.canvas, currentState, assets);
+        const completeAssets = Boolean(assets.lanternAnchor && assets.mineralVeinMaterial && assets.drillTool);
+        currentState.renderer.status = completeAssets ? "local renderer + assets" : "local renderer / asset fallback";
+        renderHud(currentState);
+        lastFrameTime = performance.now();
+        window.requestAnimationFrame(animationFrame);
+      } catch (error) {
+        currentState.renderer.status = "renderer blocked";
+        currentState.log.unshift({ tick: currentState.tick, message: error.message });
+        renderHud(currentState);
+      }
+    };
+    loadSceneAssets(window.THREE).then(startRenderer).catch(() => startRenderer({}));
   }
 
   const api = {
@@ -1501,6 +1589,7 @@ const IronLanternDescent = (() => {
     returnToLift,
     purchaseUpgrade,
     resetRun,
+    loadSceneAssets,
     syncDerivedState,
     oxygenDrainRate,
     coveredByLantern,

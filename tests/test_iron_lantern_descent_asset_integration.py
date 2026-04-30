@@ -1,0 +1,100 @@
+import json
+import re
+import subprocess
+import textwrap
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+GAME_DIR = ROOT / "games" / "iron-lantern-descent"
+MANIFEST_PATH = GAME_DIR / "assets" / "asset-manifest.json"
+
+
+def source_text(filename: str) -> str:
+    return (GAME_DIR / filename).read_text(encoding="utf-8")
+
+
+def manifest_short_paths() -> set[str]:
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    return {
+        asset["path"].removeprefix("games/iron-lantern-descent/")
+        for asset in manifest["assets"]
+    }
+
+
+class IronLanternDescentAssetIntegrationTests(unittest.TestCase):
+    def test_static_asset_references_are_project_local_manifest_assets(self) -> None:
+        paths = manifest_short_paths()
+        files = {
+            "index.html": source_text("index.html"),
+            "iron-lantern-descent.css": source_text("iron-lantern-descent.css"),
+            "iron-lantern-descent.js": source_text("iron-lantern-descent.js"),
+        }
+
+        for filename, text in files.items():
+            for reference in re.findall(r'assets/[^"\'\)\s]+\.png', text):
+                self.assertIn(reference, paths, f"{filename} references {reference}")
+                self.assertNotIn("://", reference)
+                self.assertFalse(Path(reference).is_absolute())
+
+        self.assertIn('src="assets/arcade-title-card.png"', files["index.html"])
+        self.assertIn('background-image: url("assets/oxygen-light-icons.png")', files["iron-lantern-descent.css"])
+        self.assertIn('sourceManifest: "assets/asset-manifest.json"', files["iron-lantern-descent.js"])
+
+    def test_scene_asset_loader_uses_generated_texture_paths(self) -> None:
+        script = source_text("iron-lantern-descent.js")
+        css = source_text("iron-lantern-descent.css")
+
+        for token in (
+            "ASSET_PATHS",
+            "loadSceneAssets",
+            "TextureLoader",
+            'lanternAnchor: "assets/lantern-anchor.png"',
+            'mineralVeinMaterial: "assets/mineral-vein-material.png"',
+            'drillTool: "assets/drill-tool.png"',
+            'oxygenLightIcons: "assets/oxygen-light-icons.png"',
+            'arcadeTitleCard: "assets/arcade-title-card.png"',
+            "map: assets.mineralVeinMaterial",
+            "emissiveMap: assets.mineralVeinMaterial",
+            "map: assets.lanternAnchor",
+            "map: assets.drillTool",
+            "sceneAssets",
+        ):
+            self.assertIn(token, script)
+
+        for token in (".title-card-band", ".readout-icon", "object-fit: cover"):
+            self.assertIn(token, css)
+
+    def test_game_data_exposes_asset_manifest_paths_for_state_checks(self) -> None:
+        assets = json.loads(self.run_node("game.GAME_DATA.assets"))
+
+        self.assertEqual("assets/asset-manifest.json", assets["sourceManifest"])
+        self.assertEqual("assets/lantern-anchor.png", assets["lanternAnchor"])
+        self.assertEqual("assets/mineral-vein-material.png", assets["mineralVeinMaterial"])
+        self.assertEqual("assets/drill-tool.png", assets["drillTool"])
+        self.assertEqual("assets/oxygen-light-icons.png", assets["oxygenLightIcons"])
+        self.assertEqual("assets/arcade-title-card.png", assets["arcadeTitleCard"])
+
+    def run_node(self, expression: str) -> str:
+        result = subprocess.run(
+            [
+                "node",
+                "-e",
+                textwrap.dedent(
+                    f"""
+                    const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+                    console.log(JSON.stringify({expression}));
+                    """
+                ),
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout
+
+
+if __name__ == "__main__":
+    unittest.main()
