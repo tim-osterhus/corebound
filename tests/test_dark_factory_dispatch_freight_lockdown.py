@@ -25,7 +25,9 @@ class DarkFactoryDispatchFreightLockdownTests(unittest.TestCase):
             console.log(JSON.stringify({
               release: first.campaign.release,
               freightRelease: first.freight.release,
+              railRelease: first.railSabotage.release,
               campaignFreightRelease: campaign.freight.release,
+              campaignRailStatus: campaign.railSabotage.status,
               manifestCount: game.GAME_DATA.freightLockdown.manifests.length,
               inspectionJob: game.GAME_DATA.jobTypes.find((job) => job.id === "inspect-cargo-seals"),
               firstManifest: firstFreight.manifests.find((manifest) => manifest.id === "ashline-spare-crates"),
@@ -38,7 +40,9 @@ class DarkFactoryDispatchFreightLockdownTests(unittest.TestCase):
 
         self.assertEqual("v0.4.0 Freight Lockdown", result["release"])
         self.assertEqual("v0.4.0 Freight Lockdown", result["freightRelease"])
+        self.assertEqual("v0.5.0 Rail Sabotage", result["railRelease"])
         self.assertEqual("v0.4.0 Freight Lockdown", result["campaignFreightRelease"])
+        self.assertEqual("incident-open", result["campaignRailStatus"])
         self.assertGreaterEqual(result["manifestCount"], 2)
         self.assertEqual("freight", result["inspectionJob"]["family"])
 

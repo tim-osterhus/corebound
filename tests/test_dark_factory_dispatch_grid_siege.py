@@ -34,6 +34,8 @@ class DarkFactoryDispatchGridSiegeTests(unittest.TestCase):
               })),
               blackoutEvents: surface.blackout.events,
               lockedSectors: surface.sectors.filter((sector) => sector.blackoutLockedUntil !== null),
+              railPressure: game.railSabotageSurfaceState(state).pressure,
+              railOpenIncidents: game.railSabotageSurfaceState(state).incidents.filter((incident) => incident.status === "available").length,
               pressure: surface.pressure,
               load: surface.load,
             }));
@@ -49,6 +51,8 @@ class DarkFactoryDispatchGridSiegeTests(unittest.TestCase):
         self.assertEqual("reserve-ledger-audit", result["auditQueue"][0]["sourceDirectiveId"])
         self.assertGreaterEqual(result["blackoutEvents"], 1)
         self.assertTrue(result["lockedSectors"])
+        self.assertGreaterEqual(result["railPressure"], 1)
+        self.assertGreaterEqual(result["railOpenIncidents"], 1)
         self.assertGreaterEqual(result["load"], 0)
         self.assertGreaterEqual(result["pressure"], 0)
 

@@ -133,6 +133,15 @@ const DarkFactoryDispatch = (() => {
         family: "freight",
         freightInspection: true,
       },
+      {
+        id: "sweep-sabotage-cells",
+        name: "Sweep Sabotage Cells",
+        duration: 4,
+        inputs: { circuits: 1, power: 2 },
+        outputs: { stability: 2 },
+        family: "sabotage",
+        sabotageSweep: true,
+      },
     ],
     contracts: [
       {
@@ -169,6 +178,18 @@ const DarkFactoryDispatch = (() => {
         penalty: { stability: -12, power: -1 },
         deadline: 18,
         pressure: "seal the hostile dispatch carrier before queue work is rewritten",
+        status: "open",
+      },
+      {
+        id: "hostile-rail-directive",
+        name: "Hostile Rail Directive",
+        family: "sabotage",
+        requirement: { drones: 2, defenses: 1 },
+        escalationRequirement: { drones: 1 },
+        reward: { reputation: 2, stability: 4 },
+        penalty: { stability: -12, power: -1 },
+        deadline: 18,
+        pressure: "contain rail sabotage cells before cargo manifests are rewritten",
         status: "open",
       },
     ],
@@ -431,6 +452,115 @@ const DarkFactoryDispatch = (() => {
         },
       ],
     },
+    railSabotage: {
+      release: "v0.5.0 Rail Sabotage",
+      scan: {
+        cost: { circuits: 1, power: 1 },
+        pressureRelief: 2,
+        integrityGuard: 6,
+        riskRelief: 1,
+      },
+      patrols: {
+        drones: {
+          cost: { drones: 1 },
+          pressureRelief: 2,
+          integrityGuard: 8,
+          riskRelief: 1,
+        },
+        defenses: {
+          cost: { defenses: 1 },
+          pressureRelief: 3,
+          integrityGuard: 10,
+          riskRelief: 2,
+          breachRelief: 1,
+        },
+      },
+      decoy: {
+        cost: { scrap: 2, power: 1 },
+        pressureRelief: 3,
+        integrityGuard: 10,
+        riskRelief: 2,
+        delayTicks: 1,
+      },
+      dockLockdown: {
+        cost: { stability: 2 },
+        pressureRelief: 3,
+        gridPressure: 1,
+      },
+      intercept: {
+        cost: { drones: 1, defenses: 1 },
+        pressureRelief: 4,
+        integrityGuard: 8,
+      },
+      carrierReroute: {
+        cost: { power: 1, stability: 1 },
+        pressureRelief: 2,
+        riskRelief: 2,
+        delayTicks: 1,
+        integrityLoss: 3,
+      },
+      laneRepair: {
+        cost: { modules: 1, power: 2 },
+        pressureRelief: 3,
+      },
+      sweep: {
+        jobTypeId: "sweep-sabotage-cells",
+      },
+      incidents: [
+        {
+          id: "ashline-rail-spoof",
+          name: "Ashline Rail Spoof Cell",
+          dockId: "dock-alpha",
+          dockName: "Dock Alpha",
+          laneId: "forge-line",
+          sectorId: "forge-bus",
+          manifestId: "ashline-spare-crates",
+          contractId: "perimeter-grid",
+          availableShift: 1,
+          window: { opensAtTick: 2, closesAtTick: 12 },
+          suspectCargo: { circuits: 3, modules: 1 },
+          routeTrigger: "forged ashline crate stamps",
+          sabotagePressure: 4,
+          requirements: { scans: 1, patrol: "drones" },
+          containment: { requiredScore: 5, partialScore: 3 },
+          mitigation: { reputation: 1, stability: 2 },
+          partialPenalty: { stability: -3 },
+          failurePenalty: { stability: -7, reputation: -1 },
+          partialIntegrityDamage: 14,
+          failureIntegrityDamage: 34,
+          tamperValue: 3,
+          gridPressure: 2,
+          breachIntensity: 1,
+          scarValue: 2,
+        },
+        {
+          id: "blackout-yard-saboteurs",
+          name: "Blackout Yard Saboteurs",
+          dockId: "dock-beta",
+          dockName: "Dock Beta",
+          laneId: "clean-room",
+          sectorId: "clean-bus",
+          manifestId: "blackout-relay-carrier",
+          contractId: "signal-firewall",
+          availableShift: 2,
+          window: { opensAtTick: 3, closesAtTick: 13 },
+          suspectCargo: { modules: 2, drones: 2, defenses: 1 },
+          routeTrigger: "signal breach carrier handoff",
+          sabotagePressure: 6,
+          requirements: { scans: 1, patrol: "defenses" },
+          containment: { requiredScore: 6, partialScore: 4 },
+          mitigation: { reputation: 2, stability: 3 },
+          partialPenalty: { stability: -5 },
+          failurePenalty: { stability: -10, power: -1 },
+          partialIntegrityDamage: 20,
+          failureIntegrityDamage: 42,
+          tamperValue: 5,
+          gridPressure: 3,
+          breachIntensity: 2,
+          scarValue: 3,
+        },
+      ],
+    },
     campaign: {
       release: "v0.4.0 Freight Lockdown",
       shifts: [
@@ -592,6 +722,10 @@ const DarkFactoryDispatch = (() => {
 
   function freightManifestDefinition(manifestId) {
     return byId(GAME_DATA.freightLockdown.manifests, manifestId);
+  }
+
+  function railSabotageIncidentDefinition(incidentId) {
+    return byId(GAME_DATA.railSabotage.incidents, incidentId);
   }
 
   function selectBreachSource(campaign) {
@@ -821,9 +955,131 @@ const DarkFactoryDispatch = (() => {
             riskRelief: 0,
             integrityGuard: 0,
           },
+          sabotage: {
+            suspect: false,
+            incidentId: null,
+            scanStatus: "clear",
+            patrolDrones: 0,
+            patrolDefenses: 0,
+            decoy: false,
+            dockLocked: false,
+            integrityDamage: 0,
+          },
           integrity: Math.max(40, 100 - integrityScar),
           outcome: null,
           payoutApplied: false,
+          events: [],
+        };
+      }),
+    };
+  }
+
+  function createRailSabotageState(campaign, options = {}, purchased = []) {
+    const incoming = options.campaign || {};
+    const carryover = incoming.railSabotageCarryover || {};
+    const sabotageScar = Math.max(0, carryover.sabotageScar || 0);
+    const tamperedCargo = Math.max(0, carryover.tamperedCargo || 0);
+    const damagedLanes = Array.isArray(carryover.damagedLanes) ? carryover.damagedLanes.slice() : [];
+    const upgradedRelief = purchased.includes("fault-guards") ? 1 : 0;
+    return {
+      release: GAME_DATA.railSabotage.release,
+      status: sabotageScar > 0 ? "scarred" : "ready",
+      pressure: sabotageScar,
+      outcomes: {
+        contained: 0,
+        partial: 0,
+        failed: 0,
+      },
+      choices: {
+        scans: 0,
+        patrolDrones: 0,
+        defenseScreens: 0,
+        decoys: 0,
+        dockLockdowns: 0,
+        dockReopens: 0,
+        interceptions: 0,
+        laneRepairs: 0,
+        carrierReroutes: 0,
+      },
+      carryover: {
+        sabotageScar,
+        tamperedCargo,
+        damagedLanes,
+        containedCells: Math.max(0, carryover.containedCells || 0),
+      },
+      incidents: GAME_DATA.railSabotage.incidents.map((incident) => {
+        const shiftReady = campaign.shift >= incident.availableShift;
+        const basePressure = Math.max(
+          1,
+          incident.sabotagePressure + Math.max(0, campaign.demand - 1) + Math.min(3, sabotageScar) - upgradedRelief
+        );
+        return {
+          id: incident.id,
+          name: incident.name,
+          dockId: incident.dockId,
+          dockName: incident.dockName,
+          laneId: incident.laneId,
+          sectorId: incident.sectorId,
+          manifestId: incident.manifestId,
+          contractId: incident.contractId,
+          availableShift: incident.availableShift,
+          status: shiftReady ? "scheduled" : "pending",
+          outcome: null,
+          openedAtTick: null,
+          resolvedAtTick: null,
+          window: {
+            opensAtTick: incident.window.opensAtTick,
+            closesAtTick: Math.max(
+              incident.window.opensAtTick + 3,
+              incident.window.closesAtTick - Math.min(2, sabotageScar)
+            ),
+          },
+          trigger: {
+            suspectCargo: clone(incident.suspectCargo),
+            route: incident.routeTrigger,
+          },
+          requirements: clone(incident.requirements),
+          pressure: {
+            base: basePressure,
+            current: basePressure,
+            mitigation: 0,
+          },
+          scan: {
+            status: "waiting",
+            required: incident.requirements.scans || 0,
+            queued: false,
+            completedAtTick: null,
+          },
+          patrol: {
+            status: "unassigned",
+            required: incident.requirements.patrol,
+            drones: 0,
+            defenses: 0,
+          },
+          decoy: {
+            deployed: false,
+            routeId: null,
+            deployedAtTick: null,
+          },
+          dock: {
+            locked: false,
+            lockedAtTick: null,
+            reopenedAtTick: null,
+          },
+          containment: {
+            status: damagedLanes.includes(incident.laneId) ? "scarred" : "watching",
+            requiredScore: incident.containment.requiredScore,
+            partialScore: incident.containment.partialScore,
+            intercepted: false,
+          },
+          carrier: {
+            rerouted: false,
+            integrityDamage: 0,
+          },
+          laneDamage: {
+            status: damagedLanes.includes(incident.laneId) ? "scarred" : "clear",
+            repairedAtTick: null,
+          },
           events: [],
         };
       }),
@@ -856,6 +1112,17 @@ const DarkFactoryDispatch = (() => {
     resources.reputation -= Math.min(2, freight.carryover.lostCargo || 0);
     clampResourceFloor(resources);
   }
+
+  function applyRailSabotageCarryoverResources(resources, railSabotage) {
+    if (!railSabotage || !railSabotage.carryover) {
+      return;
+    }
+    resources.stability -= railSabotage.carryover.sabotageScar || 0;
+    resources.power -= Math.min(2, railSabotage.carryover.damagedLanes.length || 0);
+    resources.reputation -= Math.min(2, railSabotage.carryover.tamperedCargo || 0);
+    clampResourceFloor(resources);
+  }
+
 
   function advanceSeed(state) {
     state.seed = (Math.imul(state.seed, 1664525) + 1013904223) >>> 0;
@@ -922,6 +1189,15 @@ const DarkFactoryDispatch = (() => {
         freightReserveClearances: 0,
         freightReroutes: 0,
         freightHolds: 0,
+        sabotageScans: 0,
+        sabotagePatrolDrones: 0,
+        sabotageDefenseScreens: 0,
+        sabotageDecoys: 0,
+        sabotageDockLockdowns: 0,
+        sabotageDockReopens: 0,
+        sabotageInterceptions: 0,
+        sabotageLaneRepairs: 0,
+        sabotageCarrierReroutes: 0,
       },
     };
   }
@@ -993,6 +1269,8 @@ const DarkFactoryDispatch = (() => {
       sourceBreachId: options.sourceBreachId || null,
       freightDirective: Boolean(options.freightDirective),
       sourceFreightId: options.sourceFreightId || null,
+      sabotageDirective: Boolean(options.sabotageDirective),
+      sourceSabotageId: options.sourceSabotageId || null,
       compromised: options.compromised ? clone(options.compromised) : null,
       heldReason: options.heldReason || null,
       createdAtTick: state.tick,
@@ -1010,11 +1288,13 @@ const DarkFactoryDispatch = (() => {
     const grid = createGridState(campaign, options);
     const breach = createBreachState(campaign, options);
     const freight = createFreightState(campaign, options, purchased);
+    const railSabotage = createRailSabotageState(campaign, options, purchased);
     const resources = baseResources();
     applyBundle(resources, upgradeEffects.startResources, 1);
     applyGridCarryoverResources(resources, grid);
     applyBreachCarryoverResources(resources, breach);
     applyFreightCarryoverResources(resources, freight);
+    applyRailSabotageCarryoverResources(resources, railSabotage);
     const state = {
       tick: 0,
       seed,
@@ -1025,6 +1305,7 @@ const DarkFactoryDispatch = (() => {
       grid,
       breach,
       freight,
+      railSabotage,
       lanes: GAME_DATA.lanes.map((lane) => {
         const performance = lanePerformance(lane, upgradeEffects, null, gridEffectForLane(grid, lane.id));
         return {
@@ -1540,6 +1821,13 @@ const DarkFactoryDispatch = (() => {
     if (lane && lane.overdrive && lane.overdrive.active) {
       risk += 1;
     }
+    const sabotageIncident = activeRailSabotageIncidentForManifest(state, manifest.id);
+    if (sabotageIncident) {
+      risk += Math.ceil(refreshRailSabotageIncidentPressureInPlace(state, sabotageIncident) / 4);
+      if (manifest.sabotage && manifest.sabotage.scanStatus !== "complete") {
+        risk += 1;
+      }
+    }
     return Math.max(0, risk);
   }
 
@@ -1953,6 +2241,641 @@ const DarkFactoryDispatch = (() => {
     return withLog(next, `${manifest.name} launched; route risk ${risk}.`);
   }
 
+  function railSabotageIncidentState(state, incidentId) {
+    return state.railSabotage && Array.isArray(state.railSabotage.incidents)
+      ? byId(state.railSabotage.incidents, incidentId)
+      : null;
+  }
+
+  function railSabotageStatusTerminal(incident) {
+    return ["contained", "partial", "failed"].includes(incident.status);
+  }
+
+  function railSabotageIncidentActionable(incident) {
+    return incident && ["available", "scanned", "patrolled", "decoyed", "locked"].includes(incident.status);
+  }
+
+  function activeRailSabotageIncidentForManifest(state, manifestId) {
+    if (!state.railSabotage || !Array.isArray(state.railSabotage.incidents)) {
+      return null;
+    }
+    return state.railSabotage.incidents.find((incident) => (
+      incident.manifestId === manifestId && railSabotageIncidentActionable(incident)
+    )) || null;
+  }
+
+  function tagFreightManifestForSabotageInPlace(state, incident) {
+    const manifest = freightManifestState(state, incident.manifestId);
+    if (!manifest) {
+      return null;
+    }
+    if (!manifest.sabotage) {
+      manifest.sabotage = {
+        suspect: false,
+        incidentId: null,
+        scanStatus: "clear",
+        patrolDrones: 0,
+        patrolDefenses: 0,
+        decoy: false,
+        dockLocked: false,
+        integrityDamage: 0,
+      };
+    }
+    manifest.sabotage.suspect = true;
+    manifest.sabotage.incidentId = incident.id;
+    if (manifest.sabotage.scanStatus === "clear") {
+      manifest.sabotage.scanStatus = "suspect";
+    }
+    return manifest;
+  }
+
+  function clearSabotageSweepQueueInPlace(state, incident, status = "closed") {
+    const beforeLength = state.queue.length;
+    state.queue = state.queue.filter((entry) => !(
+      entry.sabotageDirective && entry.sourceSabotageId === incident.id
+    ));
+    if (state.queue.length !== beforeLength) {
+      normalizeQueuePriorities(state);
+    }
+    if (incident.scan.status !== "complete") {
+      incident.scan.status = status;
+    }
+    incident.scan.queued = false;
+  }
+
+  function queueSabotageSweep(state, incident) {
+    const jobTypeId = GAME_DATA.railSabotage.sweep.jobTypeId;
+    if (!jobTypeId || incident.scan.status === "complete") {
+      return false;
+    }
+    const alreadyQueued = state.queue.some((entry) => (
+      entry.sabotageDirective && entry.sourceSabotageId === incident.id
+    ));
+    const alreadyAssigned = state.lanes.some((lane) => (
+      lane.currentJob && lane.currentJob.sabotageDirective && lane.currentJob.sourceSabotageId === incident.id
+    ));
+    if (alreadyQueued || alreadyAssigned) {
+      incident.scan.queued = true;
+      incident.scan.status = "queued";
+      return false;
+    }
+    state.queue.unshift(createQueueEntry(state, jobTypeId, 1, {
+      sabotageDirective: true,
+      sourceSabotageId: incident.id,
+    }));
+    incident.scan.queued = true;
+    incident.scan.status = "queued";
+    applyQueuePolicy(state);
+    return true;
+  }
+
+  function refreshRailSabotageIncidentPressureInPlace(state, incident) {
+    let pressure = incident.pressure.base - incident.pressure.mitigation;
+    const manifest = freightManifestState(state, incident.manifestId);
+    if (manifest && manifest.status === "enroute") {
+      pressure += 1;
+    }
+    if (state.grid && state.grid.audit.status === "active") {
+      pressure += 1;
+    }
+    if (state.grid && state.grid.reserve.available <= 0) {
+      pressure += 1;
+    }
+    if (hasActiveEmergency(state)) {
+      pressure += 1;
+    }
+    if (state.breach && state.breach.status === "active") {
+      pressure += 1;
+    }
+    if (manifest && manifest.route && manifest.route.contaminatedExposure) {
+      pressure += 1;
+    }
+    if (manifest && manifest.security && manifest.security.reserveClearance) {
+      pressure -= 1;
+    }
+    incident.pressure.current = Math.max(0, pressure);
+    return incident.pressure.current;
+  }
+
+  function refreshRailSabotagePressureInPlace(state) {
+    if (!state.railSabotage) {
+      return;
+    }
+    const activePressure = state.railSabotage.incidents.reduce((total, incident) => {
+      if (!railSabotageIncidentActionable(incident)) {
+        return total;
+      }
+      return total + refreshRailSabotageIncidentPressureInPlace(state, incident);
+    }, 0);
+    state.railSabotage.pressure = Math.max(0, (state.railSabotage.carryover.sabotageScar || 0) + activePressure);
+  }
+
+  function railSabotageMitigationScore(incident) {
+    let score = 0;
+    if (incident.scan.status === "complete") {
+      score += 2;
+    }
+    score += incident.patrol.drones * 2;
+    score += incident.patrol.defenses * 2;
+    if (incident.decoy.deployed) {
+      score += 2;
+    }
+    if (incident.dock.locked) {
+      score += 1;
+    }
+    if (incident.containment.intercepted) {
+      score += 2;
+    }
+    if (incident.carrier.rerouted) {
+      score += 1;
+    }
+    if (incident.laneDamage.status === "repaired") {
+      score += 1;
+    }
+    return score;
+  }
+
+  function recordRailSabotageContractOutcomeInPlace(state, incident, outcome) {
+    const contract = byId(state.contracts, incident.contractId);
+    if (!contract) {
+      return;
+    }
+    if (!Array.isArray(contract.sabotageOutcomes)) {
+      contract.sabotageOutcomes = [];
+    }
+    contract.sabotageOutcomes.unshift({
+      incidentId: incident.id,
+      outcome,
+      pressure: incident.pressure.current,
+      tick: state.tick,
+    });
+    if (outcome === "contained" && contract.status === "active") {
+      contract.timeRemaining += 1;
+    } else if (outcome === "failed" && contract.status === "active") {
+      contract.timeRemaining = Math.max(0, contract.timeRemaining - 2);
+    }
+  }
+
+  function applyRailSabotageOutcomeInPlace(state, incident, outcome, reason = "alert-window") {
+    if (!state.railSabotage || railSabotageStatusTerminal(incident)) {
+      return false;
+    }
+    const definition = railSabotageIncidentDefinition(incident.id);
+    if (!definition) {
+      return false;
+    }
+    const manifest = freightManifestState(state, incident.manifestId);
+    const lane = byId(state.lanes, incident.laneId);
+    const sector = gridSectorState(state, incident.sectorId);
+    const bundle = outcome === "contained"
+      ? definition.mitigation
+      : outcome === "partial" ? definition.partialPenalty : definition.failurePenalty;
+    applyBundle(state.resources, bundle, 1);
+    clampResourceFloor(state.resources);
+    incident.status = outcome;
+    incident.outcome = outcome;
+    incident.resolvedAtTick = state.tick;
+    incident.containment.status = outcome;
+    incident.events.unshift({
+      tick: state.tick,
+      event: outcome,
+      reason,
+      score: railSabotageMitigationScore(incident),
+    });
+    clearSabotageSweepQueueInPlace(state, incident, outcome);
+    state.railSabotage.outcomes[outcome] += 1;
+    if (manifest && !manifest.sabotage) {
+      tagFreightManifestForSabotageInPlace(state, incident);
+    }
+    if (outcome === "contained") {
+      state.railSabotage.carryover.containedCells += 1;
+      if (state.grid) {
+        state.grid.pressure = Math.max(0, state.grid.pressure - 1);
+      }
+      if (state.breach && state.breach.status === "active") {
+        state.breach.intensity = Math.max(0, state.breach.intensity - 1);
+      }
+    } else {
+      const damage = outcome === "partial" ? definition.partialIntegrityDamage : definition.failureIntegrityDamage;
+      if (manifest && !freightStatusTerminal(manifest)) {
+        manifest.integrity = Math.max(0, manifest.integrity - damage);
+        manifest.sabotage.integrityDamage += damage;
+        manifest.events.unshift({ tick: state.tick, event: "sabotage-tamper", incidentId: incident.id, damage });
+      }
+      incident.carrier.integrityDamage += damage;
+      state.railSabotage.carryover.tamperedCargo = Math.min(
+        24,
+        state.railSabotage.carryover.tamperedCargo + definition.tamperValue
+      );
+      if (state.freight) {
+        state.freight.routeSecurity.pressure += outcome === "partial" ? 1 : 2;
+        state.freight.routeSecurity.events.unshift({ tick: state.tick, event: "rail-sabotage", incidentId: incident.id, outcome });
+      }
+      if (state.grid) {
+        state.grid.pressure += outcome === "partial" ? 1 : definition.gridPressure;
+      }
+      if (state.breach && ["active", "escaped"].includes(state.breach.status)) {
+        state.breach.intensity += outcome === "partial" ? 1 : definition.breachIntensity;
+      }
+    }
+    if (outcome === "failed") {
+      incident.laneDamage.status = "sabotaged";
+      if (lane && (!lane.gridLock || lane.gridLock.reason === "rail-sabotage-lockdown")) {
+        markLaneGridLocked(lane, "rail-sabotage");
+      }
+      if (sector) {
+        sector.powered = false;
+      }
+      state.railSabotage.carryover.sabotageScar = Math.min(
+        12,
+        state.railSabotage.carryover.sabotageScar + definition.scarValue
+      );
+      if (!state.railSabotage.carryover.damagedLanes.includes(incident.laneId)) {
+        state.railSabotage.carryover.damagedLanes.push(incident.laneId);
+      }
+    }
+    recordRailSabotageContractOutcomeInPlace(state, incident, outcome);
+    refreshRailSabotagePressureInPlace(state);
+    state.log.unshift({ tick: state.tick, message: `${incident.name} sabotage ${outcome}; ${formatBundle(bundle)} applied.` });
+    return true;
+  }
+
+  function resolveRailSabotageIncidentInPlace(state, incident, reason = "alert-window") {
+    const score = railSabotageMitigationScore(incident);
+    if (score >= incident.containment.requiredScore) {
+      return applyRailSabotageOutcomeInPlace(state, incident, "contained", reason);
+    }
+    if (score >= incident.containment.partialScore) {
+      return applyRailSabotageOutcomeInPlace(state, incident, "partial", reason);
+    }
+    return applyRailSabotageOutcomeInPlace(state, incident, "failed", reason);
+  }
+
+  function openRailSabotageIncidentsInPlace(state) {
+    if (!state.railSabotage) {
+      return;
+    }
+    state.railSabotage.incidents.forEach((incident) => {
+      if (state.campaign.shift < incident.availableShift) {
+        return;
+      }
+      if (incident.status === "pending") {
+        incident.status = "scheduled";
+      }
+      if (incident.status !== "scheduled" || state.tick < incident.window.opensAtTick) {
+        return;
+      }
+      incident.status = "available";
+      incident.openedAtTick = state.tick;
+      incident.scan.status = "suspect";
+      tagFreightManifestForSabotageInPlace(state, incident);
+      queueSabotageSweep(state, incident);
+      refreshRailSabotageIncidentPressureInPlace(state, incident);
+      if (state.freight) {
+        state.freight.routeSecurity.pressure += 1;
+        state.freight.routeSecurity.events.unshift({ tick: state.tick, event: "suspect-manifest", incidentId: incident.id });
+      }
+      incident.events.unshift({ tick: state.tick, event: "incident-opened", pressure: incident.pressure.current });
+      state.log.unshift({ tick: state.tick, message: `${incident.name} flagged ${incident.dockName} manifest sabotage.` });
+    });
+  }
+
+  function refreshRailSabotageStatusInPlace(state) {
+    if (!state.railSabotage) {
+      return;
+    }
+    if (state.railSabotage.incidents.some((incident) => incident.status === "failed")) {
+      state.railSabotage.status = "sabotaged";
+    } else if (state.railSabotage.incidents.some((incident) => railSabotageIncidentActionable(incident))) {
+      state.railSabotage.status = "incident-open";
+    } else if (state.railSabotage.outcomes.partial > 0) {
+      state.railSabotage.status = "tampered";
+    } else if (state.railSabotage.outcomes.contained > 0) {
+      state.railSabotage.status = "contained";
+    } else if (state.railSabotage.carryover.sabotageScar > 0) {
+      state.railSabotage.status = "scarred";
+    } else {
+      state.railSabotage.status = "ready";
+    }
+  }
+
+  function advanceRailSabotageState(state) {
+    if (!state.railSabotage) {
+      return;
+    }
+    openRailSabotageIncidentsInPlace(state);
+    state.railSabotage.incidents.forEach((incident) => {
+      if (!railSabotageIncidentActionable(incident)) {
+        return;
+      }
+      refreshRailSabotageIncidentPressureInPlace(state, incident);
+      if (state.tick > incident.window.closesAtTick) {
+        resolveRailSabotageIncidentInPlace(state, incident, "alert-window");
+      }
+    });
+    refreshRailSabotagePressureInPlace(state);
+    refreshRailSabotageStatusInPlace(state);
+  }
+
+  function applySabotageScanInPlace(state, incident, source = "manual") {
+    if (!railSabotageIncidentActionable(incident) || incident.scan.status === "complete") {
+      return false;
+    }
+    const scan = GAME_DATA.railSabotage.scan;
+    incident.scan.status = "complete";
+    incident.scan.queued = false;
+    incident.scan.completedAtTick = state.tick;
+    incident.status = "scanned";
+    incident.pressure.mitigation += scan.pressureRelief;
+    incident.events.unshift({ tick: state.tick, event: "manifest-scanned", source });
+    clearSabotageSweepQueueInPlace(state, incident, "complete");
+    const manifest = tagFreightManifestForSabotageInPlace(state, incident);
+    if (manifest) {
+      manifest.sabotage.scanStatus = "complete";
+      manifest.security.riskRelief += scan.riskRelief;
+      manifest.security.integrityGuard += scan.integrityGuard;
+      manifest.integrity = Math.min(100, manifest.integrity + 4);
+      refreshFreightRiskInPlace(state, manifest);
+    }
+    state.railSabotage.choices.scans += 1;
+    state.campaign.choices.sabotageScans += 1;
+    refreshRailSabotagePressureInPlace(state);
+    return true;
+  }
+
+  function completeSabotageSweepInPlace(state, completedJob) {
+    if (!state.railSabotage || !completedJob.sabotageDirective) {
+      return false;
+    }
+    const incident = railSabotageIncidentState(state, completedJob.sourceSabotageId);
+    if (!incident) {
+      return false;
+    }
+    const applied = applySabotageScanInPlace(state, incident, "sweep-job");
+    if (applied) {
+      state.log.unshift({ tick: state.tick, message: `${incident.name} sweep marked the suspect manifest.` });
+    }
+    return applied;
+  }
+
+  function scanSabotageManifest(state, incidentId) {
+    const next = clone(state);
+    const incident = railSabotageIncidentState(next, incidentId);
+    const scan = GAME_DATA.railSabotage.scan;
+    if (!railSabotageIncidentActionable(incident)) {
+      return withLog(next, "No suspect sabotage manifest is available to scan.");
+    }
+    if (incident.scan.status === "complete") {
+      return withLog(next, `${incident.name} manifest already scanned.`);
+    }
+    if (!canPay(next.resources, scan.cost)) {
+      return withLog(next, `${incident.name} scan lacks ${formatBundle(scan.cost)}.`);
+    }
+    applyBundle(next.resources, scan.cost, -1);
+    applySabotageScanInPlace(next, incident, "manual");
+    return withLog(next, `${incident.name} suspect manifest scanned.`);
+  }
+
+  function assignSabotagePatrol(state, incidentId, mode = "drones") {
+    const next = clone(state);
+    const incident = railSabotageIncidentState(next, incidentId);
+    const patrol = GAME_DATA.railSabotage.patrols[mode];
+    if (!railSabotageIncidentActionable(incident)) {
+      return withLog(next, "No sabotage incident is ready for patrol assignment.");
+    }
+    if (!patrol || !["drones", "defenses"].includes(mode)) {
+      return withLog(next, "Unknown sabotage patrol assignment.");
+    }
+    if (!canPay(next.resources, patrol.cost)) {
+      return withLog(next, `${incident.name} ${mode} patrol lacks ${formatBundle(patrol.cost)}.`);
+    }
+    applyBundle(next.resources, patrol.cost, -1);
+    incident.patrol[mode] += 1;
+    incident.patrol.status = "assigned";
+    incident.status = "patrolled";
+    incident.pressure.mitigation += patrol.pressureRelief;
+    incident.events.unshift({ tick: next.tick, event: `patrol-${mode}`, pressureRelief: patrol.pressureRelief });
+    const manifest = tagFreightManifestForSabotageInPlace(next, incident);
+    if (manifest) {
+      if (mode === "drones") {
+        manifest.sabotage.patrolDrones += 1;
+      } else {
+        manifest.sabotage.patrolDefenses += 1;
+      }
+      manifest.security.riskRelief += patrol.riskRelief;
+      manifest.security.integrityGuard += patrol.integrityGuard;
+      refreshFreightRiskInPlace(next, manifest);
+    }
+    if (mode === "drones") {
+      next.railSabotage.choices.patrolDrones += 1;
+      next.campaign.choices.sabotagePatrolDrones += 1;
+    } else {
+      next.railSabotage.choices.defenseScreens += 1;
+      next.campaign.choices.sabotageDefenseScreens += 1;
+      if (next.breach && next.breach.status === "active") {
+        next.breach.intensity = Math.max(0, next.breach.intensity - (patrol.breachRelief || 0));
+      }
+    }
+    refreshRailSabotagePressureInPlace(next);
+    return withLog(next, `${incident.name} dock patrol assigned: ${mode}.`);
+  }
+
+  function deploySabotageDecoy(state, incidentId, routeId = null) {
+    const next = clone(state);
+    const incident = railSabotageIncidentState(next, incidentId);
+    const decoy = GAME_DATA.railSabotage.decoy;
+    if (!railSabotageIncidentActionable(incident)) {
+      return withLog(next, "No sabotage incident is ready for decoy routing.");
+    }
+    if (incident.decoy.deployed) {
+      return withLog(next, `${incident.name} decoy route already deployed.`);
+    }
+    if (!canPay(next.resources, decoy.cost)) {
+      return withLog(next, `${incident.name} decoy lacks ${formatBundle(decoy.cost)}.`);
+    }
+    applyBundle(next.resources, decoy.cost, -1);
+    incident.decoy.deployed = true;
+    incident.decoy.routeId = routeId || incident.sectorId;
+    incident.decoy.deployedAtTick = next.tick;
+    incident.status = "decoyed";
+    incident.pressure.mitigation += decoy.pressureRelief;
+    incident.events.unshift({ tick: next.tick, event: "decoy-deployed", routeId: incident.decoy.routeId });
+    const manifest = tagFreightManifestForSabotageInPlace(next, incident);
+    if (manifest) {
+      manifest.sabotage.decoy = true;
+      manifest.route.delayTicks += decoy.delayTicks;
+      manifest.window.closesAtTick += decoy.delayTicks;
+      manifest.security.riskRelief += decoy.riskRelief;
+      manifest.security.integrityGuard += decoy.integrityGuard;
+      refreshFreightRiskInPlace(next, manifest);
+    }
+    if (next.freight) {
+      next.freight.routeSecurity.pressure = Math.max(0, next.freight.routeSecurity.pressure - 1);
+    }
+    next.railSabotage.choices.decoys += 1;
+    next.campaign.choices.sabotageDecoys += 1;
+    refreshRailSabotagePressureInPlace(next);
+    return withLog(next, `${incident.name} decoy manifest deployed.`);
+  }
+
+  function lockdownSabotageDock(state, incidentId) {
+    const next = clone(state);
+    const incident = railSabotageIncidentState(next, incidentId);
+    const lockdown = GAME_DATA.railSabotage.dockLockdown;
+    if (!railSabotageIncidentActionable(incident)) {
+      return withLog(next, "No sabotage incident is ready for dock lockdown.");
+    }
+    if (incident.dock.locked) {
+      return withLog(next, `${incident.dockName} already locked down.`);
+    }
+    if (!canPay(next.resources, lockdown.cost)) {
+      return withLog(next, `${incident.dockName} lockdown lacks ${formatBundle(lockdown.cost)}.`);
+    }
+    const lane = byId(next.lanes, incident.laneId);
+    if (lane && lane.gridLock && lane.gridLock.reason !== "rail-sabotage-lockdown") {
+      return withLog(next, `${incident.dockName} is already locked by ${lane.gridLock.reason}.`);
+    }
+    applyBundle(next.resources, lockdown.cost, -1);
+    if (lane) {
+      markLaneGridLocked(lane, "rail-sabotage-lockdown");
+    }
+    incident.dock.locked = true;
+    incident.dock.lockedAtTick = next.tick;
+    incident.status = "locked";
+    incident.pressure.mitigation += lockdown.pressureRelief;
+    incident.events.unshift({ tick: next.tick, event: "dock-locked" });
+    const manifest = tagFreightManifestForSabotageInPlace(next, incident);
+    if (manifest) {
+      manifest.sabotage.dockLocked = true;
+    }
+    if (next.grid) {
+      next.grid.pressure += lockdown.gridPressure;
+    }
+    next.railSabotage.choices.dockLockdowns += 1;
+    next.campaign.choices.sabotageDockLockdowns += 1;
+    refreshRailSabotagePressureInPlace(next);
+    return withLog(next, `${incident.dockName} locked down for sabotage containment.`);
+  }
+
+  function reopenSabotageDock(state, incidentId) {
+    const next = clone(state);
+    const incident = railSabotageIncidentState(next, incidentId);
+    if (!incident || !incident.dock.locked) {
+      return withLog(next, "No sabotage dock lockdown is active.");
+    }
+    const lane = byId(next.lanes, incident.laneId);
+    restoreLaneGridLock(lane, "rail-sabotage-lockdown");
+    incident.dock.locked = false;
+    incident.dock.reopenedAtTick = next.tick;
+    if (!railSabotageStatusTerminal(incident)) {
+      incident.status = incident.scan.status === "complete" ? "scanned" : "available";
+    }
+    const manifest = freightManifestState(next, incident.manifestId);
+    if (manifest && manifest.sabotage) {
+      manifest.sabotage.dockLocked = false;
+    }
+    incident.events.unshift({ tick: next.tick, event: "dock-reopened" });
+    next.railSabotage.choices.dockReopens += 1;
+    next.campaign.choices.sabotageDockReopens += 1;
+    refreshRailSabotagePressureInPlace(next);
+    return withLog(next, `${incident.dockName} reopened after sabotage sweep.`);
+  }
+
+  function interceptSabotageCell(state, incidentId) {
+    const next = clone(state);
+    const incident = railSabotageIncidentState(next, incidentId);
+    const intercept = GAME_DATA.railSabotage.intercept;
+    if (!railSabotageIncidentActionable(incident)) {
+      return withLog(next, "No sabotage cell is available to intercept.");
+    }
+    if (incident.containment.intercepted) {
+      return withLog(next, `${incident.name} cell already intercepted.`);
+    }
+    if (!canPay(next.resources, intercept.cost)) {
+      return withLog(next, `${incident.name} intercept lacks ${formatBundle(intercept.cost)}.`);
+    }
+    applyBundle(next.resources, intercept.cost, -1);
+    incident.containment.intercepted = true;
+    incident.pressure.mitigation += intercept.pressureRelief;
+    incident.events.unshift({ tick: next.tick, event: "cell-intercepted" });
+    const manifest = tagFreightManifestForSabotageInPlace(next, incident);
+    if (manifest) {
+      manifest.security.integrityGuard += intercept.integrityGuard;
+      refreshFreightRiskInPlace(next, manifest);
+    }
+    next.railSabotage.choices.interceptions += 1;
+    next.campaign.choices.sabotageInterceptions += 1;
+    resolveRailSabotageIncidentInPlace(next, incident, "intercept");
+    refreshRailSabotageStatusInPlace(next);
+    return withLog(next, `${incident.name} interception resolved as ${incident.outcome}.`);
+  }
+
+  function rerouteSabotagedCarrier(state, incidentId, routeId = null) {
+    const next = clone(state);
+    const incident = railSabotageIncidentState(next, incidentId);
+    const reroute = GAME_DATA.railSabotage.carrierReroute;
+    if (!railSabotageIncidentActionable(incident)) {
+      return withLog(next, "No compromised carrier is ready to reroute.");
+    }
+    if (incident.carrier.rerouted) {
+      return withLog(next, `${incident.name} carrier already rerouted.`);
+    }
+    if (!canPay(next.resources, reroute.cost)) {
+      return withLog(next, `${incident.name} carrier reroute lacks ${formatBundle(reroute.cost)}.`);
+    }
+    applyBundle(next.resources, reroute.cost, -1);
+    incident.carrier.rerouted = true;
+    incident.pressure.mitigation += reroute.pressureRelief;
+    incident.events.unshift({ tick: next.tick, event: "carrier-rerouted", routeId: routeId || incident.sectorId });
+    const manifest = tagFreightManifestForSabotageInPlace(next, incident);
+    if (manifest) {
+      manifest.route.rerouted = true;
+      manifest.route.reroutedAround = routeId || incident.sectorId;
+      manifest.route.delayTicks += reroute.delayTicks;
+      manifest.window.closesAtTick += reroute.delayTicks;
+      manifest.security.riskRelief += reroute.riskRelief;
+      manifest.integrity = Math.max(0, manifest.integrity - reroute.integrityLoss);
+      refreshFreightRiskInPlace(next, manifest);
+    }
+    next.railSabotage.choices.carrierReroutes += 1;
+    next.campaign.choices.sabotageCarrierReroutes += 1;
+    refreshRailSabotagePressureInPlace(next);
+    return withLog(next, `${incident.name} compromised carrier rerouted.`);
+  }
+
+  function repairSabotagedLane(state, incidentId) {
+    const next = clone(state);
+    const incident = railSabotageIncidentState(next, incidentId);
+    const repair = GAME_DATA.railSabotage.laneRepair;
+    if (!incident || !["sabotaged", "scarred"].includes(incident.laneDamage.status)) {
+      return withLog(next, "No sabotaged lane is awaiting repair.");
+    }
+    if (incident.laneDamage.status === "repaired") {
+      return withLog(next, `${incident.name} lane already repaired.`);
+    }
+    if (!canPay(next.resources, repair.cost)) {
+      return withLog(next, `${incident.name} lane repair lacks ${formatBundle(repair.cost)}.`);
+    }
+    applyBundle(next.resources, repair.cost, -1);
+    const lane = byId(next.lanes, incident.laneId);
+    const sector = gridSectorState(next, incident.sectorId);
+    restoreLaneGridLock(lane, "rail-sabotage");
+    restoreLaneGridLock(lane, "rail-sabotage-lockdown");
+    if (sector) {
+      sector.powered = !sector.isolated;
+    }
+    incident.laneDamage.status = "repaired";
+    incident.laneDamage.repairedAtTick = next.tick;
+    incident.pressure.mitigation += repair.pressureRelief;
+    incident.events.unshift({ tick: next.tick, event: "lane-repaired" });
+    next.railSabotage.carryover.damagedLanes = next.railSabotage.carryover.damagedLanes
+      .filter((laneId) => laneId !== incident.laneId);
+    next.railSabotage.choices.laneRepairs += 1;
+    next.campaign.choices.sabotageLaneRepairs += 1;
+    refreshRailSabotagePressureInPlace(next);
+    return withLog(next, `${incident.name} lane sabotage repaired.`);
+  }
+
   function activeBreachSource(state) {
     return state.breach ? breachSourceDefinition(state.breach.sourceId) : null;
   }
@@ -1981,7 +2904,15 @@ const DarkFactoryDispatch = (() => {
   }
 
   function compromiseQueueEntry(state, entry, source) {
-    if (!entry || entry.compromised || entry.breachDirective || entry.gridDirective || entry.freightDirective || entry.emergency) {
+    if (
+      !entry
+      || entry.compromised
+      || entry.breachDirective
+      || entry.gridDirective
+      || entry.freightDirective
+      || entry.sabotageDirective
+      || entry.emergency
+    ) {
       return false;
     }
     entry.compromised = {
@@ -2648,6 +3579,8 @@ const DarkFactoryDispatch = (() => {
       sourceBreachId: entry.sourceBreachId,
       freightDirective: entry.freightDirective,
       sourceFreightId: entry.sourceFreightId,
+      sabotageDirective: entry.sabotageDirective,
+      sourceSabotageId: entry.sourceSabotageId,
       compromised: entry.compromised ? clone(entry.compromised) : null,
     };
     lane.status = "assigned";
@@ -2725,6 +3658,9 @@ const DarkFactoryDispatch = (() => {
     }
     if (completedJob.freightDirective) {
       completeFreightInspectionInPlace(state, completedJob);
+    }
+    if (completedJob.sabotageDirective) {
+      completeSabotageSweepInPlace(state, completedJob);
     }
     if (completedJob.compromised) {
       applyCompromisedJobCompletion(state, lane, completedJob);
@@ -2819,6 +3755,7 @@ const DarkFactoryDispatch = (() => {
       maybeActivateEmergencyContracts(next);
       advanceBreachState(next);
       advanceGridState(next);
+      advanceRailSabotageState(next);
       advanceFreightState(next);
       next.lanes.forEach((lane) => {
         advanceLaneRecovery(next, lane);
@@ -3177,6 +4114,7 @@ const DarkFactoryDispatch = (() => {
           inspection: clone(manifest.inspection),
           route: clone(manifest.route),
           security: clone(manifest.security),
+          sabotage: manifest.sabotage ? clone(manifest.sabotage) : null,
           integrity: manifest.integrity,
           payout: definition ? clone(definition.payout) : {},
           partialPayout: definition ? clone(definition.partialPayout) : {},
@@ -3187,6 +4125,69 @@ const DarkFactoryDispatch = (() => {
           launchedAtTick: manifest.launchedAtTick,
           arrivalTick: manifest.arrivalTick,
           events: manifest.events.slice(0, 6),
+        };
+      }),
+    };
+  }
+
+  function railSabotageSurfaceState(state) {
+    const railSabotage = state.railSabotage;
+    if (!railSabotage) {
+      return null;
+    }
+    return {
+      release: railSabotage.release,
+      status: railSabotage.status,
+      pressure: railSabotage.pressure,
+      outcomes: clone(railSabotage.outcomes),
+      choices: clone(railSabotage.choices),
+      carryover: clone(railSabotage.carryover),
+      incidents: railSabotage.incidents.map((incident) => {
+        const definition = railSabotageIncidentDefinition(incident.id);
+        const manifest = freightManifestState(state, incident.manifestId);
+        const lane = byId(state.lanes, incident.laneId);
+        const sector = gridSectorState(state, incident.sectorId);
+        return {
+          id: incident.id,
+          name: incident.name,
+          dockId: incident.dockId,
+          dockName: incident.dockName,
+          laneId: incident.laneId,
+          laneName: lane ? lane.name : titleCase(incident.laneId),
+          sectorId: incident.sectorId,
+          sectorStatus: sector ? {
+            route: sector.route,
+            isolated: sector.isolated,
+            powered: sector.powered,
+            breach: sector.breach ? clone(sector.breach) : cleanBreachSectorState(sector.id),
+          } : null,
+          manifestId: incident.manifestId,
+          manifestStatus: manifest ? manifest.status : "missing",
+          manifestIntegrity: manifest ? manifest.integrity : null,
+          contractId: incident.contractId,
+          availableShift: incident.availableShift,
+          status: incident.status,
+          outcome: incident.outcome,
+          openedAtTick: incident.openedAtTick,
+          resolvedAtTick: incident.resolvedAtTick,
+          window: clone(incident.window),
+          trigger: clone(incident.trigger),
+          requirements: clone(incident.requirements),
+          pressure: clone(incident.pressure),
+          scan: clone(incident.scan),
+          patrol: clone(incident.patrol),
+          decoy: clone(incident.decoy),
+          dock: clone(incident.dock),
+          containment: {
+            ...clone(incident.containment),
+            score: railSabotageMitigationScore(incident),
+          },
+          carrier: clone(incident.carrier),
+          laneDamage: clone(incident.laneDamage),
+          mitigation: definition ? clone(definition.mitigation) : {},
+          partialPenalty: definition ? clone(definition.partialPenalty) : {},
+          failurePenalty: definition ? clone(definition.failurePenalty) : {},
+          events: incident.events.slice(0, 6),
         };
       }),
     };
@@ -3264,10 +4265,20 @@ const DarkFactoryDispatch = (() => {
         freightReserveClearances: campaign.choices.freightReserveClearances,
         freightReroutes: campaign.choices.freightReroutes,
         freightHolds: campaign.choices.freightHolds,
+        sabotageScans: campaign.choices.sabotageScans,
+        sabotagePatrolDrones: campaign.choices.sabotagePatrolDrones,
+        sabotageDefenseScreens: campaign.choices.sabotageDefenseScreens,
+        sabotageDecoys: campaign.choices.sabotageDecoys,
+        sabotageDockLockdowns: campaign.choices.sabotageDockLockdowns,
+        sabotageDockReopens: campaign.choices.sabotageDockReopens,
+        sabotageInterceptions: campaign.choices.sabotageInterceptions,
+        sabotageLaneRepairs: campaign.choices.sabotageLaneRepairs,
+        sabotageCarrierReroutes: campaign.choices.sabotageCarrierReroutes,
       },
       grid: gridSurfaceState(state),
       breach: breachSurfaceState(state),
       freight: freightSurfaceState(state),
+      railSabotage: railSabotageSurfaceState(state),
     };
   }
 
@@ -3349,6 +4360,34 @@ const DarkFactoryDispatch = (() => {
         previousFreightCarryover.completedShipments || 0
       ),
     };
+    const previousRailCarryover = state.railSabotage && state.railSabotage.carryover
+      ? state.railSabotage.carryover
+      : {};
+    const railIncidents = state.railSabotage && Array.isArray(state.railSabotage.incidents)
+      ? state.railSabotage.incidents
+      : [];
+    const unresolvedRail = railIncidents.filter((incident) => railSabotageIncidentActionable(incident));
+    const damagedRailLanes = railIncidents
+      .filter((incident) => incident.laneDamage && incident.laneDamage.status === "sabotaged")
+      .map((incident) => incident.laneId);
+    const railSabotageCarryover = {
+      sabotageScar: Math.min(
+        12,
+        (previousRailCarryover.sabotageScar || 0) + unresolvedRail.length
+      ),
+      tamperedCargo: Math.min(
+        24,
+        (previousRailCarryover.tamperedCargo || 0) + unresolvedRail.length * 2
+      ),
+      damagedLanes: Array.from(new Set([
+        ...(Array.isArray(previousRailCarryover.damagedLanes) ? previousRailCarryover.damagedLanes : []),
+        ...damagedRailLanes,
+      ])).slice(0, GAME_DATA.grid.sectors.length),
+      containedCells: Math.min(
+        24,
+        previousRailCarryover.containedCells || 0
+      ),
+    };
     ledger.push({
       shift: state.campaign.shift,
       phase: state.campaign.phase,
@@ -3386,6 +4425,20 @@ const DarkFactoryDispatch = (() => {
         })),
         carryover: freightCarryover,
       } : null,
+      railSabotage: state.railSabotage ? {
+        status: state.railSabotage.status,
+        pressure: state.railSabotage.pressure,
+        outcomes: clone(state.railSabotage.outcomes),
+        incidents: railIncidents.map((incident) => ({
+          id: incident.id,
+          status: incident.status,
+          outcome: incident.outcome,
+          pressure: incident.pressure.current,
+          carrierDamage: incident.carrier.integrityDamage,
+          laneDamage: incident.laneDamage.status,
+        })),
+        carryover: railSabotageCarryover,
+      } : null,
       finishedAtTick: state.tick,
     });
     return {
@@ -3394,6 +4447,7 @@ const DarkFactoryDispatch = (() => {
       gridCarryover,
       breachCarryover,
       freightCarryover,
+      railSabotageCarryover,
     };
   }
 
@@ -3951,10 +5005,11 @@ const DarkFactoryDispatch = (() => {
         ? "compromised"
         : entry.breachDirective ? "countermeasure"
           : entry.freightDirective ? "inspection"
+            : entry.sabotageDirective ? "sabotage sweep"
             : entry.status === "held" ? "held" : `p${entry.priority}`;
       const cleanseDisabled = !compromised || !canPay(state.resources, GAME_DATA.signalBreach.cleanse.cost);
       return `
-        <li class="queue-item" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}" data-freight-directive="${entry.freightDirective ? "true" : "false"}">
+        <li class="queue-item" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}" data-freight-directive="${entry.freightDirective ? "true" : "false"}" data-sabotage-directive="${entry.sabotageDirective ? "true" : "false"}">
           <div class="queue-title">
             <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[entry.jobTypeId], "asset-icon queue-icon")}<strong>${jobType.name}</strong></span>
             <span class="status-pill">${statusText}</span>
@@ -3966,6 +5021,7 @@ const DarkFactoryDispatch = (() => {
             ${entry.sourceDirectiveId ? `<span>${entry.sourceDirectiveId}</span>` : ""}
             ${entry.breachDirective ? `<span>countermeasure ${entry.sourceBreachId}</span>` : ""}
             ${entry.freightDirective ? `<span>freight ${entry.sourceFreightId}</span>` : ""}
+            ${entry.sabotageDirective ? `<span>sabotage ${entry.sourceSabotageId}</span>` : ""}
             ${compromised ? `<span>compromised ${entry.compromised.sourceId} / severity ${entry.compromised.severity}</span>` : ""}
           </div>
           <div class="queue-actions">
@@ -4027,7 +5083,7 @@ const DarkFactoryDispatch = (() => {
 
   function renderJobs() {
     dom.jobs.innerHTML = GAME_DATA.jobTypes.map((jobType) => `
-      <article class="job-card" data-family="${jobType.family || "standard"}" data-breach-countermeasure="${jobType.breachCountermeasure ? "true" : "false"}" data-freight-inspection="${jobType.freightInspection ? "true" : "false"}">
+      <article class="job-card" data-family="${jobType.family || "standard"}" data-breach-countermeasure="${jobType.breachCountermeasure ? "true" : "false"}" data-freight-inspection="${jobType.freightInspection ? "true" : "false"}" data-sabotage-sweep="${jobType.sabotageSweep ? "true" : "false"}">
         <div class="job-title">
           <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[jobType.id], "asset-icon job-icon")}<strong>${jobType.name}</strong></span>
           <span class="status-pill">${jobType.duration} ticks</span>
@@ -4037,6 +5093,7 @@ const DarkFactoryDispatch = (() => {
           <span>out ${formatBundle(jobType.outputs)}</span>
           ${jobType.breachCountermeasure ? `<span>breach countermeasure</span>` : ""}
           ${jobType.freightInspection ? `<span>freight inspection</span>` : ""}
+          ${jobType.sabotageSweep ? `<span>sabotage sweep</span>` : ""}
         </div>
         <button type="button" data-job="${jobType.id}">enqueue</button>
       </article>
@@ -4080,11 +5137,20 @@ const DarkFactoryDispatch = (() => {
     authorizeFreightLaunchClearance,
     rerouteFreightManifest,
     launchFreightManifest,
+    scanSabotageManifest,
+    assignSabotagePatrol,
+    deploySabotageDecoy,
+    lockdownSabotageDock,
+    reopenSabotageDock,
+    interceptSabotageCell,
+    rerouteSabotagedCarrier,
+    repairSabotagedLane,
     evaluateContracts,
     maybeActivateEmergencyContracts,
     advanceGridState,
     advanceBreachState,
     advanceFreightState,
+    advanceRailSabotageState,
     resetFactoryState,
     canPay,
     applyBundle,
@@ -4092,6 +5158,7 @@ const DarkFactoryDispatch = (() => {
     gridSurfaceState,
     breachSurfaceState,
     freightSurfaceState,
+    railSabotageSurfaceState,
     campaignSurfaceState,
   };
 
