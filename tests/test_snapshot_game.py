@@ -15,7 +15,10 @@ class SnapshotGameTests(unittest.TestCase):
             game_dir = root / "games" / "corebound"
             data_dir.mkdir()
             game_dir.mkdir(parents=True)
-            (game_dir / "index.html").write_text("<!doctype html>Corebound", encoding="utf-8")
+            (game_dir / "index.html").write_text(
+                '<!doctype html><link rel="icon" href="../../favicon.png" /><a href="../../">Millrace Arcade</a>Corebound',
+                encoding="utf-8",
+            )
             (game_dir / "versions").mkdir()
             (game_dir / "versions" / "old.txt").write_text("do not copy", encoding="utf-8")
             manifest_path = data_dir / "games.json"
@@ -53,6 +56,9 @@ class SnapshotGameTests(unittest.TestCase):
             self.assertFalse((snapshot_dir / "versions").exists())
             self.assertEqual("abcdef1234567890", entry["commit"])
             build.assert_called_once()
+            snapshot_html = (snapshot_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('href="../../../../favicon.png"', snapshot_html)
+            self.assertIn('href="../../../../">Millrace Arcade', snapshot_html)
 
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             versions = manifest["games"][0]["versions"]

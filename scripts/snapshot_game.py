@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -84,6 +85,19 @@ def copy_snapshot(source: Path, destination: Path, *, force: bool) -> None:
     shutil.copytree(source, destination, ignore=ignore_snapshot_dirs)
 
 
+def rewrite_snapshot_document_links(destination: Path) -> None:
+    index_path = destination / "index.html"
+    if not index_path.is_file():
+        return
+
+    root_href = Path(os.path.relpath(ROOT, destination)).as_posix().rstrip("/") + "/"
+    favicon_href = Path(os.path.relpath(ROOT / "favicon.png", destination)).as_posix()
+    text = index_path.read_text(encoding="utf-8")
+    text = text.replace('href="../../favicon.png"', f'href="{favicon_href}"')
+    text = text.replace('href="../../">Millrace Arcade', f'href="{root_href}">Millrace Arcade')
+    index_path.write_text(text, encoding="utf-8")
+
+
 def upsert_version(game: dict, entry: dict) -> None:
     versions = game.get("versions")
     if not isinstance(versions, list):
@@ -159,6 +173,7 @@ def create_snapshot(
     source = require_relative_path(str(game.get("path") or f"games/{slug}/"))
     destination = (ROOT / "games" / slug / "versions" / version).resolve()
     copy_snapshot(source, destination, force=force)
+    rewrite_snapshot_document_links(destination)
 
     entry = {
         "version": version,

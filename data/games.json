@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "live",
-    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.5.0 Rail Sabotage rail-security release, Void Prospector's v0.4.0 Storm Cartography route-window release, and Iron Lantern Descent's v0.1.0 Faultline Survey release."
+    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.5.0 Rail Sabotage rail-security release, Void Prospector's v0.5.0 Knife Wake Interdiction pirate-cell release, and Iron Lantern Descent's v0.1.0 Faultline Survey release."
   },
   "games": [
     {
@@ -131,16 +131,23 @@
     {
       "slug": "void-prospector",
       "title": "Void Prospector",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "status": "playable",
-      "summary": "Pilot the Prospector Kite through a compact 3D asteroid field with Survey Ladder sectors, anomaly scans, hazard charting, salvage extraction, deployable route beacons, convoy contracts, storm-front charting, relay anchors, safe route windows, salvage reroutes, station storm plating, chart processors, pirate interdiction, docking, route payouts, and repeat-sortie upgrades.",
+      "summary": "Pilot the Prospector Kite through a compact 3D asteroid field with Survey Ladder sectors, anomaly scans, hazard charting, salvage extraction, deployable route beacons, convoy contracts, storm-front charting, relay anchors, safe route windows, active Knife Wake pirate cells, distress and decoy markers, convoy and salvage raid responses, station patrol uplinks, docking, route payouts, and repeat-sortie upgrades.",
       "path": "games/void-prospector/",
       "thumbnail": "games/void-prospector/assets/arcade-title-card.png",
       "release": {
-        "label": "v0.4.0 Storm Cartography",
-        "copy": "Storm Cartography extends Beacon Convoy with deep-signal storm fronts, chartable safe windows, relay anchors, Tempest Verge route pressure, storm reroutes for salvage, convoy launch timing through locked windows, chart processors, storm plating, and countermeasure bursts that trade faster payouts against hull, fuel, anchor integrity, escort integrity, and Survey Ladder score."
+        "label": "v0.5.0 Knife Wake Interdiction",
+        "copy": "Knife Wake Interdiction extends Storm Cartography with active pirate cells, transponder scans, distress or decoy marker choices, lure deployment, convoy escort and cargo-loss responses, salvage raid shields, patrol-uplink station support, and complete, partial, or failed interdiction outcomes that feed pirate pressure, hull, fuel, cargo, credits, escort integrity, salvage risk, and Survey Ladder score."
       },
       "versions": [
+        {
+          "version": "0.5.0",
+          "path": "games/void-prospector/versions/0.5.0/",
+          "releasedAt": "2026-04-30",
+          "label": "v0.5.0 Knife Wake Interdiction",
+          "summary": "Active pirate cells, transponder scans, distress or decoy markers, lure deployment, convoy and salvage raid responses, station patrol support, cargo-loss escapes, and complete/partial/failed interdiction payouts publish on top of Storm Cartography."
+        },
         {
           "version": "0.4.0",
           "path": "games/void-prospector/versions/0.4.0/",

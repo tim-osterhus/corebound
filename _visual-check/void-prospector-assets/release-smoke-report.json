@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "checked_at": "2026-04-30T23:09:12Z",
+  "served_from": "http://127.0.0.1:8765/",
+  "game": "void-prospector",
+  "version": "0.5.0",
+  "release": "v0.5.0 Knife Wake Interdiction",
+  "checks": [
+    {
+      "name": "arcade root",
+      "url": "http://127.0.0.1:8765/",
+      "title": "Millrace Arcade",
+      "console_errors": 0,
+      "observed_text": [
+        "4 games",
+        "Void Prospector's v0.5.0 Knife Wake Interdiction pirate-cell release"
+      ]
+    },
+    {
+      "name": "direct game desktop",
+      "url": "http://127.0.0.1:8765/games/void-prospector/",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "release_text": "v0.5.0 Knife Wake Interdiction",
+      "console_errors": 0,
+      "horizontal_overflow": false,
+      "canvas": {
+        "width": 1280,
+        "height": 720,
+        "non_blank_samples": 68,
+        "color_buckets": 15
+      },
+      "knife_wake_decision": {
+        "cell": "cell-rift-decoy-net",
+        "path": "transponder scan, decoy marker, lure deployment, escort resolution",
+        "outcome": "success",
+        "markers_placed": 1,
+        "lures_deployed": 1,
+        "raids_resolved": 1,
+        "surface_text": "Knife Wake Interdiction / Rift Decoy Net / success / raid 7",
+        "target_text": "marker decoy / lure yes / scan yes"
+      }
+    },
+    {
+      "name": "direct game narrow",
+      "url": "http://127.0.0.1:8765/games/void-prospector/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "release_text": "v0.5.0 Knife Wake Interdiction",
+      "console_errors": 0,
+      "horizontal_overflow": false,
+      "overflow_offenders": [],
+      "canvas": {
+        "width": 390,
+        "height": 844,
+        "non_blank_samples": 55,
+        "color_buckets": 15
+      }
+    },
+    {
+      "name": "v0.5.0 snapshot desktop",
+      "url": "http://127.0.0.1:8765/games/void-prospector/versions/0.5.0/?smoke=2",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "release_text": "v0.5.0 Knife Wake Interdiction",
+      "console_errors": 0,
+      "horizontal_overflow": false,
+      "favicon_href": "../../../../favicon.png",
+      "backlink_href": "../../../../",
+      "canvas": {
+        "width": 1280,
+        "height": 720,
+        "non_blank_samples": 45,
+        "color_buckets": 9
+      }
+    }
+  ],
+  "notes": "Browser smoke used the local static server and page-local VoidProspector API to exercise a Knife Wake interdiction decision path in the browser context. WebGL performance warnings from pixel reads were ignored when no console errors were present."
+}
