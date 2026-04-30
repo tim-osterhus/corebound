@@ -16,7 +16,7 @@
     <header class="topline">
       <a class="backlink" href="../../">Millrace Arcade</a>
       <div class="identity">
-        <span class="eyebrow">v0.0.1 survival loop</span>
+        <span class="eyebrow">v0.1.0 faultline survey</span>
         <h1>Iron Lantern Descent</h1>
       </div>
       <div class="run-chip" id="run-status">boot / pending</div>
@@ -56,8 +56,24 @@
         <strong id="route-readout">lift safe / 100%</strong>
       </article>
       <article class="readout">
+        <span>Survey</span>
+        <strong id="survey-readout">no active seam</strong>
+      </article>
+      <article class="readout">
+        <span>Stability</span>
+        <strong id="stability-readout">stable / 100%</strong>
+      </article>
+      <article class="readout">
         <span class="readout-label"><span class="readout-icon readout-icon-scanner" aria-hidden="true"></span>Scanner</span>
         <strong id="scanner-readout">ready / node</strong>
+      </article>
+      <article class="readout">
+        <span>Tremor</span>
+        <strong id="tremor-readout">window clear</strong>
+      </article>
+      <article class="readout">
+        <span>Map</span>
+        <strong id="map-readout">0 / 3 plate</strong>
       </article>
       <article class="readout">
         <span>Hazard</span>
@@ -83,11 +99,17 @@
         <span id="collision-readout">collision clear</span>
         <span id="mining-readout">drill idle</span>
       </div>
+      <ol class="survey-list" id="survey-site-list" aria-label="Faultline survey sites"></ol>
       <ol class="sample-list" id="sample-list" aria-label="Sample nodes"></ol>
+      <ol class="event-log" id="event-log" aria-label="Event log"></ol>
       <div class="action-panel" aria-label="Action controls">
         <button type="button" id="lantern-action">Lantern</button>
         <button type="button" id="mine-action">Mine</button>
         <button type="button" id="scan-action">Scan</button>
+        <button type="button" id="stake-action">Stake</button>
+        <button type="button" id="brace-action">Brace</button>
+        <button type="button" id="chart-action">Chart</button>
+        <button type="button" id="cache-action">Cache</button>
         <button type="button" id="lift-action">Lift</button>
         <button type="button" id="upgrade-action">Upgrade</button>
         <button type="button" id="restart-action">Restart</button>
@@ -101,6 +123,10 @@
       <span>L/Space lantern</span>
       <span>M hold mine</span>
       <span>C scan</span>
+      <span>V stake</span>
+      <span>B brace</span>
+      <span>X chart</span>
+      <span>N cache</span>
       <span>F/Enter lift</span>
       <span>U upgrade</span>
       <span>R restart</span>

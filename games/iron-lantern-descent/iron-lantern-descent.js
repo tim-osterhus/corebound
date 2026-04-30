@@ -1610,7 +1610,11 @@ const IronLanternDescent = (() => {
       "credits-readout",
       "lift-readout",
       "route-readout",
+      "survey-readout",
+      "stability-readout",
       "scanner-readout",
+      "tremor-readout",
+      "map-readout",
       "hazard-readout",
       "upgrade-readout",
       "player-position-readout",
@@ -1618,10 +1622,16 @@ const IronLanternDescent = (() => {
       "collision-readout",
       "mining-readout",
       "target-name",
+      "survey-site-list",
       "sample-list",
+      "event-log",
       "lantern-action",
       "mine-action",
       "scan-action",
+      "stake-action",
+      "brace-action",
+      "chart-action",
+      "cache-action",
       "lift-action",
       "upgrade-action",
       "restart-action",
@@ -1644,6 +1654,40 @@ const IronLanternDescent = (() => {
     }
   }
 
+  function formatSurveyWindow(site, elapsed) {
+    const windowState = site.windowState || surveySiteWindowState(site, elapsed || 0);
+    const window = site.tremorWindow || {};
+    if (windowState === "pending") {
+      return `opens in ${Math.max(0, Math.ceil(window.opensAt - elapsed))}s`;
+    }
+    if (windowState === "stable") {
+      return `stable ${Math.max(0, Math.ceil(window.closesAt - elapsed))}s`;
+    }
+    if (windowState === "tremor") {
+      return `tremor ${Math.max(0, Math.ceil(window.collapseAt - elapsed))}s`;
+    }
+    return "collapsed";
+  }
+
+  function activeSurveySite(state) {
+    return state.surveySites.find((site) => site.id === state.survey.activeSiteId) ||
+      nearestSurveySite(state, { includeCompleted: true })?.site ||
+      null;
+  }
+
+  function surveyRequirementText(site) {
+    const stake = site.stakePlanted ? "stake set" : "stake open";
+    const brace = site.requirements.brace
+      ? site.braceInstalled
+        ? "brace locked"
+        : "brace needed"
+      : "brace none";
+    const cache = site.airCacheState && site.airCacheState.status !== "none"
+      ? `cache ${site.airCacheState.status}`
+      : "cache none";
+    return `${stake} / ${brace} / ${cache}`;
+  }
+
   function renderHud(state) {
     if (!dom.root) {
       return;
@@ -1652,6 +1696,12 @@ const IronLanternDescent = (() => {
     const upgrade = nextAffordableUpgrade(state);
     const hazardNames = state.hazardZones.filter((zone) => zone.active).map((zone) => zone.name);
     const nearest = nearestSample(state);
+    const activeSite = activeSurveySite(state);
+    const surveyTarget = activeSite
+      ? `${activeSite.name} / ${activeSite.status} / ${Math.round(activeSite.distance || 0)}m`
+      : "survey complete";
+    const tremorText = activeSite ? `${formatSurveyWindow(activeSite, state.elapsed)} / ${activeSite.faultType}` : "window clear";
+    const targetName = state.scanner.targetKind === "survey" && activeSite ? activeSite.name : nearest ? nearest.node.name : "Iron Lift";
     dom["run-status"].textContent = `${state.run.status} / ${state.renderer.status}`;
     dom["objective-readout"].textContent = state.run.objective;
     dom["oxygen-readout"].textContent = `${Math.ceil(state.oxygen.current)} / ${state.oxygen.max}  -${state.oxygen.lastDrainPerSecond.toFixed(1)}/s`;
@@ -1661,7 +1711,11 @@ const IronLanternDescent = (() => {
     dom["credits-readout"].textContent = `${state.credits}cr`;
     dom["lift-readout"].textContent = `${formatBearing(state.lift.bearing)} / ${Math.round(state.lift.distance)}m`;
     dom["route-readout"].textContent = `${state.route.status} / ${state.route.returnConfidence}%  ${state.route.suggestedAction}`;
-    dom["scanner-readout"].textContent = `${state.scanner.status} / route ${formatBearing(state.scanner.routeBearing)}`;
+    dom["survey-readout"].textContent = surveyTarget;
+    dom["stability-readout"].textContent = `${state.routeStability.status} / ${state.routeStability.stability}% / ${state.routeStability.pressure}p`;
+    dom["scanner-readout"].textContent = state.scanner.status;
+    dom["tremor-readout"].textContent = tremorText;
+    dom["map-readout"].textContent = `${state.survey.mapProgress + state.survey.ledger} / ${state.survey.contract.targetMapProgress} map  ${state.survey.value}cr`;
     dom["hazard-readout"].textContent = hazardNames.length ? hazardNames.join(" + ") : "clear";
     dom["upgrade-readout"].textContent = upgrade ? `${upgrade.name.toLowerCase()} / ${upgrade.cost}cr` : "all fitted";
     dom["player-position-readout"].textContent = `pos ${state.player.position.x.toFixed(1)} / ${state.player.position.z.toFixed(1)}`;
@@ -1674,12 +1728,39 @@ const IronLanternDescent = (() => {
       ? `blocked / ${state.movement.collision.lastPassage}`
       : `clear / ${state.movement.collision.lastPassage}`;
     dom["mining-readout"].textContent = state.mining.status;
-    dom["target-name"].textContent = nearest ? nearest.node.name : "Iron Lift";
+    dom["target-name"].textContent = targetName;
 
     setReadoutTone(dom["oxygen-readout"], oxygenPercent < 0.2 ? "danger" : oxygenPercent < 0.45 ? "warn" : null);
     setReadoutTone(dom["hazard-readout"], hazardNames.length ? "danger" : null);
     setReadoutTone(dom["lantern-readout"], state.lanterns.charges <= 0 ? "warn" : null);
     setReadoutTone(dom["route-readout"], state.route.returnConfidence < 35 ? "danger" : state.route.returnConfidence < 70 ? "warn" : "signal");
+    setReadoutTone(dom["survey-readout"], activeSite && activeSite.inRange ? "signal" : null);
+    setReadoutTone(dom["stability-readout"], state.routeStability.stability < 35 ? "danger" : state.routeStability.stability < 65 ? "warn" : "signal");
+    setReadoutTone(dom["tremor-readout"], activeSite && activeSite.windowState === "collapsed" ? "danger" : activeSite && activeSite.windowState === "tremor" ? "warn" : null);
+
+    dom["survey-site-list"].replaceChildren(
+      ...state.surveySites.map((site) => {
+        const item = document.createElement("li");
+        item.dataset.window = site.windowState;
+        item.dataset.status = site.chartState;
+        const line = document.createElement("div");
+        line.className = "survey-line";
+        const name = document.createElement("strong");
+        name.textContent = site.name;
+        const passage = document.createElement("span");
+        passage.textContent = `${site.passageId} / ${Math.round(site.distance || 0)}m`;
+        line.append(name, passage);
+        const meta = document.createElement("div");
+        meta.className = "survey-meta";
+        [site.faultType, site.status, formatSurveyWindow(site, state.elapsed), surveyRequirementText(site), `+${site.rewards.payout}cr / +${site.rewards.mapProgress} map`].forEach((text) => {
+          const part = document.createElement("span");
+          part.textContent = text;
+          meta.append(part);
+        });
+        item.append(line, meta);
+        return item;
+      })
+    );
 
     dom["sample-list"].replaceChildren(
       ...state.sampleNodes.map((node) => {
@@ -1689,6 +1770,14 @@ const IronLanternDescent = (() => {
           : `${Math.round(clamp((node.mineState.progress / node.difficulty) * 100, 0, 99))}%`;
         item.dataset.state = node.mineState.status;
         item.textContent = `${node.name}: ${node.mineState.status} / ${node.remaining} / ${progress}`;
+        return item;
+      })
+    );
+
+    dom["event-log"].replaceChildren(
+      ...state.log.slice(0, 5).map((entry) => {
+        const item = document.createElement("li");
+        item.textContent = `${String(entry.tick).padStart(3, "0")} / ${entry.message}`;
         return item;
       })
     );
@@ -1771,6 +1860,22 @@ const IronLanternDescent = (() => {
     });
     dom["scan-action"].addEventListener("click", () => {
       currentState = pulseScanner(currentState);
+      renderHud(currentState);
+    });
+    dom["stake-action"].addEventListener("click", () => {
+      currentState = plantSurveyStake(currentState);
+      renderHud(currentState);
+    });
+    dom["brace-action"].addEventListener("click", () => {
+      currentState = braceSurveySite(currentState);
+      renderHud(currentState);
+    });
+    dom["chart-action"].addEventListener("click", () => {
+      currentState = chartFaultSurvey(currentState);
+      renderHud(currentState);
+    });
+    dom["cache-action"].addEventListener("click", () => {
+      currentState = activateAirCache(currentState);
       renderHud(currentState);
     });
     dom["lift-action"].addEventListener("click", () => {
@@ -1985,6 +2090,75 @@ const IronLanternDescent = (() => {
     return group;
   }
 
+  function createSurveySiteMesh(THREE, site) {
+    const group = new THREE.Group();
+    group.userData.siteId = site.id;
+
+    const seamGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-site.radius, 0.18, -0.55),
+      new THREE.Vector3(-site.radius * 0.32, 0.44, 0.2),
+      new THREE.Vector3(site.radius * 0.28, 0.22, -0.1),
+      new THREE.Vector3(site.radius, 0.5, 0.62),
+    ]);
+    const seam = new THREE.Line(
+      seamGeometry,
+      new THREE.LineBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.78 })
+    );
+    seam.userData.role = "fault-seam";
+    group.add(seam);
+
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(site.radius, 0.045, 8, 64),
+      new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.24 })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.1;
+    ring.userData.role = "survey-radius";
+    group.add(ring);
+
+    const stake = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.11, 1.25, 8),
+      new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.88 })
+    );
+    stake.position.set(-0.62, 0.68, 0.55);
+    stake.userData.role = "survey-stake";
+    group.add(stake);
+
+    const braceMaterial = new THREE.MeshBasicMaterial({ color: 0xc9a653, transparent: true, opacity: 0.24 });
+    const braceFrame = new THREE.Group();
+    [
+      [-1.1, 0.72, -0.25, 0.11, 1.42, 0.11],
+      [1.1, 0.72, -0.25, 0.11, 1.42, 0.11],
+      [0, 1.38, -0.25, 2.32, 0.12, 0.12],
+    ].forEach(([x, y, z, width, height, depth]) => {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), braceMaterial);
+      beam.position.set(x, y, z);
+      braceFrame.add(beam);
+    });
+    braceFrame.userData.role = "brace-frame";
+    group.add(braceFrame);
+
+    const cache = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.22, 0.8, 12),
+      new THREE.MeshBasicMaterial({ color: 0xe0e7e3, transparent: true, opacity: 0.62 })
+    );
+    cache.rotation.z = Math.PI / 2;
+    cache.position.set(0.92, 0.42, 0.8);
+    cache.userData.role = "air-cache";
+    group.add(cache);
+
+    const mapPlate = new THREE.Mesh(
+      new THREE.BoxGeometry(1.15, 0.04, 0.72),
+      new THREE.MeshBasicMaterial({ color: 0xc9a653, transparent: true, opacity: 0.74 })
+    );
+    mapPlate.position.set(0, 0.18, -1.15);
+    mapPlate.userData.role = "map-plate";
+    group.add(mapPlate);
+
+    group.position.set(site.position.x, 0, site.position.z);
+    return group;
+  }
+
   function createLanternMesh(THREE, anchor, assets = {}) {
     const group = new THREE.Group();
     const base = new THREE.Mesh(
@@ -2064,6 +2238,13 @@ const IronLanternDescent = (() => {
       scene.add(mesh);
     });
 
+    const surveyMeshes = new Map();
+    state.surveySites.forEach((site) => {
+      const mesh = createSurveySiteMesh(THREE, site);
+      surveyMeshes.set(site.id, mesh);
+      scene.add(mesh);
+    });
+
     const scannerRing = new THREE.Mesh(
       new THREE.RingGeometry(3.8, 4.0, 48),
       new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
@@ -2087,6 +2268,7 @@ const IronLanternDescent = (() => {
         signalLight,
         sampleMeshes,
         hazardMeshes,
+        surveyMeshes,
         lanternMeshes: new Map(),
         routeGroup,
         routeSignature: "",
@@ -2156,10 +2338,59 @@ const IronLanternDescent = (() => {
     });
   }
 
+  function updateSurveyMeshes(handle, state, timeSeconds) {
+    state.surveySites.forEach((site) => {
+      const mesh = handle.objects.surveyMeshes.get(site.id);
+      if (!mesh) {
+        return;
+      }
+      const seam = mesh.children.find((child) => child.userData.role === "fault-seam");
+      const ring = mesh.children.find((child) => child.userData.role === "survey-radius");
+      const stake = mesh.children.find((child) => child.userData.role === "survey-stake");
+      const brace = mesh.children.find((child) => child.userData.role === "brace-frame");
+      const cache = mesh.children.find((child) => child.userData.role === "air-cache");
+      const mapPlate = mesh.children.find((child) => child.userData.role === "map-plate");
+      const urgent = site.windowState === "tremor" || site.windowState === "collapsed" || site.chartState === "failed";
+      const complete = site.chartState === "success" || site.chartState === "partial";
+      const pulse = 0.5 + Math.sin(timeSeconds * (urgent ? 6.2 : 2.4) + site.position.x) * 0.5;
+
+      mesh.scale.setScalar(site.inRange ? 1.14 : 1);
+      if (seam && seam.material) {
+        seam.material.color.setHex(urgent ? 0xd46857 : complete ? 0xc9a653 : 0x4bd6c0);
+        seam.material.opacity = urgent ? 0.58 + pulse * 0.28 : complete ? 0.5 : 0.42 + pulse * 0.18;
+      }
+      if (ring && ring.material) {
+        ring.material.color.setHex(urgent ? 0xd46857 : 0x4bd6c0);
+        ring.material.opacity = site.inRange ? 0.32 : 0.18;
+      }
+      if (stake) {
+        stake.visible = site.stakePlanted;
+      }
+      if (brace) {
+        brace.visible = Boolean(site.requirements.brace);
+        brace.children.forEach((child) => {
+          if (child.material) {
+            child.material.opacity = site.braceInstalled ? 0.82 : 0.2;
+          }
+        });
+      }
+      if (cache && cache.material) {
+        const hasCache = site.airCacheState && site.airCacheState.status !== "none";
+        cache.visible = hasCache;
+        cache.material.color.setHex(site.airCacheState && site.airCacheState.status === "depleted" ? 0x53605a : 0xe0e7e3);
+        cache.material.opacity = site.airCacheState && site.airCacheState.status === "depleted" ? 0.22 : 0.62;
+      }
+      if (mapPlate) {
+        mapPlate.visible = complete;
+      }
+    });
+  }
+
   function updateScene(handle, state, timeSeconds) {
     resizeScene(handle);
     syncLanternMeshes(handle, state);
     syncRouteMeshes(handle, state);
+    updateSurveyMeshes(handle, state, timeSeconds);
     handle.objects.player.position.set(state.player.position.x, 0, state.player.position.z);
     handle.objects.player.rotation.y = state.player.facing;
     handle.objects.playerLamp.position.set(state.player.position.x, state.player.position.y + 0.4, state.player.position.z);

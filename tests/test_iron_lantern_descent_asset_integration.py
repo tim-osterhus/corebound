@@ -76,6 +76,40 @@ class IronLanternDescentAssetIntegrationTests(unittest.TestCase):
         self.assertEqual("assets/oxygen-light-icons.png", assets["oxygenLightIcons"])
         self.assertEqual("assets/arcade-title-card.png", assets["arcadeTitleCard"])
 
+    def test_faultline_survey_visuals_are_procedural_without_stale_raster_claims(self) -> None:
+        script = source_text("iron-lantern-descent.js")
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        manifest_paths = {asset["path"].removeprefix("games/iron-lantern-descent/") for asset in manifest["assets"]}
+
+        for token in (
+            "createSurveySiteMesh",
+            "updateSurveyMeshes",
+            "surveyMeshes",
+            "new THREE.BufferGeometry().setFromPoints",
+            "new THREE.TorusGeometry",
+            "userData.role = \"fault-seam\"",
+            "userData.role = \"brace-frame\"",
+            "userData.role = \"air-cache\"",
+            "userData.role = \"map-plate\"",
+        ):
+            self.assertIn(token, script)
+
+        self.assertEqual(
+            {
+                "assets/lantern-anchor.png",
+                "assets/mineral-vein-material.png",
+                "assets/drill-tool.png",
+                "assets/oxygen-light-icons.png",
+                "assets/arcade-title-card.png",
+            },
+            manifest_paths,
+        )
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*fault[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*survey[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*brace[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*cache[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*map[^"\'\)\s]*\.png')
+
     def run_node(self, expression: str) -> str:
         result = subprocess.run(
             [
