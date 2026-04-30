@@ -75,6 +75,7 @@ const VoidProspector = (() => {
         "signal jammers",
         "chart processors",
         "storm plating",
+        "patrol uplink",
       ],
     },
     contract: {
@@ -147,6 +148,18 @@ const VoidProspector = (() => {
           stormHazardMitigation: 0.32,
           salvageRiskMitigation: 0.12,
         },
+        {
+          id: "patrol-uplink",
+          name: "Patrol Uplink",
+          cost: 140,
+          countermeasureCharges: 1,
+          interdictionScanBonus: 0.85,
+          interdictionResponseWindowBonus: 3,
+          interdictionRaidMitigation: 0.28,
+          interdictionPayoutBonus: 0.1,
+          interdictionSupportIntegrity: 14,
+          convoyAmbushMitigation: 0.08,
+        },
       ],
       sectors: [
         {
@@ -213,6 +226,7 @@ const VoidProspector = (() => {
             },
           ],
           convoyRoutes: [],
+          interdictionCells: [],
           unlocks: ["rift-shelf"],
         },
         {
@@ -389,6 +403,52 @@ const VoidProspector = (() => {
               missedFuelDrain: 10,
               missedHazardExposure: 1.4,
               missedPiratePressure: 12,
+            },
+          ],
+          interdictionCells: [
+            {
+              id: "cell-rift-decoy-net",
+              name: "Rift Decoy Net",
+              type: "distress lure",
+              family: "raider-cell",
+              trigger: "false distress ping on the Rift Relay Convoy lane",
+              prerequisiteLabel: "Rift Lens chart and Rift Relay beacon",
+              prerequisites: {
+                completedSectorIds: ["spoke-approach"],
+                scannedAnomalyIds: ["anomaly-rift-lens"],
+                convoyBeaconRouteIds: ["convoy-rift-relay"],
+              },
+              position: { x: -24, y: 4, z: -44 },
+              radius: 5.4,
+              transponderDifficulty: 2.6,
+              responseWindow: {
+                opensAt: 3,
+                closesAt: 14,
+              },
+              raidPressure: 28,
+              scanRequirement: 1,
+              lureRequirement: 1,
+              escortRequirement: 32,
+              convoyRouteIds: ["convoy-rift-relay"],
+              salvageSiteIds: ["salvage-rift-hulk"],
+              stormChartIds: ["storm-rift-breaker"],
+              payoutCredits: 130,
+              rewardVariance: 16,
+              ladderScore: 36,
+              convoyAmbushReduction: 12,
+              convoyEscortIntegrity: 10,
+              salvageRiskReduction: 0.18,
+              piratePressureClear: 14,
+              markerResponseBonus: 2,
+              distressEscortIntegrity: 8,
+              decoyRaidReduction: 9,
+              lurePressureDrop: 12,
+              partialPayoutRate: 0.55,
+              partialHullDamage: 5,
+              failureHullDamage: 12,
+              failureFuelDrain: 8,
+              failurePressure: 18,
+              cargoLoss: 1,
             },
           ],
           unlocks: ["umbra-trench"],
@@ -581,6 +641,53 @@ const VoidProspector = (() => {
               missedPiratePressure: 18,
             },
           ],
+          interdictionCells: [
+            {
+              id: "cell-umbra-blackbox-raid",
+              name: "Umbra Blackbox Raid",
+              type: "blackbox raid",
+              family: "salvage-raid",
+              trigger: "Knife Wake cell triangulates the recovered blackbox manifest",
+              prerequisiteLabel: "Black Pylon chart and Knife Wake blackbox",
+              prerequisites: {
+                completedSectorIds: ["rift-shelf"],
+                scannedAnomalyIds: ["anomaly-black-pylon"],
+                salvageManifestIds: ["salvage-umbra-blackbox"],
+                hazardChartedSectorIds: ["umbra-trench"],
+              },
+              position: { x: 26, y: 5, z: -34 },
+              radius: 5.8,
+              transponderDifficulty: 3.4,
+              responseWindow: {
+                opensAt: 5,
+                closesAt: 18,
+              },
+              raidPressure: 42,
+              scanRequirement: 1,
+              lureRequirement: 1,
+              escortRequirement: 48,
+              convoyRouteIds: ["convoy-umbra-blackbox"],
+              salvageSiteIds: ["salvage-umbra-blackbox", "salvage-umbra-vault"],
+              stormChartIds: ["storm-umbra-knife-wake"],
+              payoutCredits: 220,
+              rewardVariance: 24,
+              ladderScore: 68,
+              convoyAmbushReduction: 16,
+              convoyEscortIntegrity: 14,
+              salvageRiskReduction: 0.24,
+              piratePressureClear: 18,
+              markerResponseBonus: 3,
+              distressEscortIntegrity: 12,
+              decoyRaidReduction: 12,
+              lurePressureDrop: 16,
+              partialPayoutRate: 0.5,
+              partialHullDamage: 8,
+              failureHullDamage: 18,
+              failureFuelDrain: 12,
+              failurePressure: 24,
+              cargoLoss: 2,
+            },
+          ],
           unlocks: ["tempest-verge"],
         },
         {
@@ -589,13 +696,15 @@ const VoidProspector = (() => {
           tier: 4,
           condition: "Storm-gated relay verge",
           charterTitle: "Tempest Verge Cartography",
-          objective: "Scan the verge eye, mine 14 ore, lock one storm window, and bank a storm route payout.",
+          objective: "Scan the verge eye, mine 14 ore, lock one storm window, break the Knife Wake patrol net, and bank route payouts.",
           requiredOre: 14,
           requiredScans: 1,
           requiredSalvageValue: 0,
           requiredRelics: 0,
           requiredStormCharts: 1,
           requiredStormPayout: 200,
+          requiredInterdictions: 1,
+          requiredInterdictionPayout: 180,
           rewardCredits: 420,
           surveyReward: 125,
           salvageReward: 55,
@@ -743,6 +852,52 @@ const VoidProspector = (() => {
               missedPiratePressure: 24,
             },
           ],
+          interdictionCells: [
+            {
+              id: "cell-tempest-patrol-net",
+              name: "Tempest Patrol Net",
+              type: "patrol net",
+              family: "pirate-den",
+              trigger: "Knife Wake patrol net closes around the Tempest relay route",
+              prerequisiteLabel: "Umbra completion and Tempest Eye chart",
+              prerequisites: {
+                completedSectorIds: ["umbra-trench"],
+                scannedAnomalyIds: ["anomaly-tempest-eye"],
+                hazardChartedSectorIds: ["tempest-verge"],
+              },
+              position: { x: 4, y: 7, z: -44 },
+              radius: 6.4,
+              transponderDifficulty: 4,
+              responseWindow: {
+                opensAt: 7,
+                closesAt: 24,
+              },
+              raidPressure: 54,
+              scanRequirement: 1,
+              lureRequirement: 1,
+              escortRequirement: 62,
+              convoyRouteIds: ["convoy-tempest-relay"],
+              salvageSiteIds: ["salvage-tempest-spool"],
+              stormChartIds: ["storm-tempest-verge"],
+              payoutCredits: 310,
+              rewardVariance: 32,
+              ladderScore: 105,
+              convoyAmbushReduction: 20,
+              convoyEscortIntegrity: 18,
+              salvageRiskReduction: 0.28,
+              piratePressureClear: 24,
+              markerResponseBonus: 4,
+              distressEscortIntegrity: 16,
+              decoyRaidReduction: 15,
+              lurePressureDrop: 20,
+              partialPayoutRate: 0.48,
+              partialHullDamage: 10,
+              failureHullDamage: 24,
+              failureFuelDrain: 16,
+              failurePressure: 30,
+              cargoLoss: 2,
+            },
+          ],
           unlocks: [],
         },
       ],
@@ -779,6 +934,17 @@ const VoidProspector = (() => {
       countermeasureIntegrity: 16,
       countermeasureWindowBonus: 4,
       countermeasureHazardClear: 0.65,
+    },
+    knifeWakeInterdiction: {
+      version: "0.5.0",
+      releaseLabel: "Knife Wake Interdiction",
+      scanRange: 17,
+      baseScanPower: 1,
+      markerRange: 16,
+      lureRange: 14,
+      countermeasureRaidReduction: 12,
+      countermeasurePressureDrop: 16,
+      failureCargoValueRate: 0.22,
     },
     asteroidField: {
       miningRange: 9,
@@ -1010,6 +1176,12 @@ const VoidProspector = (() => {
       failedStormChartIds: uniqueList(base.failedStormChartIds || []),
       partialStormChartIds: uniqueList(base.partialStormChartIds || []),
       anchoredStormChartIds: uniqueList(base.anchoredStormChartIds || []),
+      interdictionScore: base.interdictionScore || 0,
+      completedInterdictionCellIds: uniqueList(base.completedInterdictionCellIds || []),
+      failedInterdictionCellIds: uniqueList(base.failedInterdictionCellIds || []),
+      partialInterdictionCellIds: uniqueList(base.partialInterdictionCellIds || []),
+      scannedInterdictionCellIds: uniqueList(base.scannedInterdictionCellIds || []),
+      luredInterdictionCellIds: uniqueList(base.luredInterdictionCellIds || []),
       hazardCharts: { ...(base.hazardCharts || {}) },
       lastChoice: base.lastChoice || "spoke-approach",
       lastCompletedSectorId: base.lastCompletedSectorId || null,
@@ -1035,6 +1207,11 @@ const VoidProspector = (() => {
       stormWindowBonus: base.stormWindowBonus || 0,
       stormHazardMitigation: base.stormHazardMitigation || 0,
       stormPayoutBonus: base.stormPayoutBonus || 0,
+      interdictionScanBonus: base.interdictionScanBonus || 0,
+      interdictionResponseWindowBonus: base.interdictionResponseWindowBonus || 0,
+      interdictionRaidMitigation: base.interdictionRaidMitigation || 0,
+      interdictionPayoutBonus: base.interdictionPayoutBonus || 0,
+      interdictionSupportIntegrity: base.interdictionSupportIntegrity || 0,
       lastService: base.lastService || "none",
       countermeasureStatus: base.countermeasureStatus || "idle",
     };
@@ -1045,6 +1222,7 @@ const VoidProspector = (() => {
       }
       state.scanPowerBonus = Math.max(state.scanPowerBonus, service.scanPowerBonus || 0);
       state.hazardMitigation = Math.max(state.hazardMitigation, service.hazardMitigation || 0);
+      state.countermeasureCharges += service.countermeasureCharges || 0;
       state.salvagePowerBonus = Math.max(state.salvagePowerBonus, service.salvagePowerBonus || 0);
       state.salvageConfidenceBonus = Math.max(state.salvageConfidenceBonus, service.salvageConfidenceBonus || 0);
       state.salvageRiskMitigation = Math.max(state.salvageRiskMitigation, service.salvageRiskMitigation || 0);
@@ -1056,6 +1234,11 @@ const VoidProspector = (() => {
       state.stormWindowBonus += service.stormWindowBonus || 0;
       state.stormHazardMitigation += service.stormHazardMitigation || 0;
       state.stormPayoutBonus += service.stormPayoutBonus || 0;
+      state.interdictionScanBonus += service.interdictionScanBonus || 0;
+      state.interdictionResponseWindowBonus += service.interdictionResponseWindowBonus || 0;
+      state.interdictionRaidMitigation += service.interdictionRaidMitigation || 0;
+      state.interdictionPayoutBonus += service.interdictionPayoutBonus || 0;
+      state.interdictionSupportIntegrity += service.interdictionSupportIntegrity || 0;
     });
     return state;
   }
@@ -1305,6 +1488,134 @@ const VoidProspector = (() => {
     };
   }
 
+  function createInterdictionCells(
+    seed = DEFAULT_SEED,
+    sectorInput = GAME_DATA.surveyLadder.defaultSectorId,
+    stationServices = createStationServiceState(),
+    options = {}
+  ) {
+    const sector = typeof sectorInput === "string" ? sectorById(sectorInput) : sectorInput;
+    const base = options.interdiction || {};
+    const cellMemory = base.cellMemory || {};
+    const random = createRng(seed + sector.tier * 22031 + 17011);
+    return (sector.interdictionCells || []).map((cell, index) => {
+      const remembered = cellMemory[cell.id] || {};
+      const rememberedInterdiction = remembered.interdictionState || {};
+      const payoutCredits = (cell.payoutCredits || 0) + (cell.rewardVariance ? Math.floor(random() * cell.rewardVariance) : 0);
+      const responseWindow = {
+        opensAt: cell.responseWindow ? cell.responseWindow.opensAt || 0 : 0,
+        closesAt:
+          (cell.responseWindow ? cell.responseWindow.closesAt || 0 : 0) +
+          (stationServices.interdictionResponseWindowBonus || 0),
+        locked: false,
+        markedAt: null,
+        missed: false,
+        ...clone(rememberedInterdiction.responseWindow || {}),
+      };
+      return {
+        ...clone(cell),
+        payoutCredits,
+        scanSignature: `interdiction-${sector.id}-${seed}-${index + 1}`,
+        position: clone(cell.position || GAME_DATA.pirate.patrolPoint),
+        radius: cell.radius || 5,
+        prerequisiteStatus: {
+          ready: false,
+          missing: [],
+          label: cell.prerequisiteLabel || "interdiction prerequisites",
+        },
+        interdictionState: {
+          status: "locked",
+          progress: 0,
+          transponderScanned: false,
+          markerPlaced: false,
+          markerType: null,
+          lureDeployed: false,
+          escortIntegrity: 0,
+          raidPressure: cell.raidPressure || 0,
+          responseWindow,
+          payoutCredits,
+          deliveredValue: 0,
+          partialPayoutCredits: 0,
+          protectedSalvageIds: [],
+          failureReason: null,
+          outcome: "none",
+          countermeasureUsed: false,
+          lastTouchedTick: null,
+          ...clone(rememberedInterdiction),
+          responseWindow,
+          payoutCredits,
+        },
+      };
+    });
+  }
+
+  function createInterdictionState(options = {}, stationServices = createStationServiceState(), interdictionCells = []) {
+    const base = options.interdiction || {};
+    return {
+      version: GAME_DATA.knifeWakeInterdiction.version,
+      releaseLabel: GAME_DATA.knifeWakeInterdiction.releaseLabel,
+      activeCellId: base.activeCellId || null,
+      completedCellIds: uniqueList(base.completedCellIds || []),
+      failedCellIds: uniqueList(base.failedCellIds || []),
+      partialCellIds: uniqueList(base.partialCellIds || []),
+      scannedCellIds: uniqueList(base.scannedCellIds || []),
+      luredCellIds: uniqueList(base.luredCellIds || []),
+      markerCellIds: uniqueList(base.markerCellIds || []),
+      payoutBanked: base.payoutBanked || 0,
+      interdictionScore: base.interdictionScore || 0,
+      raidsResolved: base.raidsResolved || 0,
+      scansCompleted: base.scansCompleted || 0,
+      markersPlaced: base.markersPlaced || 0,
+      luresDeployed: base.luresDeployed || 0,
+      protectedSalvage: base.protectedSalvage || 0,
+      scanPower: GAME_DATA.knifeWakeInterdiction.baseScanPower + (stationServices.interdictionScanBonus || 0),
+      scanRange: GAME_DATA.knifeWakeInterdiction.scanRange,
+      markerRange: GAME_DATA.knifeWakeInterdiction.markerRange,
+      lureRange: GAME_DATA.knifeWakeInterdiction.lureRange,
+      supportMitigation: stationServices.interdictionRaidMitigation || 0,
+      supportIntegrity: stationServices.interdictionSupportIntegrity || 0,
+      responseWindowBonus: stationServices.interdictionResponseWindowBonus || 0,
+      payoutBonus: stationServices.interdictionPayoutBonus || 0,
+      status: base.status || (interdictionCells.length ? "pirate cells charted" : "no pirate cells"),
+      lastOutcome: base.lastOutcome || "none",
+      cellMemory: base.cellMemory || {},
+    };
+  }
+
+  function interdictionCellMemoryFromCells(cells = []) {
+    return cells.reduce((memory, cell) => {
+      memory[cell.id] = {
+        interdictionState: clone(cell.interdictionState),
+      };
+      return memory;
+    }, {});
+  }
+
+  function interdictionPersistence(state) {
+    return {
+      activeCellId: state.interdiction.activeCellId,
+      completedCellIds: state.interdiction.completedCellIds,
+      failedCellIds: state.interdiction.failedCellIds,
+      partialCellIds: state.interdiction.partialCellIds,
+      scannedCellIds: state.interdiction.scannedCellIds,
+      luredCellIds: state.interdiction.luredCellIds,
+      markerCellIds: state.interdiction.markerCellIds,
+      payoutBanked: state.interdiction.payoutBanked,
+      interdictionScore: state.interdiction.interdictionScore,
+      raidsResolved: state.interdiction.raidsResolved,
+      scansCompleted: state.interdiction.scansCompleted,
+      markersPlaced: state.interdiction.markersPlaced,
+      luresDeployed: state.interdiction.luresDeployed,
+      protectedSalvage: state.interdiction.protectedSalvage,
+      status: state.interdiction.status,
+      lastOutcome: state.interdiction.lastOutcome,
+      cellMemory: {
+        ...(state.interdiction.cellMemory || {}),
+        ...interdictionCellMemoryFromCells(state.interdictionCells || []),
+      },
+    };
+  }
+
   function stormChartMemoryFromCharts(charts = []) {
     return charts.reduce((memory, chart) => {
       memory[chart.id] = {
@@ -1337,6 +1648,10 @@ const VoidProspector = (() => {
 
   function stormChartById(state, chartId) {
     return (state.stormCharts || []).find((chart) => chart.id === chartId) || null;
+  }
+
+  function interdictionCellById(state, cellId) {
+    return (state.interdictionCells || []).find((cell) => cell.id === cellId) || null;
   }
 
   function convoyRouteMemoryFromRoutes(routes = []) {
@@ -1491,6 +1806,173 @@ const VoidProspector = (() => {
       missing,
       label: route.prerequisiteLabel || "route prerequisites",
     };
+  }
+
+  function interdictionCellPrerequisiteStatus(cell, state) {
+    const requirements = cell.prerequisites || {};
+    const missing = [];
+    const scannedAnomalyIds = currentScannedAnomalyIds(state);
+    const salvageManifestIds = currentSalvageManifestIds(state);
+
+    (requirements.completedSectorIds || []).forEach((sectorId) => {
+      if (!(state.ladder.completedSectorIds || []).includes(sectorId)) {
+        missing.push(`complete ${sectorById(sectorId).name}`);
+      }
+    });
+    (requirements.scannedAnomalyIds || []).forEach((anomalyId) => {
+      if (!scannedAnomalyIds.includes(anomalyId)) {
+        missing.push(`scan ${anomalyId}`);
+      }
+    });
+    (requirements.salvageManifestIds || []).forEach((siteId) => {
+      if (!salvageManifestIds.includes(siteId)) {
+        missing.push(`recover ${siteId}`);
+      }
+    });
+    (requirements.hazardChartedSectorIds || []).forEach((sectorId) => {
+      if (!(state.ladder.hazardCharts || {})[sectorId]) {
+        missing.push(`chart ${sectorById(sectorId).name}`);
+      }
+    });
+    (requirements.convoyBeaconRouteIds || []).forEach((routeId) => {
+      const route = convoyRouteById(state, routeId);
+      if (!route || !route.beaconState.deployed) {
+        missing.push(`deploy ${routeId} beacon`);
+      }
+    });
+    (requirements.stormChartIds || []).forEach((chartId) => {
+      const chart = stormChartById(state, chartId);
+      const lockedWindow = Boolean(
+        chart &&
+          chart.stormState &&
+          chart.stormState.safeWindow &&
+          chart.stormState.safeWindow.locked &&
+          chart.stormState.outcome === "none"
+      );
+      if (!(state.ladder.completedStormChartIds || []).includes(chartId) && !lockedWindow) {
+        missing.push(`lock ${chartId}`);
+      }
+    });
+
+    return {
+      ready: missing.length === 0,
+      missing,
+      label: cell.prerequisiteLabel || "interdiction prerequisites",
+    };
+  }
+
+  function interdictionResponseTiming(cell, state) {
+    const responseWindow = cell.interdictionState.responseWindow || {};
+    const opensAt = responseWindow.opensAt || 0;
+    const closesAt = responseWindow.closesAt || 0;
+    const elapsed = state.elapsed || 0;
+    return {
+      opensAt,
+      closesAt,
+      remaining: round(Math.max(0, closesAt - elapsed), 2),
+      open: elapsed >= opensAt && elapsed <= closesAt,
+      pending: elapsed < opensAt,
+      missed: elapsed > closesAt && !responseWindow.locked,
+      locked: Boolean(responseWindow.locked),
+      markedAt: responseWindow.markedAt,
+    };
+  }
+
+  function interdictionCellReadiness(state, cellId) {
+    const cell = interdictionCellById(state, cellId);
+    if (!cell) {
+      return {
+        cellId,
+        ready: false,
+        missing: ["unknown interdiction cell"],
+        canScan: false,
+        canPlaceMarker: false,
+        canDeployLure: false,
+        canResolveRaid: false,
+      };
+    }
+    const prerequisites = interdictionCellPrerequisiteStatus(cell, state);
+    const timing = interdictionResponseTiming(cell, state);
+    const terminal = ["success", "partial", "failed"].includes(cell.interdictionState.outcome);
+    return {
+      cellId: cell.id,
+      ready: prerequisites.ready,
+      missing: prerequisites.missing,
+      label: prerequisites.label,
+      transponderScanned: cell.interdictionState.transponderScanned,
+      markerPlaced: cell.interdictionState.markerPlaced,
+      markerType: cell.interdictionState.markerType,
+      lureDeployed: cell.interdictionState.lureDeployed,
+      raidPressure: cell.interdictionState.raidPressure,
+      responseWindow: timing,
+      canScan: prerequisites.ready && !cell.interdictionState.transponderScanned && !terminal,
+      canPlaceMarker: prerequisites.ready && cell.interdictionState.transponderScanned && !cell.interdictionState.markerPlaced && !terminal,
+      canDeployLure:
+        prerequisites.ready &&
+        cell.interdictionState.transponderScanned &&
+        !cell.interdictionState.lureDeployed &&
+        !terminal &&
+        (state.stationServices ? state.stationServices.countermeasureCharges > 0 : false),
+      canResolveRaid: prerequisites.ready && cell.interdictionState.transponderScanned && !terminal && !timing.pending,
+    };
+  }
+
+  function syncInterdictionDerivedState(state) {
+    if (!state.interdiction || !state.interdictionCells) {
+      return state;
+    }
+    let activeCell = null;
+    state.interdiction.scanPower =
+      GAME_DATA.knifeWakeInterdiction.baseScanPower + (state.stationServices ? state.stationServices.interdictionScanBonus || 0 : 0);
+    state.interdiction.supportMitigation = state.stationServices ? state.stationServices.interdictionRaidMitigation || 0 : 0;
+    state.interdiction.supportIntegrity = state.stationServices ? state.stationServices.interdictionSupportIntegrity || 0 : 0;
+    state.interdiction.responseWindowBonus = state.stationServices ? state.stationServices.interdictionResponseWindowBonus || 0 : 0;
+    state.interdiction.payoutBonus = state.stationServices ? state.stationServices.interdictionPayoutBonus || 0 : 0;
+
+    state.interdictionCells.forEach((cell) => {
+      cell.prerequisiteStatus = interdictionCellPrerequisiteStatus(cell, state);
+      if (!cell.interdictionState.responseWindow.locked) {
+        cell.interdictionState.responseWindow.closesAt =
+          (cell.responseWindow ? cell.responseWindow.closesAt || 0 : 0) + state.interdiction.responseWindowBonus;
+      }
+      const terminal = ["success", "partial", "failed"].includes(cell.interdictionState.outcome);
+      if (terminal) {
+        return;
+      }
+      if (!cell.prerequisiteStatus.ready) {
+        cell.interdictionState.status = "locked";
+        return;
+      }
+      if (!cell.interdictionState.transponderScanned) {
+        cell.interdictionState.status =
+          cell.interdictionState.status === "scanning" ? "scanning" : "transponder quiet";
+        activeCell = activeCell || cell;
+        return;
+      }
+      const timing = interdictionResponseTiming(cell, state);
+      if (timing.missed && !cell.interdictionState.markerPlaced && !cell.interdictionState.lureDeployed) {
+        cell.interdictionState.status = "raid window missed";
+      } else if (cell.interdictionState.lureDeployed) {
+        cell.interdictionState.status = timing.open ? "lure active" : timing.pending ? "lure armed" : "lure aging";
+      } else if (cell.interdictionState.markerPlaced) {
+        cell.interdictionState.status = timing.open ? `${cell.interdictionState.markerType} window open` : `${cell.interdictionState.markerType} marker armed`;
+      } else {
+        cell.interdictionState.status = timing.open ? "raid window open" : timing.pending ? "awaiting response window" : "response overdue";
+      }
+      activeCell = activeCell || cell;
+    });
+
+    if (activeCell) {
+      state.interdiction.activeCellId = activeCell.id;
+      state.interdiction.status = `${activeCell.name} ${activeCell.interdictionState.status}`;
+    } else if (state.interdictionCells.length) {
+      state.interdiction.activeCellId = null;
+      state.interdiction.status = "pirate cells settled";
+    } else {
+      state.interdiction.activeCellId = null;
+      state.interdiction.status = "no pirate cells";
+    }
+    return state;
   }
 
   function syncConvoyDerivedState(state) {
@@ -1734,6 +2216,79 @@ const VoidProspector = (() => {
     return mitigation;
   }
 
+  function interdictionModifierForRoute(state, route) {
+    const modifier = {
+      active: false,
+      cellId: null,
+      raidPressure: 0,
+      ambushReduction: 0,
+      escortIntegrity: 0,
+      payoutBonus: 0,
+      label: "none",
+    };
+    (state.interdictionCells || []).forEach((cell) => {
+      if (!(cell.convoyRouteIds || []).includes(route.id)) {
+        return;
+      }
+      const outcome = cell.interdictionState.outcome;
+      if (outcome === "success" || outcome === "partial") {
+        modifier.active = true;
+        modifier.cellId = cell.id;
+        modifier.ambushReduction = Math.max(
+          modifier.ambushReduction,
+          (cell.convoyAmbushReduction || 0) * (outcome === "success" ? 1 : 0.5)
+        );
+        modifier.escortIntegrity = Math.max(
+          modifier.escortIntegrity,
+          (cell.convoyEscortIntegrity || 0) * (outcome === "success" ? 1 : 0.5)
+        );
+        modifier.payoutBonus = Math.max(modifier.payoutBonus, state.stationServices ? state.stationServices.interdictionPayoutBonus || 0 : 0);
+        modifier.label = `${cell.id} ${outcome}`;
+        return;
+      }
+      if (!cell.prerequisiteStatus || !cell.prerequisiteStatus.ready || !cell.interdictionState.transponderScanned) {
+        return;
+      }
+      const markerScale = cell.interdictionState.markerType === "decoy" ? 0.65 : cell.interdictionState.markerType === "distress" ? 0.82 : 1;
+      const lureScale = cell.interdictionState.lureDeployed ? 0.58 : 1;
+      const supportScale = 1 - Math.min(0.45, state.stationServices ? state.stationServices.interdictionRaidMitigation || 0 : 0);
+      modifier.active = true;
+      modifier.cellId = cell.id;
+      modifier.raidPressure = Math.max(
+        modifier.raidPressure,
+        round((cell.interdictionState.raidPressure || cell.raidPressure || 0) * markerScale * lureScale * supportScale, 2)
+      );
+      modifier.label = `${cell.id} unresolved`;
+    });
+    return modifier;
+  }
+
+  function interdictionSalvageRiskModifier(site, state) {
+    let modifier = 0;
+    (state.interdictionCells || []).forEach((cell) => {
+      if (!(cell.salvageSiteIds || []).includes(site.id)) {
+        return;
+      }
+      const shield = (site.salvageState.interdictionShield || {}).cellId === cell.id;
+      if (cell.interdictionState.outcome === "success" || shield) {
+        modifier -= cell.salvageRiskReduction || 0;
+        return;
+      }
+      if (cell.interdictionState.outcome === "partial") {
+        modifier -= (cell.salvageRiskReduction || 0) * 0.5;
+        return;
+      }
+      if (!cell.prerequisiteStatus || !cell.prerequisiteStatus.ready || !cell.interdictionState.transponderScanned) {
+        return;
+      }
+      const markerScale = cell.interdictionState.markerType === "decoy" ? 0.45 : cell.interdictionState.markerPlaced ? 0.65 : 1;
+      const lureScale = cell.interdictionState.lureDeployed ? 0.5 : 1;
+      const supportReduction = state.stationServices ? state.stationServices.interdictionRaidMitigation || 0 : 0;
+      modifier += Math.max(0, (cell.interdictionState.raidPressure || cell.raidPressure || 0) / 150 - supportReduction) * markerScale * lureScale;
+    });
+    return modifier;
+  }
+
   function createSectorContract(sector) {
     return {
       id: `charter-${sector.id}`,
@@ -1745,6 +2300,8 @@ const VoidProspector = (() => {
       requiredRelics: sector.requiredRelics || 0,
       requiredStormCharts: sector.requiredStormCharts || 0,
       requiredStormPayout: sector.requiredStormPayout || 0,
+      requiredInterdictions: sector.requiredInterdictions || 0,
+      requiredInterdictionPayout: sector.requiredInterdictionPayout || 0,
       rewardCredits: sector.rewardCredits,
       status: "active",
       sectorId: sector.id,
@@ -1757,6 +2314,8 @@ const VoidProspector = (() => {
       deliveredConvoyValue: 0,
       deliveredStormCharts: 0,
       deliveredStormPayout: 0,
+      deliveredInterdictions: 0,
+      deliveredInterdictionPayout: 0,
       completedAt: null,
     };
   }
@@ -1858,6 +2417,7 @@ const VoidProspector = (() => {
     const salvageSites = createSalvageSites(seed, sector);
     const convoyRoutes = createConvoyRoutes(seed, sector, stationServices, options);
     const stormCharts = createStormCharts(seed, sector, stationServices, options);
+    const interdictionCells = createInterdictionCells(seed, sector, stationServices, options);
     const ship = {
       name: GAME_DATA.ship.name,
       position: clone(GAME_DATA.ship.startPosition),
@@ -1895,6 +2455,8 @@ const VoidProspector = (() => {
       convoy: createConvoyState(options, stationServices, convoyRoutes),
       stormCharts,
       storm: createStormCartographyState(options, stationServices, stormCharts),
+      interdictionCells,
+      interdiction: createInterdictionState(options, stationServices, interdictionCells),
       station: {
         ...clone(GAME_DATA.station),
         docked: false,
@@ -1968,6 +2530,14 @@ const VoidProspector = (() => {
         stormPartialPayouts: 0,
         stormCountermeasures: 0,
         stormSalvageReroutes: 0,
+        interdictionTranspondersScanned: 0,
+        interdictionMarkersPlaced: 0,
+        interdictionLuresDeployed: 0,
+        interdictionRaidsResolved: 0,
+        interdictionPayouts: 0,
+        interdictionFailures: 0,
+        interdictionPartialPayouts: 0,
+        interdictionCargoLost: 0,
         countermeasuresDeployed: 0,
         sorties: options.runCount || 1,
       },
@@ -2013,11 +2583,18 @@ const VoidProspector = (() => {
       position: chart.position,
       name: chart.name,
     }));
+    const interdictionTargets = (state.interdictionCells || []).map((cell) => ({
+      kind: "interdiction",
+      id: cell.id,
+      position: cell.position,
+      name: cell.name,
+    }));
     return [
       ...asteroidTargets,
       ...salvageTargets,
       ...convoyTargets,
       ...stormTargets,
+      ...interdictionTargets,
       ...anomalyTargets,
       { kind: "station", id: state.station.id, position: state.station.position, name: state.station.name },
       { kind: "pirate", id: state.pirate.id, position: state.pirate.position, name: state.pirate.name },
@@ -2043,6 +2620,9 @@ const VoidProspector = (() => {
     if (target.kind === "storm") {
       return stormChartById(state, target.id);
     }
+    if (target.kind === "interdiction") {
+      return interdictionCellById(state, target.id);
+    }
     if (target.kind === "station") {
       return state.station;
     }
@@ -2058,6 +2638,14 @@ const VoidProspector = (() => {
     }
     if (state.contract.status === "complete") {
       return `${state.contract.title} complete. Restart into ${state.ladder.recommendedSectorId}.`;
+    }
+    if (state.interdiction && state.interdiction.activeCellId) {
+      const cell = interdictionCellById(state, state.interdiction.activeCellId);
+      if (cell && cell.interdictionState.transponderScanned && cell.interdictionState.outcome === "none") {
+        return `Answer ${cell.name}: ${cell.interdictionState.status} / raid ${Math.round(
+          cell.interdictionState.raidPressure
+        )} / window ${interdictionResponseTiming(cell, state).remaining}s.`;
+      }
     }
     if (state.storm && state.storm.activeChartId) {
       const chart = stormChartById(state, state.storm.activeChartId);
@@ -2110,6 +2698,14 @@ const VoidProspector = (() => {
     if ((state.contract.requiredStormPayout || 0) > (state.contract.deliveredStormPayout || 0)) {
       return `Bank ${state.contract.requiredStormPayout - (state.contract.deliveredStormPayout || 0)}cr from storm-cartography routes.`;
     }
+    if ((state.contract.requiredInterdictions || 0) > (state.contract.deliveredInterdictions || 0)) {
+      return `Break ${state.contract.requiredInterdictions - (state.contract.deliveredInterdictions || 0)} Knife Wake interdiction.`;
+    }
+    if ((state.contract.requiredInterdictionPayout || 0) > (state.contract.deliveredInterdictionPayout || 0)) {
+      return `Bank ${
+        state.contract.requiredInterdictionPayout - (state.contract.deliveredInterdictionPayout || 0)
+      }cr from Knife Wake interdiction support.`;
+    }
     if ((state.salvage.holdValue > 0 || state.salvage.relicsInHold > 0) && state.station.proximity.dockable) {
       return "Dock at Frontier Spoke to bank salvage value and relic manifests.";
     }
@@ -2139,6 +2735,7 @@ const VoidProspector = (() => {
 
     syncStormDerivedState(state);
     syncConvoyDerivedState(state);
+    syncInterdictionDerivedState(state);
 
     const selected = findTarget(state);
     if (selected) {
@@ -2176,6 +2773,14 @@ const VoidProspector = (() => {
       state.contract.requiredStormPayout > 0
         ? Math.min(1, (state.contract.deliveredStormPayout || 0) / state.contract.requiredStormPayout)
         : 1;
+    const interdictionProgress =
+      state.contract.requiredInterdictions > 0
+        ? Math.min(1, (state.contract.deliveredInterdictions || 0) / state.contract.requiredInterdictions)
+        : 1;
+    const interdictionPayoutProgress =
+      state.contract.requiredInterdictionPayout > 0
+        ? Math.min(1, (state.contract.deliveredInterdictionPayout || 0) / state.contract.requiredInterdictionPayout)
+        : 1;
     const progressParts = [oreProgress];
     if (state.contract.requiredScans > 0) {
       progressParts.push(scanProgress);
@@ -2191,6 +2796,12 @@ const VoidProspector = (() => {
     }
     if (state.contract.requiredStormPayout > 0) {
       progressParts.push(stormPayoutProgress);
+    }
+    if (state.contract.requiredInterdictions > 0) {
+      progressParts.push(interdictionProgress);
+    }
+    if (state.contract.requiredInterdictionPayout > 0) {
+      progressParts.push(interdictionPayoutProgress);
     }
     state.contract.progress = round(
       progressParts.reduce((total, progress) => total + progress, 0) / progressParts.length,
@@ -2838,7 +3449,8 @@ const VoidProspector = (() => {
           confidenceGap +
           phaseRisk -
           (state.salvage.riskMitigation || 0) -
-          stormSalvageRiskMitigation(site, state),
+          stormSalvageRiskMitigation(site, state) +
+          interdictionSalvageRiskModifier(site, state),
         0,
         1.5
       ),
@@ -3060,7 +3672,9 @@ const VoidProspector = (() => {
       (state.contract.deliveredSalvageValue || 0) >= (state.contract.requiredSalvageValue || 0) &&
       (state.contract.deliveredRelics || 0) >= (state.contract.requiredRelics || 0) &&
       (state.contract.deliveredStormCharts || 0) >= (state.contract.requiredStormCharts || 0) &&
-      (state.contract.deliveredStormPayout || 0) >= (state.contract.requiredStormPayout || 0)
+      (state.contract.deliveredStormPayout || 0) >= (state.contract.requiredStormPayout || 0) &&
+      (state.contract.deliveredInterdictions || 0) >= (state.contract.requiredInterdictions || 0) &&
+      (state.contract.deliveredInterdictionPayout || 0) >= (state.contract.requiredInterdictionPayout || 0)
     );
   }
 
@@ -3077,6 +3691,12 @@ const VoidProspector = (() => {
       }
       if ((sector.requiredStormCharts || 0) > 0 && (next.contract.deliveredStormCharts || 0) >= sector.requiredStormCharts) {
         next.ladder.stormScore += sector.stormReward || 0;
+      }
+      if (
+        (sector.requiredInterdictions || 0) > 0 &&
+        (next.contract.deliveredInterdictions || 0) >= sector.requiredInterdictions
+      ) {
+        next.ladder.interdictionScore += Math.ceil((sector.stormReward || sector.surveyReward || 0) * 0.75);
       }
       next.ladder.lastCompletedSectorId = sector.id;
     }
@@ -3204,6 +3824,11 @@ const VoidProspector = (() => {
     next.stationServices.stormWindowBonus += service.stormWindowBonus || 0;
     next.stationServices.stormHazardMitigation += service.stormHazardMitigation || 0;
     next.stationServices.stormPayoutBonus += service.stormPayoutBonus || 0;
+    next.stationServices.interdictionScanBonus += service.interdictionScanBonus || 0;
+    next.stationServices.interdictionResponseWindowBonus += service.interdictionResponseWindowBonus || 0;
+    next.stationServices.interdictionRaidMitigation += service.interdictionRaidMitigation || 0;
+    next.stationServices.interdictionPayoutBonus += service.interdictionPayoutBonus || 0;
+    next.stationServices.interdictionSupportIntegrity += service.interdictionSupportIntegrity || 0;
     next.stationServices.lastService = `${service.name} purchased`;
     next.log.unshift({ tick: next.tick, message: `${service.name} purchased for the next survey push.` });
     return syncDerivedState(next);
@@ -3217,6 +3842,12 @@ const VoidProspector = (() => {
       const chart = stormChartById(state, state.storm.activeChartId);
       if (chart && chart.stormState.safeWindow.locked && chart.stormState.outcome === "none") {
         return stabilizeStormWindow(state, chart.id);
+      }
+    }
+    if (state.interdiction && state.interdiction.activeCellId) {
+      const cell = interdictionCellById(state, state.interdiction.activeCellId);
+      if (cell && cell.interdictionState.transponderScanned && cell.interdictionState.outcome === "none") {
+        return deployInterdictionLure(state, cell.id);
       }
     }
     const next = clone(state);
@@ -3236,6 +3867,378 @@ const VoidProspector = (() => {
     next.pirate.position = add(next.ship.position, scale(shove, next.pirate.attackRadius + 12));
     next.stats.countermeasuresDeployed += 1;
     next.log.unshift({ tick: next.tick, message: "Decoy burst broke the pirate wake lock." });
+    return syncDerivedState(next);
+  }
+
+  function interdictionCellInRange(state, cell, range) {
+    return distance(state.ship.position, cell.position) <= range + (cell.radius || 0);
+  }
+
+  function scanInterdictionTransponder(state, cellId = null, deltaSeconds = 1) {
+    const dt = Math.max(0, Math.min(deltaSeconds, 2));
+    const next = syncDerivedState(clone(state));
+    if (next.run.status === "failed" || next.run.status === "complete") {
+      next.interdiction.status = "run closed";
+      return syncDerivedState(next);
+    }
+    const target = cellId ? interdictionCellById(next, cellId) : findTarget(next);
+    if (!target || (cellId === null && next.target.kind !== "interdiction")) {
+      next.interdiction.status = "no interdiction lock";
+      return syncDerivedState(next);
+    }
+    const readiness = interdictionCellReadiness(next, target.id);
+    if (!readiness.ready) {
+      target.interdictionState.status = "locked";
+      next.interdiction.status = `locked: ${readiness.missing.join(", ")}`;
+      return syncDerivedState(next);
+    }
+    if (!interdictionCellInRange(next, target, next.interdiction.scanRange)) {
+      next.interdiction.status = "out of transponder range";
+      return syncDerivedState(next);
+    }
+    if (target.interdictionState.transponderScanned) {
+      target.interdictionState.status = "transponder scanned";
+      next.interdiction.status = `${target.name} already scanned`;
+      return syncDerivedState(next);
+    }
+
+    target.interdictionState.status = "scanning";
+    target.interdictionState.progress += next.interdiction.scanPower * dt;
+    target.interdictionState.lastTouchedTick = next.tick;
+    next.scanning.active = true;
+    next.scanning.targetId = target.id;
+    next.scanning.lastScan = clamp(target.interdictionState.progress / target.transponderDifficulty, 0, 1);
+    next.scanning.status = `transponder ${Math.round(next.scanning.lastScan * 100)}%`;
+    if (target.interdictionState.progress >= target.transponderDifficulty) {
+      target.interdictionState.progress = target.transponderDifficulty;
+      target.interdictionState.transponderScanned = true;
+      target.interdictionState.status = "transponder scanned";
+      next.interdiction.scannedCellIds = uniqueList([...next.interdiction.scannedCellIds, target.id]);
+      next.ladder.scannedInterdictionCellIds = uniqueList([...(next.ladder.scannedInterdictionCellIds || []), target.id]);
+      next.interdiction.scansCompleted += 1;
+      next.stats.interdictionTranspondersScanned += 1;
+      next.pirate.state = next.pirate.state === "dormant" ? "shadowing" : next.pirate.state;
+      next.pirate.encounterState = next.pirate.encounterState === "distant" ? "contact" : next.pirate.encounterState;
+      next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (target.raidPressure || 0) * 0.12, 2));
+      next.interdiction.lastOutcome = `${target.name} transponder scanned`;
+      next.log.unshift({ tick: next.tick, message: `${target.name} transponder scanned into Knife Wake Interdiction.` });
+    }
+    return syncDerivedState(next);
+  }
+
+  function placeInterdictionMarker(state, cellId, markerType = "distress") {
+    const next = syncDerivedState(clone(state));
+    const cell = interdictionCellById(next, cellId);
+    if (!cell) {
+      next.interdiction.status = "unknown interdiction cell";
+      return syncDerivedState(next);
+    }
+    const kind = markerType === "decoy" ? "decoy" : "distress";
+    const readiness = interdictionCellReadiness(next, cell.id);
+    if (!readiness.ready || !cell.interdictionState.transponderScanned) {
+      cell.interdictionState.status = "marker locked";
+      next.interdiction.status = `marker locked: ${readiness.missing.join(", ") || "scan transponder"}`;
+      return syncDerivedState(next);
+    }
+    if (!interdictionCellInRange(next, cell, next.interdiction.markerRange) && !next.station.proximity.dockable) {
+      cell.interdictionState.status = "marker out of range";
+      next.interdiction.status = `${cell.name} marker out of range`;
+      return syncDerivedState(next);
+    }
+
+    cell.interdictionState.markerPlaced = true;
+    cell.interdictionState.markerType = kind;
+    cell.interdictionState.responseWindow.locked = true;
+    cell.interdictionState.responseWindow.markedAt = next.elapsed;
+    cell.interdictionState.responseWindow.closesAt = round(
+      Math.max(cell.interdictionState.responseWindow.closesAt || 0, next.elapsed + 1) +
+        (cell.markerResponseBonus || 0) +
+        (next.stationServices.interdictionResponseWindowBonus || 0),
+      2
+    );
+    if (kind === "distress") {
+      cell.interdictionState.escortIntegrity = round(
+        cell.interdictionState.escortIntegrity +
+          (cell.distressEscortIntegrity || 0) +
+          (next.stationServices.interdictionSupportIntegrity || 0),
+        2
+      );
+    } else {
+      cell.interdictionState.raidPressure = Math.max(
+        0,
+        round((cell.interdictionState.raidPressure || 0) - (cell.decoyRaidReduction || 0), 2)
+      );
+      next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (cell.decoyRaidReduction || 0) * 0.8, 2));
+    }
+    cell.interdictionState.status = `${kind} marker armed`;
+    cell.interdictionState.lastTouchedTick = next.tick;
+    next.interdiction.markerCellIds = uniqueList([...next.interdiction.markerCellIds, cell.id]);
+    next.interdiction.markersPlaced += 1;
+    next.stats.interdictionMarkersPlaced += 1;
+    next.interdiction.lastOutcome = `${cell.name} ${kind} marker`;
+    next.log.unshift({ tick: next.tick, message: `${cell.name} ${kind} marker armed for the Knife Wake response window.` });
+    return syncDerivedState(next);
+  }
+
+  function deployInterdictionLure(state, cellId) {
+    const next = syncDerivedState(clone(state));
+    const cell = interdictionCellById(next, cellId);
+    if (!cell) {
+      next.interdiction.status = "unknown interdiction cell";
+      return syncDerivedState(next);
+    }
+    const readiness = interdictionCellReadiness(next, cell.id);
+    if (!readiness.ready || !cell.interdictionState.transponderScanned) {
+      cell.interdictionState.status = "lure locked";
+      next.interdiction.status = `lure locked: ${readiness.missing.join(", ") || "scan transponder"}`;
+      return syncDerivedState(next);
+    }
+    if (!next.stationServices || next.stationServices.countermeasureCharges <= 0) {
+      next.stationServices = next.stationServices || createStationServiceState();
+      next.stationServices.countermeasureStatus = "no lure charge";
+      return syncDerivedState(next);
+    }
+    if (!interdictionCellInRange(next, cell, next.interdiction.lureRange) && !next.station.proximity.dockable) {
+      cell.interdictionState.status = "lure out of range";
+      next.interdiction.status = `${cell.name} lure out of range`;
+      return syncDerivedState(next);
+    }
+
+    next.stationServices.countermeasureCharges -= 1;
+    next.stationServices.countermeasureStatus = "interdiction lure";
+    cell.interdictionState.lureDeployed = true;
+    cell.interdictionState.countermeasureUsed = true;
+    cell.interdictionState.raidPressure = Math.max(
+      0,
+      round(
+        (cell.interdictionState.raidPressure || 0) -
+          (cell.lurePressureDrop || GAME_DATA.knifeWakeInterdiction.countermeasureRaidReduction),
+        2
+      )
+    );
+    cell.interdictionState.responseWindow.closesAt = round(
+      (cell.interdictionState.responseWindow.closesAt || 0) + (cell.markerResponseBonus || 0),
+      2
+    );
+    cell.interdictionState.status = "lure deployed";
+    cell.interdictionState.lastTouchedTick = next.tick;
+    next.pirate.state = "shadowing";
+    next.pirate.encounterState = "contact";
+    next.pirate.position = clone(cell.position);
+    next.pirate.pressure = Math.max(
+      0,
+      round(next.pirate.pressure - (cell.lurePressureDrop || GAME_DATA.knifeWakeInterdiction.countermeasurePressureDrop), 2)
+    );
+    next.interdiction.luredCellIds = uniqueList([...next.interdiction.luredCellIds, cell.id]);
+    next.ladder.luredInterdictionCellIds = uniqueList([...(next.ladder.luredInterdictionCellIds || []), cell.id]);
+    next.interdiction.luresDeployed += 1;
+    next.stats.countermeasuresDeployed += 1;
+    next.stats.interdictionLuresDeployed += 1;
+    next.interdiction.lastOutcome = `${cell.name} lure deployed`;
+    next.log.unshift({ tick: next.tick, message: `${cell.name} lure deployed; Knife Wake pressure split off the convoy lane.` });
+    return syncDerivedState(next);
+  }
+
+  function interdictionResponsePower(state, cell, responseMode = "escort") {
+    const markerPower =
+      cell.interdictionState.markerType === "distress"
+        ? cell.distressEscortIntegrity || 0
+        : cell.interdictionState.markerType === "decoy"
+          ? cell.decoyRaidReduction || 0
+          : 0;
+    const lurePower = cell.interdictionState.lureDeployed ? cell.lurePressureDrop || 0 : 0;
+    const supportPower =
+      (state.stationServices.interdictionRaidMitigation || 0) * 100 + (state.stationServices.interdictionSupportIntegrity || 0);
+    const convoyPower = (cell.convoyRouteIds || []).reduce((score, routeId) => {
+      const route = convoyRouteById(state, routeId);
+      if (!route) {
+        return score;
+      }
+      const beaconScore = route.beaconState.deployed ? 8 : 0;
+      const escortScore = route.convoyState ? Math.min(20, (route.convoyState.escortIntegrity || 0) * 0.2) : 0;
+      const completeScore = (state.ladder.completedConvoyRouteIds || []).includes(routeId) ? 12 : 0;
+      return score + Math.max(beaconScore + escortScore, completeScore);
+    }, 0);
+    const salvagePower = (cell.salvageSiteIds || []).reduce((score, siteId) => {
+      const site = (state.salvageSites || []).find((candidate) => candidate.id === siteId);
+      if (!site || !site.salvageState) {
+        return score;
+      }
+      return score + (site.salvageState.targetLocked ? 6 : 0) + (site.salvageState.recoveredValue > 0 ? 8 : 0);
+    }, 0);
+    const stormPower = (cell.stormChartIds || []).reduce((score, chartId) => {
+      const chart = stormChartById(state, chartId);
+      if (!chart || !chart.stormState) {
+        return score;
+      }
+      const lockedScore = chart.stormState.safeWindow && chart.stormState.safeWindow.locked ? 12 : 0;
+      const completeScore = (state.ladder.completedStormChartIds || []).includes(chartId) ? 16 : 0;
+      return score + Math.max(lockedScore, completeScore);
+    }, 0);
+    const cargoSacrificePower = responseMode === "cargo-sacrifice" && state.cargo.ore > 0 ? 14 : 0;
+    return round(
+      12 +
+        markerPower +
+        lurePower +
+        supportPower +
+        convoyPower +
+        salvagePower +
+        stormPower +
+        cargoSacrificePower +
+        (cell.interdictionState.escortIntegrity || 0),
+      2
+    );
+  }
+
+  function applyInterdictionOutcomeCoupling(state, cell, outcome, responseMode, payout) {
+    const next = state;
+    const success = outcome === "success";
+    const partial = outcome === "partial";
+    (cell.convoyRouteIds || []).forEach((routeId) => {
+      const route = convoyRouteById(next, routeId);
+      if (!route || !route.convoyState) {
+        return;
+      }
+      if (success || partial) {
+        route.convoyState.ambushPressure = Math.max(
+          0,
+          round((route.convoyState.ambushPressure || route.ambushPressure || 0) - (cell.convoyAmbushReduction || 0) * (success ? 1 : 0.5), 2)
+        );
+        route.convoyState.escortIntegrity = Math.min(
+          route.convoyState.maxEscortIntegrity || route.convoyState.escortIntegrity || 0,
+          round((route.convoyState.escortIntegrity || 0) + (cell.convoyEscortIntegrity || 0) * (success ? 1 : 0.5), 2)
+        );
+        route.convoyState.interdictionStatus = `${cell.id} ${outcome}`;
+      } else {
+        route.convoyState.escortIntegrity = Math.max(
+          0,
+          round((route.convoyState.escortIntegrity || 0) - (cell.raidPressure || 0) * 0.22, 2)
+        );
+        route.convoyState.ambushPressure = round((route.convoyState.ambushPressure || route.ambushPressure || 0) + (cell.failurePressure || 0) * 0.45, 2);
+        route.convoyState.interdictionStatus = `${cell.id} failed`;
+      }
+    });
+    (cell.salvageSiteIds || []).forEach((siteId) => {
+      const site = (next.salvageSites || []).find((candidate) => candidate.id === siteId);
+      if (!site || !site.salvageState) {
+        return;
+      }
+      if (success || partial) {
+        site.salvageState.interdictionShield = {
+          cellId: cell.id,
+          status: success ? "protected" : "screened",
+          riskReduction: (cell.salvageRiskReduction || 0) * (success ? 1 : 0.5),
+        };
+        cell.interdictionState.protectedSalvageIds = uniqueList([
+          ...(cell.interdictionState.protectedSalvageIds || []),
+          site.id,
+        ]);
+      } else {
+        site.salvageState.interdictionRaid = {
+          cellId: cell.id,
+          status: "raided",
+          lostValue: Math.round((site.rewardValue || 0) * GAME_DATA.knifeWakeInterdiction.failureCargoValueRate),
+        };
+        site.salvageState.scanConfidence = Math.max(0, round((site.salvageState.scanConfidence || 0) - 0.18, 3));
+        if (site.salvageState.remainingSalvage > 0) {
+          site.salvageState.remainingSalvage -= 1;
+        }
+      }
+    });
+    if (success) {
+      next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (cell.piratePressureClear || 0), 2));
+    } else if (partial) {
+      next.ship.hull = Math.max(0, round(next.ship.hull - (cell.partialHullDamage || 0), 2));
+      next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (cell.failurePressure || 0) * 0.35, 2));
+    } else {
+      next.ship.hull = Math.max(0, round(next.ship.hull - (cell.failureHullDamage || 0), 2));
+      next.ship.fuel = Math.max(0, round(next.ship.fuel - (cell.failureFuelDrain || 0), 2));
+      next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (cell.failurePressure || 0), 2));
+    }
+    if ((outcome === "failed" || responseMode === "cargo-sacrifice") && next.cargo.ore > 0 && (cell.cargoLoss || 0) > 0) {
+      const lost = Math.min(next.cargo.ore, cell.cargoLoss || 0);
+      const averageValue = next.cargo.ore > 0 ? Math.ceil(next.cargo.value / next.cargo.ore) : 0;
+      next.cargo.ore -= lost;
+      next.cargo.value = Math.max(0, next.cargo.value - averageValue * lost);
+      next.stats.oreLost += lost;
+      next.stats.interdictionCargoLost += lost;
+    }
+    if (payout > 0) {
+      next.credits += payout;
+    }
+    return next;
+  }
+
+  function resolveInterdictionRaid(state, cellId, responseMode = "escort") {
+    const next = syncDerivedState(clone(state));
+    const cell = interdictionCellById(next, cellId);
+    if (!cell) {
+      next.interdiction.status = "unknown interdiction cell";
+      return syncDerivedState(next);
+    }
+    if (["success", "partial", "failed"].includes(cell.interdictionState.outcome)) {
+      return syncDerivedState(next);
+    }
+    const readiness = interdictionCellReadiness(next, cell.id);
+    if (!readiness.ready || !cell.interdictionState.transponderScanned) {
+      cell.interdictionState.status = "raid unresolved";
+      next.interdiction.status = `raid unresolved: ${readiness.missing.join(", ") || "scan transponder"}`;
+      return syncDerivedState(next);
+    }
+    const timing = interdictionResponseTiming(cell, next);
+    if (timing.pending) {
+      cell.interdictionState.status = `response opens at ${timing.opensAt}`;
+      next.interdiction.status = cell.interdictionState.status;
+      return syncDerivedState(next);
+    }
+    const responsePower = interdictionResponsePower(next, cell, responseMode);
+    const raidPressure = Math.max(1, cell.interdictionState.raidPressure || cell.raidPressure || 1);
+    let outcome = "failed";
+    if (!timing.missed && responsePower >= raidPressure) {
+      outcome = "success";
+    } else if (responsePower >= raidPressure * 0.55 || cell.interdictionState.markerPlaced || cell.interdictionState.lureDeployed) {
+      outcome = "partial";
+    }
+    const payoutRate = outcome === "success" ? 1 : outcome === "partial" ? cell.partialPayoutRate || 0.5 : 0;
+    const payout = Math.round((cell.interdictionState.payoutCredits || cell.payoutCredits || 0) * payoutRate * (1 + (next.stationServices.interdictionPayoutBonus || 0)));
+
+    cell.interdictionState.status = outcome;
+    cell.interdictionState.outcome = outcome;
+    cell.interdictionState.deliveredValue = payout;
+    cell.interdictionState.partialPayoutCredits = outcome === "partial" ? payout : 0;
+    cell.interdictionState.failureReason =
+      outcome === "success" ? null : outcome === "partial" ? "raid pressure bled through the response window" : "Knife Wake raid landed";
+    cell.interdictionState.lastTouchedTick = next.tick;
+    next.interdiction.raidsResolved += 1;
+    next.stats.interdictionRaidsResolved += 1;
+    if (outcome === "failed") {
+      next.interdiction.failedCellIds = uniqueList([...next.interdiction.failedCellIds, cell.id]);
+      next.ladder.failedInterdictionCellIds = uniqueList([...(next.ladder.failedInterdictionCellIds || []), cell.id]);
+      next.stats.interdictionFailures += 1;
+    } else {
+      next.interdiction.completedCellIds = uniqueList([...next.interdiction.completedCellIds, cell.id]);
+      next.ladder.completedInterdictionCellIds = uniqueList([...(next.ladder.completedInterdictionCellIds || []), cell.id]);
+      next.contract.deliveredInterdictions = (next.contract.deliveredInterdictions || 0) + 1;
+      if (outcome === "partial") {
+        next.interdiction.partialCellIds = uniqueList([...next.interdiction.partialCellIds, cell.id]);
+        next.ladder.partialInterdictionCellIds = uniqueList([...(next.ladder.partialInterdictionCellIds || []), cell.id]);
+        next.stats.interdictionPartialPayouts += 1;
+      }
+      const score = outcome === "success" ? cell.ladderScore || 0 : Math.ceil((cell.ladderScore || 0) * 0.55);
+      next.interdiction.interdictionScore += score;
+      next.ladder.interdictionScore += score;
+      next.interdiction.payoutBanked += payout;
+      next.contract.deliveredInterdictionPayout = (next.contract.deliveredInterdictionPayout || 0) + payout;
+      next.stats.interdictionPayouts += payout;
+    }
+    applyInterdictionOutcomeCoupling(next, cell, outcome, responseMode, payout);
+    next.interdiction.protectedSalvage += (cell.interdictionState.protectedSalvageIds || []).length;
+    next.interdiction.status = `${cell.name} ${outcome}`;
+    next.interdiction.lastOutcome = `${payout}cr ${outcome}`;
+    next.log.unshift({
+      tick: next.tick,
+      message: `${cell.name} ${outcome === "success" ? "broken" : outcome === "partial" ? "partially checked" : "landed"} for ${payout} credits.`,
+    });
     return syncDerivedState(next);
   }
 
@@ -3350,15 +4353,21 @@ const VoidProspector = (() => {
       round((route.ambushPressure || 0) - (next.stationServices.convoyAmbushMitigation || 0) * 100, 2)
     );
     const stormModifier = stormWindowModifierForRoute(next, route);
+    const interdictionModifier = interdictionModifierForRoute(next, route);
     route.convoyState.status = "enroute";
     route.convoyState.progress = 0;
     route.convoyState.position = clone(route.startPosition || route.beacon.position);
-    route.convoyState.escortIntegrity = escortIntegrity;
-    route.convoyState.maxEscortIntegrity = escortIntegrity;
+    route.convoyState.escortIntegrity = escortIntegrity + interdictionModifier.escortIntegrity;
+    route.convoyState.maxEscortIntegrity = escortIntegrity + interdictionModifier.escortIntegrity;
     route.convoyState.cargoValue = route.cargoValue;
-    route.convoyState.payoutCredits = Math.round((route.payoutCredits || route.cargoValue) * (1 + stormModifier.payoutBonus));
+    route.convoyState.payoutCredits = Math.round(
+      (route.payoutCredits || route.cargoValue) * (1 + stormModifier.payoutBonus + interdictionModifier.payoutBonus)
+    );
     route.convoyState.deliveredValue = 0;
-    route.convoyState.ambushPressure = Math.max(0, round(ambushPressure - stormModifier.ambushReduction, 2));
+    route.convoyState.ambushPressure = Math.max(
+      0,
+      round(ambushPressure + interdictionModifier.raidPressure - stormModifier.ambushReduction - interdictionModifier.ambushReduction, 2)
+    );
     route.convoyState.hazardExposure = Math.max(0, round((route.hazardExposure || 0) - stormModifier.hazardReduction, 2));
     route.convoyState.failureReason = null;
     route.convoyState.startedAt = next.tick;
@@ -3367,6 +4376,7 @@ const VoidProspector = (() => {
     route.convoyState.formationStatus = "forming";
     route.convoyState.lastDamage = 0;
     route.convoyState.stormWindowStatus = stormModifier.active ? `locked ${stormModifier.chartId}` : "none";
+    route.convoyState.interdictionStatus = interdictionModifier.label;
     next.convoy.activeRouteId = route.id;
     next.convoy.status = `${route.name} enroute`;
     next.stats.convoysStarted += 1;
@@ -3560,7 +4570,11 @@ const VoidProspector = (() => {
       state.salvage.holdValue === 0 &&
       state.salvage.relicsInHold === 0 &&
       (!state.convoy || (state.stats.convoysStarted === 0 && state.convoy.payoutBanked === 0)) &&
-      (!state.storm || (state.stats.stormChartsScanned === 0 && state.storm.payoutBanked === 0 && state.storm.windowsLocked === 0))
+      (!state.storm || (state.stats.stormChartsScanned === 0 && state.storm.payoutBanked === 0 && state.storm.windowsLocked === 0)) &&
+      (!state.interdiction ||
+        (state.stats.interdictionTranspondersScanned === 0 &&
+          state.interdiction.payoutBanked === 0 &&
+          state.interdiction.raidsResolved === 0))
     );
   }
 
@@ -3592,6 +4606,7 @@ const VoidProspector = (() => {
       },
       convoy: convoyPersistence(current),
       storm: stormPersistence(current),
+      interdiction: interdictionPersistence(current),
       sectorId: sector.id,
     });
     next.ladder.lastChoice = `sector ${sector.name}`;
@@ -3619,6 +4634,7 @@ const VoidProspector = (() => {
       },
       convoy: convoyPersistence(state),
       storm: stormPersistence(state),
+      interdiction: interdictionPersistence(state),
       sectorId,
     });
     next.log.unshift({
@@ -3679,6 +4695,36 @@ const VoidProspector = (() => {
     return next;
   }
 
+  function updateInterdictionRaids(state, deltaSeconds) {
+    const next = state;
+    if (!next.interdiction || !next.interdictionCells) {
+      return next;
+    }
+    const dt = Math.max(0, Math.min(deltaSeconds, 5));
+    next.interdictionCells.forEach((cell) => {
+      if (
+        !cell.prerequisiteStatus ||
+        !cell.prerequisiteStatus.ready ||
+        !cell.interdictionState.transponderScanned ||
+        ["success", "partial", "failed"].includes(cell.interdictionState.outcome)
+      ) {
+        return;
+      }
+      const timing = interdictionResponseTiming(cell, next);
+      if (!timing.open && !timing.missed) {
+        return;
+      }
+      const markerScale = cell.interdictionState.markerPlaced ? 0.55 : 1;
+      const lureScale = cell.interdictionState.lureDeployed ? 0.42 : 1;
+      const supportScale = 1 - Math.min(0.45, next.stationServices ? next.stationServices.interdictionRaidMitigation || 0 : 0);
+      const pressureGain = (cell.interdictionState.raidPressure || 0) * 0.018 * dt * markerScale * lureScale * supportScale;
+      next.pirate.state = next.pirate.state === "dormant" ? "shadowing" : next.pirate.state;
+      next.pirate.encounterState = next.pirate.encounterState === "distant" ? "contact" : next.pirate.encounterState;
+      next.pirate.pressure = Math.min(100, round(next.pirate.pressure + pressureGain, 2));
+    });
+    return next;
+  }
+
   function updatePirateState(state, deltaSeconds) {
     const next = state;
     if (next.elapsed >= next.pirate.spawnTick && next.pirate.state === "dormant") {
@@ -3727,6 +4773,7 @@ const VoidProspector = (() => {
     next = updatePirateState(next, dt);
     next = updateHazardState(next, dt);
     next = updateStormWindows(next, dt);
+    next = updateInterdictionRaids(next, dt);
     if (next.convoy && next.convoy.activeRouteId) {
       next = advanceConvoyRoute(next, dt);
     }
@@ -3742,7 +4789,9 @@ const VoidProspector = (() => {
           ? scanSalvageTarget(next, dt)
           : next.target.kind === "storm"
             ? scanStormChart(next, dt)
-            : scanTarget(next, dt);
+            : next.target.kind === "interdiction"
+              ? scanInterdictionTransponder(next, next.target.id, dt)
+              : scanTarget(next, dt);
     }
     if (input.interact) {
       next = dockAtStation(next);
@@ -3876,6 +4925,17 @@ const VoidProspector = (() => {
         failedChartIds: state.ladder.failedStormChartIds.slice(),
         partialChartIds: state.ladder.partialStormChartIds.slice(),
       },
+      interdiction: {
+        version: state.interdiction.version,
+        releaseLabel: state.interdiction.releaseLabel,
+        status: state.interdiction.status,
+        payoutBanked: state.interdiction.payoutBanked,
+        interdictionScore: state.ladder.interdictionScore,
+        completedCellIds: state.ladder.completedInterdictionCellIds.slice(),
+        failedCellIds: state.ladder.failedInterdictionCellIds.slice(),
+        partialCellIds: state.ladder.partialInterdictionCellIds.slice(),
+        scannedCellIds: state.ladder.scannedInterdictionCellIds.slice(),
+      },
     };
   }
 
@@ -3917,6 +4977,8 @@ const VoidProspector = (() => {
         status: site.salvageState.status,
         risk: salvageRisk(site, state),
         stormReroute: site.salvageState.stormReroute || null,
+        interdictionShield: site.salvageState.interdictionShield || null,
+        interdictionRaid: site.salvageState.interdictionRaid || null,
       })),
     };
   }
@@ -3972,6 +5034,7 @@ const VoidProspector = (() => {
           formationStatus: route.convoyState.formationStatus,
           lastDamage: route.convoyState.lastDamage,
           stormWindowStatus: route.convoyState.stormWindowStatus || "none",
+          interdictionStatus: route.convoyState.interdictionStatus || "none",
         },
       })),
     };
@@ -4043,6 +5106,89 @@ const VoidProspector = (() => {
           failureReason: chart.stormState.failureReason,
           countermeasureUsed: chart.stormState.countermeasureUsed,
           salvageReroutes: (chart.stormState.salvageReroutes || []).slice(),
+        },
+      })),
+    };
+  }
+
+  function interdictionSummary(state) {
+    return {
+      version: state.interdiction.version,
+      releaseLabel: state.interdiction.releaseLabel,
+      status: state.interdiction.status,
+      activeCellId: state.interdiction.activeCellId,
+      completedCellIds: state.interdiction.completedCellIds.slice(),
+      failedCellIds: state.interdiction.failedCellIds.slice(),
+      partialCellIds: state.interdiction.partialCellIds.slice(),
+      scannedCellIds: state.interdiction.scannedCellIds.slice(),
+      luredCellIds: state.interdiction.luredCellIds.slice(),
+      markerCellIds: state.interdiction.markerCellIds.slice(),
+      payoutBanked: state.interdiction.payoutBanked,
+      interdictionScore: state.ladder.interdictionScore,
+      raidsResolved: state.interdiction.raidsResolved,
+      scansCompleted: state.interdiction.scansCompleted,
+      markersPlaced: state.interdiction.markersPlaced,
+      luresDeployed: state.interdiction.luresDeployed,
+      protectedSalvage: state.interdiction.protectedSalvage,
+      scanPower: state.interdiction.scanPower,
+      scanRange: state.interdiction.scanRange,
+      markerRange: state.interdiction.markerRange,
+      lureRange: state.interdiction.lureRange,
+      supportMitigation: state.stationServices.interdictionRaidMitigation || 0,
+      supportIntegrity: state.stationServices.interdictionSupportIntegrity || 0,
+      responseWindowBonus: state.stationServices.interdictionResponseWindowBonus || 0,
+      payoutBonus: state.stationServices.interdictionPayoutBonus || 0,
+      contract: {
+        requiredInterdictions: state.contract.requiredInterdictions || 0,
+        deliveredInterdictions: state.contract.deliveredInterdictions || 0,
+        requiredInterdictionPayout: state.contract.requiredInterdictionPayout || 0,
+        deliveredInterdictionPayout: state.contract.deliveredInterdictionPayout || 0,
+      },
+      cells: (state.interdictionCells || []).map((cell) => ({
+        id: cell.id,
+        name: cell.name,
+        type: cell.type,
+        family: cell.family,
+        trigger: cell.trigger,
+        prerequisitesReady: cell.prerequisiteStatus.ready,
+        missingPrerequisites: cell.prerequisiteStatus.missing.slice(),
+        raidPressure: cell.interdictionState.raidPressure,
+        baseRaidPressure: cell.raidPressure || 0,
+        scanRequirement: cell.scanRequirement || 0,
+        lureRequirement: cell.lureRequirement || 0,
+        escortRequirement: cell.escortRequirement || 0,
+        responseWindow: interdictionResponseTiming(cell, state),
+        rewardCredits: cell.interdictionState.payoutCredits,
+        ladderScore: cell.ladderScore || 0,
+        targets: {
+          convoyRouteIds: (cell.convoyRouteIds || []).slice(),
+          salvageSiteIds: (cell.salvageSiteIds || []).slice(),
+          stormChartIds: (cell.stormChartIds || []).slice(),
+        },
+        modifiers: {
+          convoyAmbushReduction: cell.convoyAmbushReduction || 0,
+          convoyEscortIntegrity: cell.convoyEscortIntegrity || 0,
+          salvageRiskReduction: cell.salvageRiskReduction || 0,
+          piratePressureClear: cell.piratePressureClear || 0,
+          distressEscortIntegrity: cell.distressEscortIntegrity || 0,
+          decoyRaidReduction: cell.decoyRaidReduction || 0,
+          lurePressureDrop: cell.lurePressureDrop || 0,
+          cargoLoss: cell.cargoLoss || 0,
+        },
+        state: {
+          status: cell.interdictionState.status,
+          progress: cell.interdictionState.progress,
+          transponderScanned: cell.interdictionState.transponderScanned,
+          markerPlaced: cell.interdictionState.markerPlaced,
+          markerType: cell.interdictionState.markerType,
+          lureDeployed: cell.interdictionState.lureDeployed,
+          escortIntegrity: cell.interdictionState.escortIntegrity,
+          outcome: cell.interdictionState.outcome,
+          deliveredValue: cell.interdictionState.deliveredValue,
+          partialPayoutCredits: cell.interdictionState.partialPayoutCredits,
+          failureReason: cell.interdictionState.failureReason,
+          countermeasureUsed: cell.interdictionState.countermeasureUsed,
+          protectedSalvageIds: (cell.interdictionState.protectedSalvageIds || []).slice(),
         },
       })),
     };
@@ -4222,6 +5368,7 @@ const VoidProspector = (() => {
     const salvage = salvageSummary(state);
     const convoy = convoySummary(state);
     const storm = stormSummary(state);
+    const interdiction = interdictionSummary(state);
     const completedCount = summary.completedSectorIds.length;
     const totalSectors = GAME_DATA.surveyLadder.sectors.length;
     const target = targetSummary(state);
@@ -4306,6 +5453,28 @@ const VoidProspector = (() => {
     const selectedStormReroute = stormRerouteCandidate(state, selectedStormChart);
     const stormSupport = stormSupportText(storm, state);
     const stormTarget = stormChartSurface(selectedStorm || stormFocus, stormSupport);
+    const activeInterdiction = interdiction.cells.find((cell) => cell.id === interdiction.activeCellId) || null;
+    const interdictionFocus =
+      activeInterdiction ||
+      interdiction.cells.find((cell) => cell.state.status !== "locked" && cell.state.outcome === "none") ||
+      interdiction.cells[0] ||
+      null;
+    const selectedInterdiction =
+      target.kind === "interdiction" ? interdiction.cells.find((cell) => cell.id === state.target.id) || null : null;
+    const selectedInterdictionCell = selectedInterdiction ? interdictionCellById(state, selectedInterdiction.id) : null;
+    const selectedInterdictionReadiness = selectedInterdiction ? interdictionCellReadiness(state, selectedInterdiction.id) : null;
+    const selectedInterdictionScanInRange = selectedInterdictionCell
+      ? interdictionCellInRange(state, selectedInterdictionCell, state.interdiction.scanRange)
+      : false;
+    const selectedInterdictionMarkerInRange = selectedInterdictionCell
+      ? interdictionCellInRange(state, selectedInterdictionCell, state.interdiction.markerRange) || state.station.proximity.dockable
+      : false;
+    const selectedInterdictionLureInRange = selectedInterdictionCell
+      ? interdictionCellInRange(state, selectedInterdictionCell, state.interdiction.lureRange) || state.station.proximity.dockable
+      : false;
+    const selectedInterdictionTerminal = selectedInterdictionCell
+      ? ["success", "partial", "failed"].includes(selectedInterdictionCell.interdictionState.outcome)
+      : false;
     const convoyRows =
       convoy.routes.length > 0
         ? convoy.routes.map((route) => ({
@@ -4380,9 +5549,17 @@ const VoidProspector = (() => {
     if (state.contract.requiredStormPayout > 0) {
       objectiveParts.push(`${state.contract.deliveredStormPayout}/${state.contract.requiredStormPayout}cr storm`);
     }
+    if (state.contract.requiredInterdictions > 0) {
+      objectiveParts.push(`${state.contract.deliveredInterdictions}/${state.contract.requiredInterdictions} interdiction`);
+    }
+    if (state.contract.requiredInterdictionPayout > 0) {
+      objectiveParts.push(
+        `${state.contract.deliveredInterdictionPayout}/${state.contract.requiredInterdictionPayout}cr interdiction`
+      );
+    }
 
     return {
-      titleText: `${summary.releaseLabel} v${summary.version} + ${salvage.releaseLabel} v${salvage.version} + ${convoy.releaseLabel} v${convoy.version} + ${storm.releaseLabel} v${storm.version} / tier ${summary.tier}`,
+      titleText: `${summary.releaseLabel} v${summary.version} + ${salvage.releaseLabel} v${salvage.version} + ${convoy.releaseLabel} v${convoy.version} + ${storm.releaseLabel} v${storm.version} + ${interdiction.releaseLabel} v${interdiction.version} / tier ${summary.tier}`,
       ladderText: `tier ${summary.tier} / ${completedCount}/${totalSectors} charted`,
       sectorText: `${summary.sectorName} / ${summary.condition}`,
       objectiveProgressText: objectiveParts.join(" / "),
@@ -4401,6 +5578,11 @@ const VoidProspector = (() => {
       stormText: stormFocus
         ? `${storm.releaseLabel} / ${stormFocus.name} / ${stormFocus.storm.status} / intensity ${round(stormFocus.intensity, 1)}`
         : `${storm.releaseLabel} / no chart`,
+      interdictionText: interdictionFocus
+        ? `${interdiction.releaseLabel} / ${interdictionFocus.name} / ${interdictionFocus.state.status} / raid ${Math.round(
+            interdictionFocus.raidPressure
+          )}`
+        : `${interdiction.releaseLabel} / no cell`,
       stormWindowText: stormTarget.windowText,
       stormAnchorText: stormTarget.anchorText,
       salvageTarget: {
@@ -4437,6 +5619,7 @@ const VoidProspector = (() => {
       convoyRows,
       stormCharts: storm.charts,
       stormRows,
+      interdictionCells: interdiction.cells,
       actions: {
         canScan:
           canAct &&
@@ -4444,7 +5627,11 @@ const VoidProspector = (() => {
             (target.kind === "storm" &&
               selectedStormReadiness &&
               selectedStormReadiness.canScan &&
-              selectedStormScanInRange)),
+              selectedStormScanInRange) ||
+            (target.kind === "interdiction" &&
+              selectedInterdictionReadiness &&
+              selectedInterdictionReadiness.canScan &&
+              selectedInterdictionScanInRange)),
         canScanSalvage: canAct && target.kind === "salvage",
         canExtractSalvage: canAct && target.kind === "salvage",
         canAbandonSalvage:
@@ -4501,6 +5688,30 @@ const VoidProspector = (() => {
               activeStorm.storm.outcome === "none" &&
               state.stationServices.countermeasureCharges > 0
           ),
+        canScanInterdiction:
+          canAct &&
+          target.kind === "interdiction" &&
+          selectedInterdictionReadiness &&
+          selectedInterdictionReadiness.canScan &&
+          selectedInterdictionScanInRange,
+        canPlaceInterdictionMarker:
+          canAct &&
+          target.kind === "interdiction" &&
+          selectedInterdictionReadiness &&
+          selectedInterdictionReadiness.canPlaceMarker &&
+          selectedInterdictionMarkerInRange,
+        canDeployInterdictionLure:
+          canAct &&
+          target.kind === "interdiction" &&
+          selectedInterdictionReadiness &&
+          selectedInterdictionReadiness.canDeployLure &&
+          selectedInterdictionLureInRange,
+        canResolveInterdictionRaid:
+          canAct &&
+          target.kind === "interdiction" &&
+          selectedInterdictionReadiness &&
+          selectedInterdictionReadiness.canResolveRaid &&
+          !selectedInterdictionTerminal,
         countermeasureReady,
         countermeasureText:
           state.stationServices.countermeasureCharges > 0
@@ -4560,6 +5771,12 @@ const VoidProspector = (() => {
       status = `${target.stormState.status} / chart ${progress}% / window ${timing.locked ? "locked" : timing.open ? "open" : timing.pending ? "pending" : "missed"} / anchor ${Math.round(
         target.stormState.anchorIntegrity
       )}/${Math.round(target.stormState.maxAnchorIntegrity)}`;
+    } else if (state.target.kind === "interdiction") {
+      const timing = interdictionResponseTiming(target, state);
+      const progress = Math.round((target.interdictionState.progress / target.transponderDifficulty) * 100);
+      status = `${target.interdictionState.status} / transponder ${progress}% / window ${
+        timing.locked ? "marked" : timing.open ? "open" : timing.pending ? "pending" : "missed"
+      } / raid ${Math.round(target.interdictionState.raidPressure)}`;
     } else if (state.target.kind === "station") {
       status = state.station.proximity.dockable ? "dockable" : "stand off";
     } else if (state.target.kind === "pirate") {
@@ -4617,6 +5834,26 @@ const VoidProspector = (() => {
       summary.missingPrerequisites = target.prerequisiteStatus.missing.slice();
       summary.outcome = target.stormState.outcome;
       summary.deliveredValue = target.stormState.deliveredValue;
+    }
+    if (state.target.kind === "interdiction") {
+      summary.type = target.type;
+      summary.family = target.family;
+      summary.trigger = target.trigger;
+      summary.raidPressure = target.interdictionState.raidPressure;
+      summary.baseRaidPressure = target.raidPressure || 0;
+      summary.transponderScanned = target.interdictionState.transponderScanned;
+      summary.markerPlaced = target.interdictionState.markerPlaced;
+      summary.markerType = target.interdictionState.markerType;
+      summary.lureDeployed = target.interdictionState.lureDeployed;
+      summary.responseWindow = interdictionResponseTiming(target, state);
+      summary.rewardCredits = target.interdictionState.payoutCredits;
+      summary.prerequisitesReady = target.prerequisiteStatus.ready;
+      summary.missingPrerequisites = target.prerequisiteStatus.missing.slice();
+      summary.convoyRouteIds = (target.convoyRouteIds || []).slice();
+      summary.salvageSiteIds = (target.salvageSiteIds || []).slice();
+      summary.stormChartIds = (target.stormChartIds || []).slice();
+      summary.outcome = target.interdictionState.outcome;
+      summary.deliveredValue = target.interdictionState.deliveredValue;
     }
     return summary;
   }
@@ -4879,6 +6116,12 @@ const VoidProspector = (() => {
     if ((state.contract.requiredStormPayout || 0) > 0) {
       parts.push(`${state.contract.deliveredStormPayout}/${state.contract.requiredStormPayout}cr storm`);
     }
+    if ((state.contract.requiredInterdictions || 0) > 0) {
+      parts.push(`${state.contract.deliveredInterdictions}/${state.contract.requiredInterdictions} interdiction`);
+    }
+    if ((state.contract.requiredInterdictionPayout || 0) > 0) {
+      parts.push(`${state.contract.deliveredInterdictionPayout}/${state.contract.requiredInterdictionPayout}cr interdiction`);
+    }
     return parts.join(" / ");
   }
 
@@ -4994,7 +6237,14 @@ const VoidProspector = (() => {
         !["asteroid", "salvage"].includes(target.kind) || cargoBlocked || state.run.status === "failed";
     }
     if (dom.scanAction) {
-      dom.scanAction.textContent = target.kind === "salvage" ? "Signal Lock" : target.kind === "storm" ? "Chart Storm" : "Scan";
+      dom.scanAction.textContent =
+        target.kind === "salvage"
+          ? "Signal Lock"
+          : target.kind === "storm"
+            ? "Chart Storm"
+            : target.kind === "interdiction"
+              ? "Scan Transponder"
+              : "Scan";
       dom.scanAction.disabled = !(surface.actions.canScan || surface.actions.canScanSalvage);
     }
     if (dom.beaconAction) {
@@ -5003,6 +6253,10 @@ const VoidProspector = (() => {
           ? target.anchorStatus === "deployed"
             ? "Maintain Anchor"
             : "Deploy Anchor"
+          : target.kind === "interdiction"
+            ? target.markerPlaced
+              ? "Marker Armed"
+              : "Distress Marker"
           : target.kind === "convoy" && target.beaconStatus && target.beaconStatus !== "undeployed"
             ? "Maintain Beacon"
             : "Deploy Beacon";
@@ -5010,16 +6264,27 @@ const VoidProspector = (() => {
         surface.actions.canDeployBeacon ||
         surface.actions.canMaintainBeacon ||
         surface.actions.canDeployStormAnchor ||
-        surface.actions.canMaintainStormAnchor
+        surface.actions.canMaintainStormAnchor ||
+        surface.actions.canPlaceInterdictionMarker
       );
     }
     if (dom.convoyAction) {
-      dom.convoyAction.textContent = target.kind === "storm" ? "Lock Window" : target.kind === "convoy" ? "Start Convoy" : "Convoy";
-      dom.convoyAction.disabled = !(surface.actions.canStartConvoy || surface.actions.canLockStormWindow);
+      dom.convoyAction.textContent =
+        target.kind === "storm" ? "Lock Window" : target.kind === "interdiction" ? "Resolve Raid" : target.kind === "convoy" ? "Start Convoy" : "Convoy";
+      dom.convoyAction.disabled = !(
+        surface.actions.canStartConvoy ||
+        surface.actions.canLockStormWindow ||
+        surface.actions.canResolveInterdictionRaid
+      );
     }
     if (dom.abandonAction) {
-      dom.abandonAction.textContent = target.kind === "storm" ? "Reroute Salvage" : "Abandon";
-      dom.abandonAction.disabled = !(surface.actions.canAbandonSalvage || surface.actions.canRerouteStormSalvage);
+      dom.abandonAction.textContent =
+        target.kind === "storm" ? "Reroute Salvage" : target.kind === "interdiction" ? "Deploy Lure" : "Abandon";
+      dom.abandonAction.disabled = !(
+        surface.actions.canAbandonSalvage ||
+        surface.actions.canRerouteStormSalvage ||
+        surface.actions.canDeployInterdictionLure
+      );
     }
     if (dom.dockAction) {
       dom.dockAction.disabled = !station.dockable || state.run.status === "failed";
@@ -5055,7 +6320,9 @@ const VoidProspector = (() => {
           ? scanSalvageTarget(currentState, 1)
           : currentState.target.kind === "storm"
             ? scanStormChart(currentState, 1)
-            : scanTarget(currentState, 1);
+            : currentState.target.kind === "interdiction"
+              ? scanInterdictionTransponder(currentState, currentState.target.id, 1)
+              : scanTarget(currentState, 1);
     } else if (action === "beacon") {
       if (currentState.target.kind === "convoy") {
         const route = convoyRouteById(currentState, currentState.target.id);
@@ -5069,18 +6336,24 @@ const VoidProspector = (() => {
           chart && chart.stormState.anchorDeployed
             ? maintainStormAnchor(currentState, currentState.target.id)
             : deployStormAnchor(currentState, currentState.target.id);
+      } else if (currentState.target.kind === "interdiction") {
+        currentState = placeInterdictionMarker(currentState, currentState.target.id, "distress");
       }
     } else if (action === "convoy") {
       if (currentState.target.kind === "convoy") {
         currentState = startConvoyRoute(currentState, currentState.target.id);
       } else if (currentState.target.kind === "storm") {
         currentState = lockStormRouteWindow(currentState, currentState.target.id);
+      } else if (currentState.target.kind === "interdiction") {
+        currentState = resolveInterdictionRaid(currentState, currentState.target.id, "escort");
       }
     } else if (action === "abandon-salvage") {
       if (currentState.target.kind === "storm") {
         const chart = stormChartById(currentState, currentState.target.id);
         const site = stormRerouteCandidate(currentState, chart);
         currentState = site ? rerouteStormSalvage(currentState, site.id, chart.id) : currentState;
+      } else if (currentState.target.kind === "interdiction") {
+        currentState = deployInterdictionLure(currentState, currentState.target.id);
       } else {
         currentState = abandonSalvageTarget(currentState);
       }
@@ -5900,6 +7173,8 @@ const VoidProspector = (() => {
             ? 0x8ea1ff
             : state.target.kind === "storm"
               ? 0xd46857
+              : state.target.kind === "interdiction"
+                ? 0xd46857
               : 0x4bd6c0
       );
       handle.objects.targetRing.visible = true;
@@ -5978,14 +7253,17 @@ const VoidProspector = (() => {
     createSalvageSites,
     createConvoyRoutes,
     createStormCharts,
+    createInterdictionCells,
     createSurveyLadderState,
     createConvoyState,
     createStormCartographyState,
+    createInterdictionState,
     applyFlightInput,
     stepSpaceflight,
     mineTarget,
     scanTarget,
     scanStormChart,
+    scanInterdictionTransponder,
     scanSalvageTarget,
     extractSalvageTarget,
     abandonSalvageTarget,
@@ -6005,6 +7283,10 @@ const VoidProspector = (() => {
     stabilizeStormWindow,
     rerouteStormSalvage,
     resolveStormWindow,
+    interdictionCellReadiness,
+    placeInterdictionMarker,
+    deployInterdictionLure,
+    resolveInterdictionRaid,
     dockAtStation,
     purchaseUpgrade,
     purchaseStationService,
@@ -6016,12 +7298,14 @@ const VoidProspector = (() => {
     sectorById,
     updateCameraState,
     updateHazardState,
+    updateInterdictionRaids,
     dockingStatus,
     upgradeSummary,
     surveySummary,
     salvageSummary,
     convoySummary,
     stormSummary,
+    interdictionSummary,
     surveyCockpitSurface,
     stationServiceSummary,
     targetSummary,

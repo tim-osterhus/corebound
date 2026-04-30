@@ -41,7 +41,9 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
               salvageVersion: rift.salvage.version,
               convoyVersion: rift.convoy.version,
               stormVersion: rift.storm.version,
+              interdictionVersion: rift.interdiction.version,
               stormLabel: rift.storm.releaseLabel,
+              interdictionCells: game.interdictionSummary(rift).cells.map((cell) => cell.id),
               riftChart: game.stormSummary(rift).charts[0],
               umbraChart: game.stormSummary(umbra).charts[0],
               target: game.targetSummary(target),
@@ -56,7 +58,9 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
         self.assertEqual("0.2.0", result["salvageVersion"])
         self.assertEqual("0.3.0", result["convoyVersion"])
         self.assertEqual("0.4.0", result["stormVersion"])
+        self.assertEqual("0.5.0", result["interdictionVersion"])
         self.assertEqual("Storm Cartography", result["stormLabel"])
+        self.assertIn("cell-rift-decoy-net", result["interdictionCells"])
         self.assertGreaterEqual(result["generatedCount"], 2)
         self.assertEqual("storm-rift-breaker", result["riftChart"]["id"])
         self.assertTrue(result["riftChart"]["prerequisitesReady"])
@@ -283,7 +287,12 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
               unlockedSectorIds: ["spoke-approach", "rift-shelf", "umbra-trench", "tempest-verge"],
               completedSectorIds: ["spoke-approach", "rift-shelf", "umbra-trench"],
             };
-            let state = game.createInitialState({ seed: 77, sectorId: "tempest-verge", ladder });
+            let state = game.createInitialState({
+              seed: 77,
+              sectorId: "tempest-verge",
+              ladder,
+              stationServices: { purchased: ["patrol-uplink"] },
+            });
             const eye = state.anomalies.find((node) => node.id === "anomaly-tempest-eye");
             state.ship.position = { ...eye.position };
             state = game.setTarget(state, "anomaly", eye.id);
@@ -302,6 +311,16 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
             const routeReady = game.convoyRouteReadiness(state, "convoy-tempest-relay");
             state = game.resolveStormWindow(state, "storm-tempest-verge");
             const afterStorm = JSON.parse(JSON.stringify(state));
+            state = game.setTarget(state, "interdiction", "cell-tempest-patrol-net");
+            state.ship.position = { ...state.interdictionCells[0].position };
+            state = game.scanInterdictionTransponder(state, "cell-tempest-patrol-net", 2);
+            state = game.scanInterdictionTransponder(state, "cell-tempest-patrol-net", 2);
+            state = game.placeInterdictionMarker(state, "cell-tempest-patrol-net", "distress");
+            state = game.deployInterdictionLure(state, "cell-tempest-patrol-net");
+            state.elapsed = 9;
+            state.tick = 9;
+            state = game.resolveInterdictionRaid(state, "cell-tempest-patrol-net", "escort");
+            const afterInterdiction = JSON.parse(JSON.stringify(state));
             state.ship.position = { ...state.station.position };
             state.cargo.ore = 14;
             state.cargo.value = 700;
@@ -310,6 +329,8 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
             console.log(JSON.stringify({
               sectorCount: game.GAME_DATA.surveyLadder.sectors.length,
               tempestContract: afterStorm.contract,
+              interdictionContract: afterInterdiction.contract,
+              interdictionSummary: game.interdictionSummary(afterInterdiction),
               routeReady,
               finalStatus: state.contract.status,
               runStatus: state.run.status,
@@ -318,6 +339,8 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
               stormScore: state.ladder.stormScore,
               resetStormCharts: reset.ladder.completedStormChartIds,
               resetStormSummary: game.stormSummary(reset),
+              resetInterdictionCells: reset.ladder.completedInterdictionCellIds,
+              resetInterdictionSummary: game.interdictionSummary(reset),
             }));
             """
         )
@@ -325,6 +348,9 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
         self.assertGreaterEqual(result["sectorCount"], 4)
         self.assertEqual(1, result["tempestContract"]["deliveredStormCharts"])
         self.assertGreaterEqual(result["tempestContract"]["deliveredStormPayout"], 200)
+        self.assertEqual(1, result["interdictionContract"]["deliveredInterdictions"])
+        self.assertGreaterEqual(result["interdictionContract"]["deliveredInterdictionPayout"], 180)
+        self.assertIn("cell-tempest-patrol-net", result["interdictionSummary"]["completedCellIds"])
         self.assertTrue(result["routeReady"]["ready"])
         self.assertEqual("complete", result["finalStatus"])
         self.assertEqual("complete", result["runStatus"])
@@ -333,6 +359,8 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
         self.assertGreater(result["stormScore"], 0)
         self.assertIn("storm-tempest-verge", result["resetStormCharts"])
         self.assertEqual("0.4.0", result["resetStormSummary"]["version"])
+        self.assertIn("cell-tempest-patrol-net", result["resetInterdictionCells"])
+        self.assertEqual("0.5.0", result["resetInterdictionSummary"]["version"])
 
     def run_node(self, script: str) -> dict:
         completed = subprocess.run(

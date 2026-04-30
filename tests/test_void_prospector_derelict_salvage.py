@@ -31,6 +31,8 @@ class VoidProspectorDerelictSalvageTests(unittest.TestCase):
               salvageLabel: state.salvage.releaseLabel,
               stormVersion: state.storm.version,
               stormCharts: game.stormSummary(state).charts.map((chart) => chart.id),
+              interdictionVersion: state.interdiction.version,
+              interdictionCells: game.interdictionSummary(state).cells.map((cell) => cell.id),
               siteCount: state.salvageSites.length,
               statePairs: state.salvageSites.map((site) => [site.id, site.rewardValue]),
               regeneratedPairs: regenerated.map((site) => [site.id, site.rewardValue]),
@@ -51,6 +53,8 @@ class VoidProspectorDerelictSalvageTests(unittest.TestCase):
         self.assertEqual("Derelict Salvage", result["salvageLabel"])
         self.assertEqual("0.4.0", result["stormVersion"])
         self.assertIn("storm-rift-breaker", result["stormCharts"])
+        self.assertEqual("0.5.0", result["interdictionVersion"])
+        self.assertIn("cell-rift-decoy-net", result["interdictionCells"])
         self.assertGreaterEqual(result["siteCount"], 2)
         self.assertIn("derelict-hull", result["types"])
         self.assertIn("volatile-wreck", result["types"])
