@@ -85,12 +85,22 @@ class IronLanternDescentAssetIntegrationTests(unittest.TestCase):
             "createSurveySiteMesh",
             "updateSurveyMeshes",
             "surveyMeshes",
+            "createPumpworksSiteMesh",
+            "updatePumpworksMeshes",
+            "pumpworksMeshes",
             "new THREE.BufferGeometry().setFromPoints",
             "new THREE.TorusGeometry",
             "userData.role = \"fault-seam\"",
             "userData.role = \"brace-frame\"",
             "userData.role = \"air-cache\"",
             "userData.role = \"map-plate\"",
+            "userData.role = \"pump-housing\"",
+            "userData.role = \"valve-wheel\"",
+            "userData.role = \"flood-plane\"",
+            "userData.role = \"leak-seam\"",
+            "userData.role = \"siphon-canister\"",
+            "userData.role = \"pressure-gauge\"",
+            "userData.role = \"drainage-route-overlay\"",
         ):
             self.assertIn(token, script)
 
@@ -109,6 +119,12 @@ class IronLanternDescentAssetIntegrationTests(unittest.TestCase):
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*brace[^"\'\)\s]*\.png')
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*cache[^"\'\)\s]*\.png')
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*map[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*pump[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*valve[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*flood[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*leak[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*siphon[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*gauge[^"\'\)\s]*\.png')
 
     def run_node(self, expression: str) -> str:
         result = subprocess.run(

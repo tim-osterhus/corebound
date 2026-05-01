@@ -22,26 +22,41 @@ class IronLanternDescentFaultlineSurfaceTests(unittest.TestCase):
 
         for token in (
             "v0.1.0 faultline survey",
+            "v0.2.0 deep pumpworks",
             "survey-readout",
             "stability-readout",
+            "pumpworks-readout",
+            "flood-readout",
+            "valve-readout",
+            "drainage-readout",
             "tremor-readout",
             "map-readout",
             "survey-site-list",
+            "pumpworks-site-list",
             "event-log",
             "stake-action",
             "brace-action",
             "chart-action",
             "cache-action",
+            "pump-action",
+            "valve-action",
+            "siphon-action",
+            "seal-action",
         ):
             self.assertIn(token, html)
 
         for token in (
             ".survey-list",
+            ".pumpworks-list",
             ".survey-line",
+            ".pumpworks-line",
             ".survey-meta",
+            ".pumpworks-meta",
             ".event-log",
             'li[data-window="tremor"]',
+            'li[data-window="flood"]',
             'li[data-status="success"]',
+            'li[data-state="success"]',
             "overflow-wrap: anywhere",
             "grid-template-columns: repeat(2, minmax(0, 1fr))",
         ):
@@ -74,6 +89,30 @@ class IronLanternDescentFaultlineSurfaceTests(unittest.TestCase):
         ):
             self.assertIn(token, script)
 
+    def test_deep_pumpworks_surface_hooks_render_live_station_state(self) -> None:
+        script = source_text("iron-lantern-descent.js")
+
+        for token in (
+            "formatPumpworksWindow",
+            "activePumpworksSite",
+            "pumpworksRequirementText",
+            "pumpworksLineText",
+            'dom["pumpworks-readout"].textContent',
+            'dom["flood-readout"].textContent',
+            'dom["valve-readout"].textContent',
+            'dom["drainage-readout"].textContent',
+            'dom["pumpworks-site-list"].replaceChildren',
+            'dom["pump-action"].addEventListener',
+            'dom["valve-action"].addEventListener',
+            'dom["siphon-action"].addEventListener',
+            'dom["seal-action"].addEventListener',
+            "primePumpStation(currentState)",
+            "turnPressureValve(currentState)",
+            "deploySiphonCharge(currentState)",
+            "sealLeakSeam(currentState)",
+        ):
+            self.assertIn(token, script)
+
     def test_faultline_visuals_are_procedural_and_manifest_stays_truthful(self) -> None:
         script = source_text("iron-lantern-descent.js")
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
@@ -90,6 +129,16 @@ class IronLanternDescentFaultlineSurfaceTests(unittest.TestCase):
             "userData.role = \"brace-frame\"",
             "userData.role = \"air-cache\"",
             "userData.role = \"map-plate\"",
+            "createPumpworksSiteMesh",
+            "updatePumpworksMeshes",
+            "pumpworksMeshes",
+            "userData.role = \"pump-housing\"",
+            "userData.role = \"valve-wheel\"",
+            "userData.role = \"flood-plane\"",
+            "userData.role = \"leak-seam\"",
+            "userData.role = \"siphon-canister\"",
+            "userData.role = \"pressure-gauge\"",
+            "userData.role = \"drainage-route-overlay\"",
             "0x4bd6c0",
             "0xd46857",
             "0xc9a653",
@@ -107,7 +156,21 @@ class IronLanternDescentFaultlineSurfaceTests(unittest.TestCase):
             },
             manifest_paths,
         )
-        for stale_raster in ("fault", "survey", "brace", "cache", "map-plate", "tremor"):
+        for stale_raster in (
+            "fault",
+            "survey",
+            "brace",
+            "cache",
+            "map-plate",
+            "tremor",
+            "pump",
+            "valve",
+            "flood",
+            "leak",
+            "siphon",
+            "gauge",
+            "drain",
+        ):
             self.assertNotRegex(script, rf'assets/[^"\'\)\s]*{re.escape(stale_raster)}[^"\'\)\s]*\.png')
 
     def test_surface_controls_change_survey_state_and_route_pressure(self) -> None:
@@ -153,6 +216,58 @@ class IronLanternDescentFaultlineSurfaceTests(unittest.TestCase):
         self.assertEqual(18, result["charted"]["surveyValue"])
         self.assertLess(result["charted"]["oxygen"], result["before"]["oxygen"])
         self.assertIn("chart partial", result["charted"]["lastLog"])
+
+    def test_surface_controls_change_pumpworks_state_route_and_rewards(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+            let state = game.createInitialState({ seed: 87 });
+            const survey = state.surveySites.find((site) => site.id === "survey-cinder-rib");
+            state.player.position = { x: survey.position.x, y: 1.6, z: survey.position.z };
+            state.elapsed = 40;
+            state = game.placeLantern(game.syncDerivedState(state));
+            state = game.plantSurveyStake(state, "survey-cinder-rib");
+            state = game.chartFaultSurvey(state, "survey-cinder-rib");
+
+            const pump = state.pumpworksSites.find((site) => site.id === "pump-cinder-sump");
+            state.player.position = { x: pump.position.x, y: 1.6, z: pump.position.z };
+            state.elapsed = 50;
+            state = game.syncDerivedState(state);
+            const before = {
+              flood: state.pumpworksSites[0].floodLevel,
+              routeConfidence: state.route.returnConfidence,
+              oxygen: state.oxygen.current,
+            };
+            state = game.primePumpStation(state, "pump-cinder-sump");
+            const primed = JSON.parse(JSON.stringify(state));
+            state = game.turnPressureValve(state, "pump-cinder-sump");
+
+            console.log(JSON.stringify({
+              before,
+              primedFlood: primed.pumpworksSites[0].floodLevel,
+              primedState: primed.pumpworksSites[0].pumpState,
+              drainedState: state.pumpworksSites[0].drainageState,
+              valveState: state.pumpworksSites[0].valveState,
+              floodAfter: state.pumpworksSites[0].floodLevel,
+              pumpworksValue: state.pumpworks.value,
+              pumpworksMap: state.pumpworks.mapProgress,
+              routeAfter: state.route.returnConfidence,
+              oxygenAfter: state.oxygen.current,
+              lastLog: state.log[0].message,
+            }));
+            """
+        )
+
+        self.assertEqual("primed", result["primedState"])
+        self.assertLess(result["primedFlood"], result["before"]["flood"])
+        self.assertEqual("success", result["drainedState"])
+        self.assertEqual("regulated", result["valveState"])
+        self.assertLess(result["floodAfter"], result["primedFlood"])
+        self.assertEqual(64, result["pumpworksValue"])
+        self.assertEqual(1, result["pumpworksMap"])
+        self.assertGreater(result["routeAfter"], result["before"]["routeConfidence"])
+        self.assertLess(result["oxygenAfter"], result["before"]["oxygen"])
+        self.assertIn("pressure valve success", result["lastLog"])
 
     def run_node(self, script: str) -> dict:
         completed = subprocess.run(

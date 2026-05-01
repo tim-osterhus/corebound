@@ -100,6 +100,7 @@ button {
 .control-strip,
 .sample-list,
 .survey-list,
+.pumpworks-list,
 .event-log {
   color: var(--muted);
   font-size: 0.72rem;
@@ -218,9 +219,9 @@ button {
 .target-panel {
   position: fixed;
   right: 18px;
-  bottom: 64px;
+  bottom: 76px;
   width: min(368px, calc(100vw - 36px));
-  max-height: calc(100vh - 110px);
+  max-height: calc(100vh - 122px);
   overflow: auto;
 }
 
@@ -267,6 +268,7 @@ button {
 .target-data span,
 .sample-list li,
 .survey-list li,
+.pumpworks-list li,
 .event-log li {
   min-height: 30px;
   padding: 7px 8px;
@@ -277,6 +279,7 @@ button {
 
 .sample-list,
 .survey-list,
+.pumpworks-list,
 .event-log {
   display: grid;
   gap: 6px;
@@ -290,7 +293,8 @@ button {
   padding-top: 10px;
 }
 
-.survey-list li {
+.survey-list li,
+.pumpworks-list li {
   display: grid;
   gap: 5px;
   border-left: 2px solid var(--signal);
@@ -306,15 +310,35 @@ button {
   border-left-color: var(--lantern);
 }
 
+.pumpworks-list {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 10px;
+}
+
+.pumpworks-list li[data-window="surge"],
+.pumpworks-list li[data-window="flood"],
+.pumpworks-list li[data-window="overrun"],
+.pumpworks-list li[data-state="failed"] {
+  border-left-color: var(--danger);
+}
+
+.pumpworks-list li[data-state="success"],
+.pumpworks-list li[data-state="partial"] {
+  border-left-color: var(--lantern);
+}
+
 .survey-line,
-.survey-meta {
+.survey-meta,
+.pumpworks-line,
+.pumpworks-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 10px;
   align-items: baseline;
 }
 
-.survey-line strong {
+.survey-line strong,
+.pumpworks-line strong {
   color: var(--text);
   font-size: 0.78rem;
   font-weight: 600;
@@ -322,6 +346,7 @@ button {
 }
 
 .survey-meta span,
+.pumpworks-meta span,
 .event-log li {
   overflow-wrap: anywhere;
 }
@@ -351,11 +376,13 @@ button {
 
 button {
   min-height: 34px;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 0;
   background: rgba(11, 17, 15, 0.94);
   color: var(--text);
   cursor: pointer;
+  overflow-wrap: anywhere;
 }
 
 button:hover,

@@ -2440,6 +2440,10 @@ const IronLanternDescent = (() => {
       "route-readout",
       "survey-readout",
       "stability-readout",
+      "pumpworks-readout",
+      "flood-readout",
+      "valve-readout",
+      "drainage-readout",
       "scanner-readout",
       "tremor-readout",
       "map-readout",
@@ -2451,6 +2455,7 @@ const IronLanternDescent = (() => {
       "mining-readout",
       "target-name",
       "survey-site-list",
+      "pumpworks-site-list",
       "sample-list",
       "event-log",
       "lantern-action",
@@ -2460,6 +2465,10 @@ const IronLanternDescent = (() => {
       "brace-action",
       "chart-action",
       "cache-action",
+      "pump-action",
+      "valve-action",
+      "siphon-action",
+      "seal-action",
       "lift-action",
       "upgrade-action",
       "restart-action",
@@ -2516,6 +2525,51 @@ const IronLanternDescent = (() => {
     return `${stake} / ${brace} / ${cache}`;
   }
 
+  function formatPumpworksWindow(site, elapsed) {
+    const windowState = site.windowState || pumpworksWindowState(site, elapsed || 0);
+    const window = site.pressureWindow || {};
+    if (windowState === "pending") {
+      return `opens in ${Math.max(0, Math.ceil(window.opensAt - elapsed))}s`;
+    }
+    if (windowState === "drain") {
+      return `drain ${Math.max(0, Math.ceil(window.closesAt - elapsed))}s`;
+    }
+    if (windowState === "surge") {
+      return `surge ${Math.max(0, Math.ceil(window.surgeAt - elapsed))}s`;
+    }
+    if (windowState === "flood") {
+      return `flood ${Math.max(0, Math.ceil(window.failAt - elapsed))}s`;
+    }
+    return "overrun";
+  }
+
+  function activePumpworksSite(state) {
+    return state.pumpworksSites.find((site) => site.id === state.pumpworks.activeSiteId) ||
+      nearestPumpworksSite(state, { includeCompleted: true })?.site ||
+      null;
+  }
+
+  function pumpworksRequirementText(state, site) {
+    const requirements = pumpworksRequirementStatus(state, site, { requireSiphon: true });
+    if (requirements.ready) {
+      return "requirements clear";
+    }
+    return `needs ${requirements.missing.join(" + ")}`;
+  }
+
+  function pumpworksLineText(site) {
+    const flood = `${Math.round((site.floodLevel || 0) * 100)}% flood`;
+    const pump = site.pumpPrimed ? "pump primed" : `pump ${site.pumpState}`;
+    const valve = `${site.valveId.replace("valve-", "")} ${site.valveState}`;
+    const leak = site.leakSealed ? "leak sealed" : "leak open";
+    const siphon = site.siphonDeployed
+      ? "siphon set"
+      : site.requirements.siphon
+        ? "siphon needed"
+        : "siphon optional";
+    return [flood, pump, valve, leak, siphon];
+  }
+
   function renderHud(state) {
     if (!dom.root) {
       return;
@@ -2525,11 +2579,28 @@ const IronLanternDescent = (() => {
     const hazardNames = state.hazardZones.filter((zone) => zone.active).map((zone) => zone.name);
     const nearest = nearestSample(state);
     const activeSite = activeSurveySite(state);
+    const activePump = activePumpworksSite(state);
     const surveyTarget = activeSite
       ? `${activeSite.name} / ${activeSite.status} / ${Math.round(activeSite.distance || 0)}m`
       : "survey complete";
     const tremorText = activeSite ? `${formatSurveyWindow(activeSite, state.elapsed)} / ${activeSite.faultType}` : "window clear";
-    const targetName = state.scanner.targetKind === "survey" && activeSite ? activeSite.name : nearest ? nearest.node.name : "Iron Lift";
+    const pumpworksTarget = activePump
+      ? `${activePump.name} / ${activePump.status} / ${Math.round(activePump.distance || 0)}m`
+      : "pumpworks drained";
+    const floodText = activePump
+      ? `${Math.round(state.pumpworks.floodLevel * 100)}% avg / ${formatPumpworksWindow(activePump, state.elapsed)}`
+      : "drained";
+    const valveText = activePump
+      ? `${activePump.valveId.replace("valve-", "")} / ${activePump.valveState} / ${state.routeStability.pressure}p`
+      : `${state.routeStability.pressure}p`;
+    const drainageText = `${state.pumpworks.completedSites} / ${state.pumpworks.contract.targetDrainedSites} sites  ${state.pumpworks.mapProgress + state.pumpworks.ledger} / ${state.pumpworks.contract.targetMapProgress} map  siphon ${state.pumpworks.siphons}`;
+    const targetName = state.scanner.targetKind === "pumpworks" && activePump
+      ? activePump.name
+      : state.scanner.targetKind === "survey" && activeSite
+        ? activeSite.name
+        : nearest
+          ? nearest.node.name
+          : "Iron Lift";
     dom["run-status"].textContent = `${state.run.status} / ${state.renderer.status}`;
     dom["objective-readout"].textContent = state.run.objective;
     dom["oxygen-readout"].textContent = `${Math.ceil(state.oxygen.current)} / ${state.oxygen.max}  -${state.oxygen.lastDrainPerSecond.toFixed(1)}/s`;
@@ -2541,6 +2612,10 @@ const IronLanternDescent = (() => {
     dom["route-readout"].textContent = `${state.route.status} / ${state.route.returnConfidence}%  ${state.route.suggestedAction}`;
     dom["survey-readout"].textContent = surveyTarget;
     dom["stability-readout"].textContent = `${state.routeStability.status} / ${state.routeStability.stability}% / ${state.routeStability.pressure}p`;
+    dom["pumpworks-readout"].textContent = pumpworksTarget;
+    dom["flood-readout"].textContent = floodText;
+    dom["valve-readout"].textContent = valveText;
+    dom["drainage-readout"].textContent = drainageText;
     dom["scanner-readout"].textContent = state.scanner.status;
     dom["tremor-readout"].textContent = tremorText;
     dom["map-readout"].textContent = `${state.survey.mapProgress + state.survey.ledger} / ${state.survey.contract.targetMapProgress} map  ${state.survey.value}cr`;
@@ -2564,6 +2639,10 @@ const IronLanternDescent = (() => {
     setReadoutTone(dom["route-readout"], state.route.returnConfidence < 35 ? "danger" : state.route.returnConfidence < 70 ? "warn" : "signal");
     setReadoutTone(dom["survey-readout"], activeSite && activeSite.inRange ? "signal" : null);
     setReadoutTone(dom["stability-readout"], state.routeStability.stability < 35 ? "danger" : state.routeStability.stability < 65 ? "warn" : "signal");
+    setReadoutTone(dom["pumpworks-readout"], activePump && activePump.inRange ? "signal" : null);
+    setReadoutTone(dom["flood-readout"], activePump && (activePump.windowState === "flood" || activePump.windowState === "overrun") ? "danger" : activePump && activePump.windowState === "surge" ? "warn" : null);
+    setReadoutTone(dom["valve-readout"], activePump && activePump.drainageState === "success" ? "signal" : activePump && activePump.valveState === "overrun" ? "danger" : null);
+    setReadoutTone(dom["drainage-readout"], state.pumpworks.completedSites > 0 ? "signal" : null);
     setReadoutTone(dom["tremor-readout"], activeSite && activeSite.windowState === "collapsed" ? "danger" : activeSite && activeSite.windowState === "tremor" ? "warn" : null);
 
     dom["survey-site-list"].replaceChildren(
@@ -2581,6 +2660,35 @@ const IronLanternDescent = (() => {
         const meta = document.createElement("div");
         meta.className = "survey-meta";
         [site.faultType, site.status, formatSurveyWindow(site, state.elapsed), surveyRequirementText(site), `+${site.rewards.payout}cr / +${site.rewards.mapProgress} map`].forEach((text) => {
+          const part = document.createElement("span");
+          part.textContent = text;
+          meta.append(part);
+        });
+        item.append(line, meta);
+        return item;
+      })
+    );
+
+    dom["pumpworks-site-list"].replaceChildren(
+      ...state.pumpworksSites.map((site) => {
+        const item = document.createElement("li");
+        item.dataset.window = site.windowState;
+        item.dataset.state = site.drainageState;
+        const line = document.createElement("div");
+        line.className = "pumpworks-line";
+        const name = document.createElement("strong");
+        name.textContent = site.name;
+        const passage = document.createElement("span");
+        passage.textContent = `${site.passageId} / ${Math.round(site.distance || 0)}m`;
+        line.append(name, passage);
+        const meta = document.createElement("div");
+        meta.className = "pumpworks-meta";
+        [
+          formatPumpworksWindow(site, state.elapsed),
+          ...pumpworksLineText(site),
+          pumpworksRequirementText(state, site),
+          `+${site.rewards.payout}cr / +${site.rewards.mapProgress} map`,
+        ].forEach((text) => {
           const part = document.createElement("span");
           part.textContent = text;
           meta.append(part);
@@ -2724,6 +2832,22 @@ const IronLanternDescent = (() => {
     });
     dom["cache-action"].addEventListener("click", () => {
       currentState = activateAirCache(currentState);
+      renderHud(currentState);
+    });
+    dom["pump-action"].addEventListener("click", () => {
+      currentState = primePumpStation(currentState);
+      renderHud(currentState);
+    });
+    dom["valve-action"].addEventListener("click", () => {
+      currentState = turnPressureValve(currentState);
+      renderHud(currentState);
+    });
+    dom["siphon-action"].addEventListener("click", () => {
+      currentState = deploySiphonCharge(currentState);
+      renderHud(currentState);
+    });
+    dom["seal-action"].addEventListener("click", () => {
+      currentState = sealLeakSeam(currentState);
       renderHud(currentState);
     });
     dom["lift-action"].addEventListener("click", () => {
@@ -3007,6 +3131,95 @@ const IronLanternDescent = (() => {
     return group;
   }
 
+  function createPumpworksSiteMesh(THREE, site) {
+    const group = new THREE.Group();
+    group.userData.siteId = site.id;
+
+    const flood = new THREE.Mesh(
+      new THREE.CylinderGeometry(site.radius * 1.45, site.radius * 1.45, 0.04, 48),
+      new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.12 })
+    );
+    flood.position.y = 0.08;
+    flood.userData.role = "flood-plane";
+    group.add(flood);
+
+    const housing = new THREE.Mesh(
+      new THREE.BoxGeometry(1.45, 1.05, 1.75),
+      new THREE.MeshStandardMaterial({ color: 0x202a26, roughness: 0.68, metalness: 0.34 })
+    );
+    housing.position.set(-0.42, 0.62, 0);
+    housing.userData.role = "pump-housing";
+    group.add(housing);
+
+    const valve = new THREE.Mesh(
+      new THREE.TorusGeometry(0.48, 0.045, 8, 32),
+      new THREE.MeshBasicMaterial({ color: 0xc9a653, transparent: true, opacity: 0.82 })
+    );
+    valve.rotation.y = Math.PI / 2;
+    valve.position.set(0.55, 0.82, -0.62);
+    valve.userData.role = "valve-wheel";
+    group.add(valve);
+
+    const gauge = new THREE.Mesh(
+      new THREE.TorusGeometry(0.32, 0.032, 8, 32),
+      new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.72 })
+    );
+    gauge.rotation.y = Math.PI / 2;
+    gauge.position.set(0.54, 1.22, 0.45);
+    gauge.userData.role = "pressure-gauge";
+    group.add(gauge);
+
+    const needle = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.02, 0.46),
+      new THREE.MeshBasicMaterial({ color: 0xd46857, transparent: true, opacity: 0.78 })
+    );
+    needle.rotation.y = Math.PI / 2;
+    needle.position.set(0.55, 1.22, 0.45);
+    needle.userData.role = "pressure-needle";
+    group.add(needle);
+
+    const leak = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-0.95, 0.28, -0.92),
+        new THREE.Vector3(-0.35, 0.38, -1.18),
+        new THREE.Vector3(0.18, 0.24, -0.96),
+        new THREE.Vector3(0.82, 0.34, -1.24),
+      ]),
+      new THREE.LineBasicMaterial({ color: 0xd46857, transparent: true, opacity: 0.7 })
+    );
+    leak.userData.role = "leak-seam";
+    group.add(leak);
+
+    const siphon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.22, 1.0, 12),
+      new THREE.MeshBasicMaterial({ color: 0xe0e7e3, transparent: true, opacity: 0.34 })
+    );
+    siphon.rotation.z = Math.PI / 2;
+    siphon.position.set(-0.84, 0.42, 0.94);
+    siphon.userData.role = "siphon-canister";
+    group.add(siphon);
+
+    const drainage = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-site.radius * 0.8, 0.16, 0.9),
+        new THREE.Vector3(-site.radius * 0.2, 0.16, 0.35),
+        new THREE.Vector3(site.radius * 0.45, 0.16, 0.15),
+        new THREE.Vector3(site.radius * 0.86, 0.16, -0.52),
+      ]),
+      new THREE.LineBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.2 })
+    );
+    drainage.userData.role = "drainage-route-overlay";
+    group.add(drainage);
+
+    const light = new THREE.PointLight(0x4bd6c0, 0.42, site.influenceRadius);
+    light.position.set(0, 1.2, 0);
+    light.userData.role = "pumpworks-signal-light";
+    group.add(light);
+
+    group.position.set(site.position.x, 0, site.position.z);
+    return group;
+  }
+
   function createLanternMesh(THREE, anchor, assets = {}) {
     const group = new THREE.Group();
     const base = new THREE.Mesh(
@@ -3093,6 +3306,13 @@ const IronLanternDescent = (() => {
       scene.add(mesh);
     });
 
+    const pumpworksMeshes = new Map();
+    state.pumpworksSites.forEach((site) => {
+      const mesh = createPumpworksSiteMesh(THREE, site);
+      pumpworksMeshes.set(site.id, mesh);
+      scene.add(mesh);
+    });
+
     const scannerRing = new THREE.Mesh(
       new THREE.RingGeometry(3.8, 4.0, 48),
       new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
@@ -3117,6 +3337,7 @@ const IronLanternDescent = (() => {
         sampleMeshes,
         hazardMeshes,
         surveyMeshes,
+        pumpworksMeshes,
         lanternMeshes: new Map(),
         routeGroup,
         routeSignature: "",
@@ -3234,11 +3455,78 @@ const IronLanternDescent = (() => {
     });
   }
 
+  function updatePumpworksMeshes(handle, state, timeSeconds) {
+    state.pumpworksSites.forEach((site) => {
+      const mesh = handle.objects.pumpworksMeshes.get(site.id);
+      if (!mesh) {
+        return;
+      }
+      const flood = mesh.children.find((child) => child.userData.role === "flood-plane");
+      const housing = mesh.children.find((child) => child.userData.role === "pump-housing");
+      const valve = mesh.children.find((child) => child.userData.role === "valve-wheel");
+      const gauge = mesh.children.find((child) => child.userData.role === "pressure-gauge");
+      const needle = mesh.children.find((child) => child.userData.role === "pressure-needle");
+      const leak = mesh.children.find((child) => child.userData.role === "leak-seam");
+      const siphon = mesh.children.find((child) => child.userData.role === "siphon-canister");
+      const drainage = mesh.children.find((child) => child.userData.role === "drainage-route-overlay");
+      const light = mesh.children.find((child) => child.userData.role === "pumpworks-signal-light");
+      const urgent = site.windowState === "surge" || site.windowState === "flood" || site.windowState === "overrun" || site.drainageState === "failed";
+      const drained = site.drainageState === "success" || site.drainageState === "partial";
+      const active = site.inRange || site.pumpPrimed || site.leakSealed || site.siphonDeployed || drained;
+      const pulse = 0.5 + Math.sin(timeSeconds * (urgent ? 5.6 : 2.0) + site.position.z) * 0.5;
+
+      mesh.scale.setScalar(site.inRange ? 1.12 : 1);
+      if (flood && flood.material) {
+        flood.material.color.setHex(urgent ? 0xd46857 : drained ? 0x4bd6c0 : 0x4bd6c0);
+        flood.material.opacity = drained
+          ? 0.06
+          : Math.min(0.34, 0.08 + (site.floodLevel || 0) * 0.24 + pulse * 0.05);
+      }
+      if (housing && housing.material) {
+        housing.material.color.setHex(site.pumpPrimed ? 0x2c4a43 : site.drainageState === "failed" ? 0x3a201d : 0x202a26);
+        housing.material.emissive.setHex(site.pumpPrimed ? 0x08221d : 0x000000);
+      }
+      if (valve && valve.material) {
+        valve.material.color.setHex(site.valveState === "overrun" ? 0xd46857 : site.valveState === "regulated" ? 0x4bd6c0 : 0xc9a653);
+        valve.material.opacity = site.valveState === "closed" ? 0.62 : 0.88;
+        valve.rotation.z = site.valveState === "closed" ? 0 : timeSeconds * 0.7;
+      }
+      if (gauge && gauge.material) {
+        gauge.material.color.setHex(urgent ? 0xd46857 : active ? 0x4bd6c0 : 0x87938d);
+        gauge.material.opacity = urgent ? 0.78 + pulse * 0.18 : active ? 0.72 : 0.36;
+      }
+      if (needle && needle.material) {
+        needle.rotation.z = -0.7 + Math.min(1.4, (site.floodLevel || 0) * 1.4 + (urgent ? 0.35 : 0));
+        needle.material.opacity = urgent ? 0.88 : 0.66;
+      }
+      if (leak && leak.material) {
+        leak.material.color.setHex(site.leakSealed ? 0xc9a653 : 0xd46857);
+        leak.material.opacity = site.leakSealed ? 0.28 : 0.48 + pulse * 0.24;
+      }
+      if (siphon && siphon.material) {
+        siphon.visible = Boolean(site.requirements.siphon || site.siphonDeployed);
+        siphon.material.color.setHex(site.siphonDeployed ? 0x4bd6c0 : 0xe0e7e3);
+        siphon.material.opacity = site.siphonDeployed ? 0.78 : 0.28;
+      }
+      if (drainage && drainage.material) {
+        drainage.visible = active;
+        drainage.material.color.setHex(site.drainageState === "failed" ? 0xd46857 : drained ? 0xc9a653 : 0x4bd6c0);
+        drainage.material.opacity = active ? 0.26 + pulse * 0.18 : 0.12;
+      }
+      if (light) {
+        light.color.setHex(urgent ? 0xd46857 : 0x4bd6c0);
+        light.intensity = active ? 0.52 + pulse * 0.28 : 0.22;
+        light.distance = site.influenceRadius;
+      }
+    });
+  }
+
   function updateScene(handle, state, timeSeconds) {
     resizeScene(handle);
     syncLanternMeshes(handle, state);
     syncRouteMeshes(handle, state);
     updateSurveyMeshes(handle, state, timeSeconds);
+    updatePumpworksMeshes(handle, state, timeSeconds);
     handle.objects.player.position.set(state.player.position.x, 0, state.player.position.z);
     handle.objects.player.rotation.y = state.player.facing;
     handle.objects.playerLamp.position.set(state.player.position.x, state.player.position.y + 0.4, state.player.position.z);
