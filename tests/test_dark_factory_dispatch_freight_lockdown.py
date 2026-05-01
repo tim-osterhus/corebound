@@ -26,11 +26,14 @@ class DarkFactoryDispatchFreightLockdownTests(unittest.TestCase):
               release: first.campaign.release,
               freightRelease: first.freight.release,
               railRelease: first.railSabotage.release,
+              crisisRelease: first.crisisArbitration.release,
               campaignFreightRelease: campaign.freight.release,
+              campaignCrisisRelease: campaign.crisisArbitration.release,
               campaignRailStatus: campaign.railSabotage.status,
               manifestCount: game.GAME_DATA.freightLockdown.manifests.length,
               inspectionJob: game.GAME_DATA.jobTypes.find((job) => job.id === "inspect-cargo-seals"),
               firstManifest: firstFreight.manifests.find((manifest) => manifest.id === "ashline-spare-crates"),
+              crisisCase: campaign.crisisArbitration.cases.find((caseState) => caseState.id === "ashline-dock-priority"),
               futureManifest: firstFreight.manifests.find((manifest) => manifest.id === "blackout-relay-carrier"),
               inspectionQueue: first.queue.filter((entry) => entry.freightDirective),
               secondManifest: secondFreight.manifests.find((manifest) => manifest.id === "blackout-relay-carrier"),
@@ -41,7 +44,9 @@ class DarkFactoryDispatchFreightLockdownTests(unittest.TestCase):
         self.assertEqual("v0.4.0 Freight Lockdown", result["release"])
         self.assertEqual("v0.4.0 Freight Lockdown", result["freightRelease"])
         self.assertEqual("v0.5.0 Rail Sabotage", result["railRelease"])
+        self.assertEqual("v0.6.0 Crisis Arbitration", result["crisisRelease"])
         self.assertEqual("v0.4.0 Freight Lockdown", result["campaignFreightRelease"])
+        self.assertEqual("v0.6.0 Crisis Arbitration", result["campaignCrisisRelease"])
         self.assertEqual("incident-open", result["campaignRailStatus"])
         self.assertGreaterEqual(result["manifestCount"], 2)
         self.assertEqual("freight", result["inspectionJob"]["family"])
@@ -59,6 +64,8 @@ class DarkFactoryDispatchFreightLockdownTests(unittest.TestCase):
         self.assertTrue(result["inspectionQueue"])
         self.assertEqual("inspect-cargo-seals", result["inspectionQueue"][0]["jobTypeId"])
         self.assertEqual("ashline-spare-crates", result["inspectionQueue"][0]["sourceFreightId"])
+        self.assertEqual("ashline-spare-crates", result["crisisCase"]["linked"]["manifestId"])
+        self.assertEqual("scheduled", result["crisisCase"]["status"])
         self.assertEqual("pending", result["futureManifest"]["status"])
 
         second_manifest = result["secondManifest"]

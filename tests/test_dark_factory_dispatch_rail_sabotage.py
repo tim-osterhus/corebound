@@ -17,6 +17,7 @@ class DarkFactoryDispatchRailSabotageTests(unittest.TestCase):
             first = game.stepFactory(first, 2);
             const firstRail = game.railSabotageSurfaceState(first);
             const firstFreight = game.freightSurfaceState(first);
+            const firstCrisis = game.crisisArbitrationSurfaceState(first);
 
             let second = game.createInitialState({ run: 2, seed: 302, faultsEnabled: false });
             second = game.stepFactory(second, 3);
@@ -29,6 +30,7 @@ class DarkFactoryDispatchRailSabotageTests(unittest.TestCase):
               sweepJob: game.GAME_DATA.jobTypes.find((job) => job.id === "sweep-sabotage-cells"),
               sabotageContract: game.GAME_DATA.contracts.find((contract) => contract.id === "hostile-rail-directive"),
               firstIncident: firstRail.incidents.find((incident) => incident.id === "ashline-rail-spoof"),
+              firstCrisisCase: firstCrisis.cases.find((caseState) => caseState.id === "ashline-dock-priority"),
               firstManifest: firstFreight.manifests.find((manifest) => manifest.id === "ashline-spare-crates"),
               sabotageQueue: first.queue.filter((entry) => entry.sabotageDirective),
               futureIncident: firstRail.incidents.find((incident) => incident.id === "blackout-yard-saboteurs"),
@@ -49,6 +51,8 @@ class DarkFactoryDispatchRailSabotageTests(unittest.TestCase):
         self.assertEqual("forge-line", first_incident["laneId"])
         self.assertEqual("forge-bus", first_incident["sectorId"])
         self.assertEqual("ashline-spare-crates", first_incident["manifestId"])
+        self.assertEqual("ashline-rail-spoof", result["firstCrisisCase"]["linked"]["railIncidentId"])
+        self.assertEqual("scheduled", result["firstCrisisCase"]["status"])
         self.assertEqual({"circuits": 3, "modules": 1}, first_incident["trigger"]["suspectCargo"])
         self.assertEqual(2, first_incident["window"]["opensAtTick"])
         self.assertGreater(first_incident["window"]["closesAtTick"], first_incident["window"]["opensAtTick"])

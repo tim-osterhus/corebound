@@ -18,6 +18,7 @@ class DarkFactoryDispatchSignalBreachTests(unittest.TestCase):
             const breach = game.breachSurfaceState(state);
             const campaign = game.campaignSurfaceState(state);
             const grid = game.gridSurfaceState(state);
+            const crisis = game.crisisArbitrationSurfaceState(state);
 
             console.log(JSON.stringify({
               release: state.campaign.release,
@@ -30,6 +31,7 @@ class DarkFactoryDispatchSignalBreachTests(unittest.TestCase):
               countermeasureQueue: breach.queue.filter((entry) => entry.breachDirective),
               contaminatedSectors: breach.sectors.filter((sector) => sector.breach.status === "contaminated"),
               campaignBreachStatus: campaign.breach.status,
+              crisisCase: crisis.cases.find((caseState) => caseState.id === "ashline-dock-priority"),
               campaignRailPressure: campaign.railSabotage.pressure,
               gridBreachSectors: grid.sectors.filter((sector) => sector.breach.status === "contaminated"),
               gridPressure: grid.pressure,
@@ -50,6 +52,8 @@ class DarkFactoryDispatchSignalBreachTests(unittest.TestCase):
         self.assertEqual("compile-countermeasures", result["countermeasureQueue"][0]["jobTypeId"])
         self.assertEqual(["assembly-bus"], [sector["id"] for sector in result["contaminatedSectors"]])
         self.assertEqual("active", result["campaignBreachStatus"])
+        self.assertEqual("spoofed-dispatch-uplink", result["crisisCase"]["linked"]["breachSourceId"])
+        self.assertEqual("scheduled", result["crisisCase"]["status"])
         self.assertGreaterEqual(result["campaignRailPressure"], 1)
         self.assertEqual(["assembly-bus"], [sector["id"] for sector in result["gridBreachSectors"]])
         self.assertGreaterEqual(result["gridPressure"], 1)

@@ -108,6 +108,8 @@ class DarkFactoryDispatchPressureLoopTests(unittest.TestCase):
               resetPurchased: reset.upgrades.purchased,
               resetThroughput: resetLane.throughput,
               resetJamRisk: resetLane.jamRisk,
+              resetCrisisRelease: reset.crisisArbitration.release,
+              resetCrisisCaseCount: game.crisisArbitrationSurfaceState(reset).cases.length,
             }));
             """
         )
@@ -119,6 +121,8 @@ class DarkFactoryDispatchPressureLoopTests(unittest.TestCase):
         self.assertEqual(["lane-overclock", "fault-guards"], result["resetPurchased"])
         self.assertEqual(result["currentThroughput"], result["resetThroughput"])
         self.assertEqual(result["currentJamRisk"], result["resetJamRisk"])
+        self.assertEqual("v0.6.0 Crisis Arbitration", result["resetCrisisRelease"])
+        self.assertGreaterEqual(result["resetCrisisCaseCount"], 2)
 
     def test_ui_styles_expose_pressure_recovery_and_upgrade_states(self) -> None:
         html = (GAME_DIR / "index.html").read_text(encoding="utf-8")

@@ -561,6 +561,152 @@ const DarkFactoryDispatch = (() => {
         },
       ],
     },
+    crisisArbitration: {
+      release: "v0.6.0 Crisis Arbitration",
+      override: {
+        cost: { reputation: 1 },
+        extensionTicks: 3,
+        rulingScore: 2,
+        gridPressure: 1,
+      },
+      defer: {
+        cost: { stability: 3 },
+        extensionTicks: 2,
+        pressure: 1,
+      },
+      laneProtection: {
+        cost: { power: 1, defenses: 1 },
+        guardScore: 2,
+        gridPressure: 1,
+      },
+      evidenceSources: {
+        queue: {
+          name: "Queue Policy Ledger",
+          cost: { circuits: 1 },
+          score: 1,
+        },
+        lane: {
+          name: "Lane Access Trace",
+          cost: { power: 1 },
+          score: 1,
+        },
+        grid: {
+          name: "Grid Routing Brief",
+          cost: { power: 1 },
+          score: 2,
+        },
+        breach: {
+          name: "Breach Signal Chain",
+          cost: { circuits: 1 },
+          score: 2,
+        },
+        freight: {
+          name: "Freight Custody File",
+          cost: { scrap: 2 },
+          score: 2,
+        },
+        rail: {
+          name: "Rail Sabotage Affidavit",
+          cost: { drones: 1 },
+          score: 2,
+        },
+      },
+      rulings: {
+        "grid-first": {
+          name: "Grid First",
+          priority: "grid",
+          pressureRelief: 3,
+          reward: { stability: 3 },
+          partialPenalty: { stability: -2 },
+          failurePenalty: { stability: -7, reputation: -1 },
+        },
+        "freight-first": {
+          name: "Freight First",
+          priority: "freight",
+          integrityGuard: 10,
+          riskRelief: 2,
+          reward: { reputation: 1, stability: 2 },
+          partialPenalty: { stability: -3 },
+          failurePenalty: { stability: -8, reputation: -1 },
+        },
+        "breach-first": {
+          name: "Breach First",
+          priority: "breach",
+          intensityRelief: 3,
+          reward: { reputation: 1, stability: 3 },
+          partialPenalty: { stability: -3 },
+          failurePenalty: { stability: -9, power: -1 },
+        },
+        "rail-first": {
+          name: "Rail First",
+          priority: "rail",
+          sabotageRelief: 3,
+          reward: { reputation: 1, stability: 2 },
+          partialPenalty: { stability: -4 },
+          failurePenalty: { stability: -9, reputation: -1 },
+        },
+      },
+      cases: [
+        {
+          id: "ashline-dock-priority",
+          name: "Ashline Dock Priority Docket",
+          availableShift: 1,
+          window: { opensAtTick: 4, closesAtTick: 12 },
+          rulingTicks: 5,
+          linked: {
+            laneId: "forge-line",
+            sectorId: "forge-bus",
+            breachSourceId: "spoofed-dispatch-uplink",
+            manifestId: "ashline-spare-crates",
+            railIncidentId: "ashline-rail-spoof",
+            contractId: "perimeter-grid",
+            dockId: "dock-alpha",
+          },
+          evidenceRequired: ["queue", "lane", "grid", "breach", "freight", "rail"],
+          minimumEvidence: 4,
+          bindingScore: 10,
+          partialScore: 6,
+          priorityOrder: ["grid-first", "freight-first", "rail-first", "breach-first"],
+          reward: { reputation: 1, stability: 3 },
+          partialPenalty: { stability: -3 },
+          failurePenalty: { stability: -8, reputation: -1 },
+          integrityDamage: 12,
+          gridPressure: 2,
+          breachIntensity: 1,
+          sabotagePressure: 2,
+          scarValue: 2,
+        },
+        {
+          id: "blackout-yard-jurisdiction",
+          name: "Blackout Yard Jurisdiction Docket",
+          availableShift: 2,
+          window: { opensAtTick: 4, closesAtTick: 11 },
+          rulingTicks: 4,
+          linked: {
+            laneId: "clean-room",
+            sectorId: "clean-bus",
+            breachSourceId: "audit-ghost-carrier",
+            manifestId: "blackout-relay-carrier",
+            railIncidentId: "blackout-yard-saboteurs",
+            contractId: "signal-firewall",
+            dockId: "dock-beta",
+          },
+          evidenceRequired: ["queue", "lane", "grid", "breach", "freight", "rail"],
+          minimumEvidence: 5,
+          bindingScore: 11,
+          partialScore: 7,
+          priorityOrder: ["breach-first", "rail-first", "freight-first", "grid-first"],
+          reward: { reputation: 2, power: 1, stability: 2 },
+          partialPenalty: { stability: -4 },
+          failurePenalty: { stability: -10, power: -1 },
+          integrityDamage: 18,
+          gridPressure: 3,
+          breachIntensity: 2,
+          sabotagePressure: 3,
+          scarValue: 3,
+        },
+      ],
+    },
     campaign: {
       release: "v0.4.0 Freight Lockdown",
       shifts: [
@@ -633,6 +779,16 @@ const DarkFactoryDispatch = (() => {
       return "none";
     }
     return keys.map((key) => `${key} ${bundle[key]}`).join(" / ");
+  }
+
+  function combineBundles(...bundles) {
+    const combined = {};
+    bundles.forEach((bundle) => {
+      Object.entries(bundle || {}).forEach(([resource, amount]) => {
+        combined[resource] = (combined[resource] || 0) + amount;
+      });
+    });
+    return combined;
   }
 
   function iconMarkup(src, className = "asset-icon") {
@@ -726,6 +882,10 @@ const DarkFactoryDispatch = (() => {
 
   function railSabotageIncidentDefinition(incidentId) {
     return byId(GAME_DATA.railSabotage.incidents, incidentId);
+  }
+
+  function crisisCaseDefinition(caseId) {
+    return byId(GAME_DATA.crisisArbitration.cases, caseId);
   }
 
   function selectBreachSource(campaign) {
@@ -1086,6 +1246,98 @@ const DarkFactoryDispatch = (() => {
     };
   }
 
+  function createCrisisArbitrationState(campaign, options = {}) {
+    const incoming = options.campaign || {};
+    const carryover = incoming.crisisArbitrationCarryover || {};
+    const arbitrationScar = Math.max(0, carryover.arbitrationScar || 0);
+    const failedCases = Array.isArray(carryover.failedCases) ? carryover.failedCases.slice() : [];
+    const disputedLanes = Array.isArray(carryover.disputedLanes) ? carryover.disputedLanes.slice() : [];
+    return {
+      release: GAME_DATA.crisisArbitration.release,
+      status: arbitrationScar > 0 ? "scarred" : "ready",
+      pressure: arbitrationScar,
+      outcomes: {
+        binding: 0,
+        partial: 0,
+        failed: 0,
+      },
+      choices: {
+        evidenceAssignments: 0,
+        gridFirstRulings: 0,
+        freightFirstRulings: 0,
+        breachFirstRulings: 0,
+        railFirstRulings: 0,
+        emergencyOverrides: 0,
+        deferrals: 0,
+        laneProtections: 0,
+      },
+      carryover: {
+        arbitrationScar,
+        failedCases,
+        disputedLanes,
+        overridesSpent: Math.max(0, carryover.overridesSpent || 0),
+        bindingRulings: Math.max(0, carryover.bindingRulings || 0),
+      },
+      cases: GAME_DATA.crisisArbitration.cases.map((caseDefinition) => {
+        const shiftReady = campaign.shift >= caseDefinition.availableShift;
+        const scarCompression = Math.min(2, arbitrationScar);
+        return {
+          id: caseDefinition.id,
+          name: caseDefinition.name,
+          availableShift: caseDefinition.availableShift,
+          status: failedCases.includes(caseDefinition.id) ? "scarred" : shiftReady ? "scheduled" : "pending",
+          outcome: null,
+          openedAtTick: null,
+          resolvedAtTick: null,
+          dueTick: null,
+          window: {
+            opensAtTick: caseDefinition.window.opensAtTick,
+            closesAtTick: Math.max(
+              caseDefinition.window.opensAtTick + 3,
+              caseDefinition.window.closesAtTick - scarCompression
+            ),
+          },
+          rulingTicks: Math.max(3, caseDefinition.rulingTicks - scarCompression),
+          linked: clone(caseDefinition.linked),
+          evidence: {
+            required: caseDefinition.evidenceRequired.slice(),
+            minimum: caseDefinition.minimumEvidence,
+            assigned: [],
+            rejected: [],
+            score: 0,
+          },
+          priorityOrder: caseDefinition.priorityOrder.slice(),
+          ruling: {
+            status: "unruled",
+            priority: null,
+            outcome: null,
+            binding: false,
+            score: 0,
+            reason: null,
+          },
+          override: {
+            spent: false,
+            spentAtTick: null,
+            extensionTicks: 0,
+            score: 0,
+          },
+          deferrals: 0,
+          protection: {
+            laneGuarded: disputedLanes.includes(caseDefinition.linked.laneId),
+            guardedAtTick: null,
+            score: disputedLanes.includes(caseDefinition.linked.laneId) ? 1 : 0,
+          },
+          pressure: {
+            base: Math.max(1, 2 + Math.max(0, campaign.demand - 1) + Math.min(3, arbitrationScar)),
+            current: Math.max(1, 2 + Math.max(0, campaign.demand - 1) + Math.min(3, arbitrationScar)),
+          },
+          events: [],
+        };
+      }),
+      history: [],
+    };
+  }
+
   function applyGridCarryoverResources(resources, grid) {
     if (!grid || !grid.carryover) {
       return;
@@ -1120,6 +1372,15 @@ const DarkFactoryDispatch = (() => {
     resources.stability -= railSabotage.carryover.sabotageScar || 0;
     resources.power -= Math.min(2, railSabotage.carryover.damagedLanes.length || 0);
     resources.reputation -= Math.min(2, railSabotage.carryover.tamperedCargo || 0);
+    clampResourceFloor(resources);
+  }
+
+  function applyCrisisArbitrationCarryoverResources(resources, crisisArbitration) {
+    if (!crisisArbitration || !crisisArbitration.carryover) {
+      return;
+    }
+    resources.stability -= crisisArbitration.carryover.arbitrationScar || 0;
+    resources.reputation -= Math.min(2, crisisArbitration.carryover.failedCases.length || 0);
     clampResourceFloor(resources);
   }
 
@@ -1198,6 +1459,14 @@ const DarkFactoryDispatch = (() => {
         sabotageInterceptions: 0,
         sabotageLaneRepairs: 0,
         sabotageCarrierReroutes: 0,
+        crisisEvidenceAssignments: 0,
+        crisisGridFirstRulings: 0,
+        crisisFreightFirstRulings: 0,
+        crisisBreachFirstRulings: 0,
+        crisisRailFirstRulings: 0,
+        crisisEmergencyOverrides: 0,
+        crisisDeferrals: 0,
+        crisisLaneProtections: 0,
       },
     };
   }
@@ -1289,12 +1558,14 @@ const DarkFactoryDispatch = (() => {
     const breach = createBreachState(campaign, options);
     const freight = createFreightState(campaign, options, purchased);
     const railSabotage = createRailSabotageState(campaign, options, purchased);
+    const crisisArbitration = createCrisisArbitrationState(campaign, options);
     const resources = baseResources();
     applyBundle(resources, upgradeEffects.startResources, 1);
     applyGridCarryoverResources(resources, grid);
     applyBreachCarryoverResources(resources, breach);
     applyFreightCarryoverResources(resources, freight);
     applyRailSabotageCarryoverResources(resources, railSabotage);
+    applyCrisisArbitrationCarryoverResources(resources, crisisArbitration);
     const state = {
       tick: 0,
       seed,
@@ -1306,6 +1577,7 @@ const DarkFactoryDispatch = (() => {
       breach,
       freight,
       railSabotage,
+      crisisArbitration,
       lanes: GAME_DATA.lanes.map((lane) => {
         const performance = lanePerformance(lane, upgradeEffects, null, gridEffectForLane(grid, lane.id));
         return {
@@ -2876,6 +3148,751 @@ const DarkFactoryDispatch = (() => {
     return withLog(next, `${incident.name} lane sabotage repaired.`);
   }
 
+  function crisisCaseState(state, caseId) {
+    return state.crisisArbitration && Array.isArray(state.crisisArbitration.cases)
+      ? byId(state.crisisArbitration.cases, caseId)
+      : null;
+  }
+
+  function crisisCaseStatusTerminal(caseState) {
+    return caseState && ["binding", "partial", "failed"].includes(caseState.status);
+  }
+
+  function crisisCaseActionable(caseState) {
+    return caseState && ["open", "evidence-ready", "deferred", "protected"].includes(caseState.status);
+  }
+
+  function crisisLinkedState(state, caseState) {
+    const links = caseState ? caseState.linked : {};
+    return {
+      lane: byId(state.lanes, links.laneId),
+      sector: gridSectorState(state, links.sectorId),
+      source: links.breachSourceId ? breachSourceDefinition(links.breachSourceId) : null,
+      manifest: freightManifestState(state, links.manifestId),
+      incident: railSabotageIncidentState(state, links.railIncidentId),
+      contract: byId(state.contracts, links.contractId),
+    };
+  }
+
+  function crisisPriorityChoiceCounter(priorityId) {
+    return {
+      "grid-first": "gridFirstRulings",
+      "freight-first": "freightFirstRulings",
+      "breach-first": "breachFirstRulings",
+      "rail-first": "railFirstRulings",
+    }[priorityId] || null;
+  }
+
+  function campaignCrisisPriorityChoiceCounter(priorityId) {
+    return {
+      "grid-first": "crisisGridFirstRulings",
+      "freight-first": "crisisFreightFirstRulings",
+      "breach-first": "crisisBreachFirstRulings",
+      "rail-first": "crisisRailFirstRulings",
+    }[priorityId] || null;
+  }
+
+  function crisisEvidenceProfile(state, caseState, sourceId) {
+    const source = GAME_DATA.crisisArbitration.evidenceSources[sourceId];
+    const linked = crisisLinkedState(state, caseState);
+    const detail = [];
+    let score = source ? source.score : 0;
+    if (sourceId === "queue") {
+      const heldEntries = state.queue.filter((entry) => entry.status === "held").length;
+      const directiveEntries = state.queue.filter((entry) => (
+        entry.gridDirective || entry.breachDirective || entry.freightDirective || entry.sabotageDirective || entry.emergency
+      )).length;
+      if (state.campaign.queuePolicy === "emergency-first") {
+        score += 1;
+      }
+      if (heldEntries > 0) {
+        score += 1;
+      }
+      if (directiveEntries > 0) {
+        score += 1;
+      }
+      detail.push(`${state.campaign.queuePolicy} queue`, `${heldEntries} held`, `${directiveEntries} directive`);
+    }
+    if (sourceId === "lane") {
+      if (linked.lane && laneGridAvailable(state, linked.lane)) {
+        score += 1;
+      }
+      if (linked.lane && linked.lane.overdrive && linked.lane.overdrive.active) {
+        score += 1;
+      }
+      if (linked.lane && linked.lane.gridLock) {
+        score -= 1;
+        detail.push(`locked ${linked.lane.gridLock.reason}`);
+      }
+      detail.push(linked.lane ? linked.lane.status : "lane missing");
+    }
+    if (sourceId === "grid") {
+      if (linked.sector && linked.sector.route === "priority") {
+        score += 2;
+      }
+      if (linked.sector && linked.sector.isolated) {
+        score += 1;
+      }
+      if (linked.sector && linked.sector.reserveDraws > 0) {
+        score += 1;
+      }
+      if (state.grid && state.grid.audit.status === "active") {
+        score += 1;
+      }
+      detail.push(linked.sector ? `${linked.sector.route} route` : "sector missing");
+    }
+    if (sourceId === "breach") {
+      const sectorBreach = linked.sector && linked.sector.breach ? linked.sector.breach.status : "clean";
+      if (state.breach && ["active", "escaped", "contained"].includes(state.breach.status)) {
+        score += 1;
+      }
+      if (["contaminated", "quarantined", "scarred"].includes(sectorBreach)) {
+        score += 1;
+      }
+      if (state.breach && (
+        state.breach.choices.cleanses
+        || state.breach.choices.quarantines
+        || state.breach.choices.traces
+        || state.breach.choices.countermeasureJobs
+      )) {
+        score += 1;
+      }
+      detail.push(state.breach ? state.breach.status : "breach missing", `sector ${sectorBreach}`);
+    }
+    if (sourceId === "freight") {
+      if (linked.manifest && ["staged", "sealed", "enroute", "complete", "partial"].includes(linked.manifest.status)) {
+        score += 2;
+      } else if (linked.manifest && linked.manifest.status === "available") {
+        score += 1;
+      }
+      if (linked.manifest && Object.keys(linked.manifest.cargo.staged || {}).length) {
+        score += 1;
+      }
+      if (linked.manifest && linked.manifest.security && (
+        linked.manifest.security.drones
+        || linked.manifest.security.defenses
+        || linked.manifest.security.reserveClearance
+        || linked.manifest.route.rerouted
+      )) {
+        score += 1;
+      }
+      detail.push(linked.manifest ? linked.manifest.status : "manifest missing");
+    }
+    if (sourceId === "rail") {
+      if (linked.incident && linked.incident.scan.status === "complete") {
+        score += 2;
+      }
+      if (linked.incident && (linked.incident.patrol.drones || linked.incident.patrol.defenses)) {
+        score += 1;
+      }
+      if (linked.incident && linked.incident.dock.locked) {
+        score += 1;
+      }
+      if (linked.incident && linked.incident.outcome === "contained") {
+        score += 2;
+      }
+      detail.push(linked.incident ? linked.incident.status : "incident missing");
+    }
+    return {
+      score: Math.max(0, score),
+      detail: detail.join(" / ") || "baseline",
+    };
+  }
+
+  function refreshCrisisCasePressureInPlace(state, caseState) {
+    if (!caseState || crisisCaseStatusTerminal(caseState)) {
+      return 0;
+    }
+    const linked = crisisLinkedState(state, caseState);
+    let pressure = caseState.pressure.base;
+    if (state.campaign.queuePolicy === "emergency-first" && hasActiveEmergency(state)) {
+      pressure += 1;
+    }
+    if (linked.lane && linked.lane.overdrive && linked.lane.overdrive.active) {
+      pressure += 1;
+    }
+    if (linked.lane && linked.lane.gridLock) {
+      pressure += 1;
+    }
+    if (linked.sector && (linked.sector.isolated || !linked.sector.powered)) {
+      pressure += 1;
+    }
+    if (state.grid && state.grid.pressure >= Math.max(5, state.grid.threshold - 3)) {
+      pressure += 1;
+    }
+    if (state.breach && ["active", "escaped"].includes(state.breach.status)) {
+      pressure += 1;
+    }
+    if (linked.manifest && ["sealed", "enroute"].includes(linked.manifest.status)) {
+      pressure += 1;
+    }
+    if (linked.incident && railSabotageIncidentActionable(linked.incident)) {
+      pressure += 1;
+    }
+    pressure -= Math.floor(caseState.evidence.score / 3);
+    pressure -= caseState.protection.score || 0;
+    caseState.pressure.current = Math.max(0, pressure);
+    return caseState.pressure.current;
+  }
+
+  function refreshCrisisArbitrationPressureInPlace(state) {
+    if (!state.crisisArbitration) {
+      return;
+    }
+    const activePressure = state.crisisArbitration.cases.reduce((total, caseState) => (
+      crisisCaseActionable(caseState) ? total + refreshCrisisCasePressureInPlace(state, caseState) : total
+    ), 0);
+    state.crisisArbitration.pressure = Math.max(
+      0,
+      (state.crisisArbitration.carryover.arbitrationScar || 0) + activePressure
+    );
+  }
+
+  function refreshCrisisArbitrationStatusInPlace(state) {
+    if (!state.crisisArbitration) {
+      return;
+    }
+    if (state.crisisArbitration.cases.some((caseState) => caseState.status === "failed")) {
+      state.crisisArbitration.status = "scarred";
+    } else if (state.crisisArbitration.cases.some((caseState) => crisisCaseActionable(caseState))) {
+      state.crisisArbitration.status = "docket-open";
+    } else if (state.crisisArbitration.outcomes.binding > 0) {
+      state.crisisArbitration.status = "ruled";
+    } else if (state.crisisArbitration.carryover.arbitrationScar > 0) {
+      state.crisisArbitration.status = "scarred";
+    } else {
+      state.crisisArbitration.status = "ready";
+    }
+  }
+
+  function openCrisisCasesInPlace(state) {
+    if (!state.crisisArbitration) {
+      return;
+    }
+    state.crisisArbitration.cases.forEach((caseState) => {
+      if (state.campaign.shift < caseState.availableShift) {
+        return;
+      }
+      if (caseState.status === "pending") {
+        caseState.status = "scheduled";
+      }
+      if (caseState.status !== "scheduled" || state.tick < caseState.window.opensAtTick) {
+        return;
+      }
+      caseState.status = "open";
+      caseState.openedAtTick = state.tick;
+      caseState.dueTick = Math.min(caseState.window.closesAtTick, state.tick + caseState.rulingTicks);
+      refreshCrisisCasePressureInPlace(state, caseState);
+      caseState.events.unshift({
+        tick: state.tick,
+        event: "case-opened",
+        dueTick: caseState.dueTick,
+        pressure: caseState.pressure.current,
+      });
+      state.crisisArbitration.history.unshift({
+        tick: state.tick,
+        event: "case-opened",
+        caseId: caseState.id,
+        dueTick: caseState.dueTick,
+      });
+      state.log.unshift({ tick: state.tick, message: `${caseState.name} arbitration docket opened; ruling due t${caseState.dueTick}.` });
+    });
+  }
+
+  function releaseCrisisArbitrationLocks(state) {
+    state.lanes.forEach((lane) => {
+      if (
+        !lane.gridLock
+        || lane.gridLock.reason !== "crisis-arbitration"
+        || lane.gridLock.untilTick === null
+        || state.tick < lane.gridLock.untilTick
+      ) {
+        return;
+      }
+      restoreLaneGridLock(lane, "crisis-arbitration");
+      state.log.unshift({ tick: state.tick, message: `${lane.name} arbitration hold released.` });
+    });
+  }
+
+  function assignCrisisEvidence(state, caseId, sourceId) {
+    const next = clone(state);
+    const caseState = crisisCaseState(next, caseId);
+    const source = GAME_DATA.crisisArbitration.evidenceSources[sourceId];
+    if (!crisisCaseActionable(caseState)) {
+      return withLog(next, "No open arbitration case can accept evidence.");
+    }
+    if (!source || !caseState.evidence.required.includes(sourceId)) {
+      return withLog(next, "Unknown arbitration evidence source.");
+    }
+    if (caseState.evidence.assigned.some((entry) => entry.sourceId === sourceId)) {
+      return withLog(next, `${caseState.name} already has ${source.name}.`);
+    }
+    if (!canPay(next.resources, source.cost)) {
+      return withLog(next, `${caseState.name} evidence lacks ${formatBundle(source.cost)}.`);
+    }
+    applyBundle(next.resources, source.cost, -1);
+    const profile = crisisEvidenceProfile(next, caseState, sourceId);
+    caseState.evidence.assigned.push({
+      sourceId,
+      name: source.name,
+      score: profile.score,
+      detail: profile.detail,
+      tick: next.tick,
+    });
+    caseState.evidence.score += profile.score;
+    caseState.status = caseState.evidence.assigned.length >= caseState.evidence.minimum
+      ? "evidence-ready"
+      : "open";
+    caseState.events.unshift({ tick: next.tick, event: "evidence-assigned", sourceId, score: profile.score });
+    next.crisisArbitration.choices.evidenceAssignments += 1;
+    next.campaign.choices.crisisEvidenceAssignments += 1;
+    refreshCrisisCasePressureInPlace(next, caseState);
+    refreshCrisisArbitrationPressureInPlace(next);
+    refreshCrisisArbitrationStatusInPlace(next);
+    return withLog(next, `${caseState.name} evidence assigned: ${source.name}.`);
+  }
+
+  function buyCrisisEmergencyOverride(state, caseId) {
+    const next = clone(state);
+    const caseState = crisisCaseState(next, caseId);
+    const override = GAME_DATA.crisisArbitration.override;
+    if (!crisisCaseActionable(caseState)) {
+      return withLog(next, "No open arbitration case can receive an override.");
+    }
+    if (caseState.override.spent) {
+      return withLog(next, `${caseState.name} emergency override already spent.`);
+    }
+    if (!canPay(next.resources, override.cost)) {
+      return withLog(next, `${caseState.name} override lacks ${formatBundle(override.cost)}.`);
+    }
+    applyBundle(next.resources, override.cost, -1);
+    caseState.override.spent = true;
+    caseState.override.spentAtTick = next.tick;
+    caseState.override.extensionTicks = override.extensionTicks;
+    caseState.override.score = override.rulingScore;
+    caseState.dueTick += override.extensionTicks;
+    caseState.window.closesAtTick += override.extensionTicks;
+    if (next.grid) {
+      next.grid.pressure += override.gridPressure;
+    }
+    next.crisisArbitration.carryover.overridesSpent += 1;
+    next.crisisArbitration.choices.emergencyOverrides += 1;
+    next.campaign.choices.crisisEmergencyOverrides += 1;
+    caseState.events.unshift({ tick: next.tick, event: "emergency-override", dueTick: caseState.dueTick });
+    refreshCrisisCasePressureInPlace(next, caseState);
+    refreshCrisisArbitrationPressureInPlace(next);
+    return withLog(next, `${caseState.name} emergency override bought; ruling due t${caseState.dueTick}.`);
+  }
+
+  function deferCrisisCase(state, caseId) {
+    const next = clone(state);
+    const caseState = crisisCaseState(next, caseId);
+    const defer = GAME_DATA.crisisArbitration.defer;
+    if (!crisisCaseActionable(caseState)) {
+      return withLog(next, "No open arbitration case can be deferred.");
+    }
+    if (!canPay(next.resources, defer.cost)) {
+      return withLog(next, `${caseState.name} deferral lacks ${formatBundle(defer.cost)}.`);
+    }
+    applyBundle(next.resources, defer.cost, -1);
+    caseState.deferrals += 1;
+    caseState.dueTick += defer.extensionTicks;
+    caseState.window.closesAtTick += defer.extensionTicks;
+    caseState.pressure.base += defer.pressure;
+    caseState.status = caseState.evidence.assigned.length >= caseState.evidence.minimum ? "evidence-ready" : "deferred";
+    next.crisisArbitration.choices.deferrals += 1;
+    next.campaign.choices.crisisDeferrals += 1;
+    caseState.events.unshift({ tick: next.tick, event: "case-deferred", dueTick: caseState.dueTick });
+    refreshCrisisCasePressureInPlace(next, caseState);
+    refreshCrisisArbitrationPressureInPlace(next);
+    refreshCrisisArbitrationStatusInPlace(next);
+    return withLog(next, `${caseState.name} arbitration deferred to t${caseState.dueTick}.`);
+  }
+
+  function protectCrisisLane(state, caseId) {
+    const next = clone(state);
+    const caseState = crisisCaseState(next, caseId);
+    const protection = GAME_DATA.crisisArbitration.laneProtection;
+    if (!crisisCaseActionable(caseState)) {
+      return withLog(next, "No open arbitration case can protect a lane.");
+    }
+    if (caseState.protection.laneGuarded) {
+      return withLog(next, `${caseState.name} lane already protected.`);
+    }
+    if (!canPay(next.resources, protection.cost)) {
+      return withLog(next, `${caseState.name} lane protection lacks ${formatBundle(protection.cost)}.`);
+    }
+    applyBundle(next.resources, protection.cost, -1);
+    const linked = crisisLinkedState(next, caseState);
+    caseState.protection.laneGuarded = true;
+    caseState.protection.guardedAtTick = next.tick;
+    caseState.protection.score += protection.guardScore;
+    if (linked.lane) {
+      linked.lane.crisisProtection = {
+        caseId: caseState.id,
+        startedAtTick: next.tick,
+      };
+    }
+    if (linked.sector) {
+      linked.sector.powered = true;
+    }
+    if (next.grid) {
+      next.grid.pressure += protection.gridPressure;
+    }
+    next.crisisArbitration.choices.laneProtections += 1;
+    next.campaign.choices.crisisLaneProtections += 1;
+    caseState.status = "protected";
+    caseState.events.unshift({ tick: next.tick, event: "lane-protected", laneId: caseState.linked.laneId });
+    refreshCrisisCasePressureInPlace(next, caseState);
+    refreshCrisisArbitrationPressureInPlace(next);
+    refreshCrisisArbitrationStatusInPlace(next);
+    return withLog(next, `${caseState.name} protected ${titleCase(caseState.linked.laneId)} under dispute.`);
+  }
+
+  function crisisPriorityReadinessScore(state, caseState, priorityId) {
+    const ruling = GAME_DATA.crisisArbitration.rulings[priorityId];
+    const linked = crisisLinkedState(state, caseState);
+    if (!ruling) {
+      return 0;
+    }
+    let score = 0;
+    if (ruling.priority === "grid") {
+      if (linked.sector && linked.sector.route === "priority") {
+        score += 3;
+      }
+      if (linked.sector && linked.sector.reserveDraws > 0) {
+        score += 1;
+      }
+      if (linked.sector && linked.sector.powered && !linked.sector.isolated) {
+        score += 1;
+      }
+      if (state.grid && state.grid.audit.status === "active") {
+        score += 1;
+      }
+    }
+    if (ruling.priority === "freight") {
+      if (linked.manifest && ["staged", "sealed", "enroute"].includes(linked.manifest.status)) {
+        score += 3;
+      } else if (linked.manifest && linked.manifest.status === "available") {
+        score += 1;
+      }
+      if (linked.manifest && linked.manifest.security.integrityGuard > 0) {
+        score += 1;
+      }
+      if (linked.manifest && linked.manifest.route.rerouted) {
+        score += 1;
+      }
+    }
+    if (ruling.priority === "breach") {
+      if (state.breach && ["active", "escaped"].includes(state.breach.status)) {
+        score += 2;
+      }
+      if (linked.sector && linked.sector.breach && ["contaminated", "quarantined"].includes(linked.sector.breach.status)) {
+        score += 2;
+      }
+      if (state.breach && state.breach.trace.status === "active") {
+        score += 1;
+      }
+      if (state.breach && state.breach.trace.status === "resolved") {
+        score += 2;
+      }
+    }
+    if (ruling.priority === "rail") {
+      if (linked.incident && railSabotageIncidentActionable(linked.incident)) {
+        score += 1;
+      }
+      if (linked.incident && linked.incident.scan.status === "complete") {
+        score += 2;
+      }
+      if (linked.incident && (linked.incident.patrol.drones || linked.incident.patrol.defenses)) {
+        score += 1;
+      }
+      if (linked.incident && linked.incident.dock.locked) {
+        score += 1;
+      }
+      if (linked.incident && linked.incident.outcome === "contained") {
+        score += 2;
+      }
+    }
+    return score;
+  }
+
+  function crisisRulingScore(state, caseState, priorityId) {
+    let score = caseState.evidence.score
+      + crisisPriorityReadinessScore(state, caseState, priorityId)
+      + (caseState.protection.score || 0)
+      + (caseState.override.score || 0);
+    if (caseState.evidence.assigned.length < caseState.evidence.minimum) {
+      score -= 2;
+    }
+    if (caseState.dueTick !== null && state.tick > caseState.dueTick) {
+      score -= 1;
+    }
+    return Math.max(0, score);
+  }
+
+  function crisisOutcomeForScore(caseState, score) {
+    const definition = crisisCaseDefinition(caseState.id);
+    if (score >= definition.bindingScore) {
+      return "binding";
+    }
+    if (score >= definition.partialScore) {
+      return "partial";
+    }
+    return "failed";
+  }
+
+  function recordCrisisContractRulingInPlace(state, caseState, priorityId, outcome, score) {
+    const contract = byId(state.contracts, caseState.linked.contractId);
+    if (!contract) {
+      return;
+    }
+    if (!Array.isArray(contract.crisisRulings)) {
+      contract.crisisRulings = [];
+    }
+    contract.crisisRulings.unshift({
+      caseId: caseState.id,
+      priorityId,
+      outcome,
+      score,
+      tick: state.tick,
+    });
+    if (contract.status === "active") {
+      if (outcome === "binding") {
+        contract.timeRemaining += 2;
+      } else if (outcome === "partial") {
+        contract.timeRemaining += 1;
+      } else {
+        contract.timeRemaining = Math.max(0, contract.timeRemaining - 2);
+      }
+    }
+  }
+
+  function applyCrisisPrioritySideEffectsInPlace(state, caseState, priorityId, outcome) {
+    const definition = crisisCaseDefinition(caseState.id);
+    const ruling = GAME_DATA.crisisArbitration.rulings[priorityId];
+    const linked = crisisLinkedState(state, caseState);
+    if (!definition || !ruling) {
+      return {};
+    }
+    const bundle = outcome === "binding"
+      ? combineBundles(definition.reward, ruling.reward)
+      : outcome === "partial"
+        ? combineBundles(definition.partialPenalty, ruling.partialPenalty)
+        : combineBundles(definition.failurePenalty, ruling.failurePenalty);
+    applyBundle(state.resources, bundle, 1);
+    clampResourceFloor(state.resources);
+
+    if (outcome === "binding") {
+      if (ruling.priority === "grid" && linked.sector) {
+        linked.sector.route = "priority";
+        linked.sector.powered = true;
+        if (state.grid) {
+          state.grid.pressure = Math.max(0, state.grid.pressure - ruling.pressureRelief);
+        }
+        refreshSectorLane(state, linked.sector);
+      }
+      if (ruling.priority === "freight" && linked.manifest && !freightStatusTerminal(linked.manifest)) {
+        linked.manifest.security.riskRelief += ruling.riskRelief;
+        linked.manifest.security.integrityGuard += ruling.integrityGuard;
+        linked.manifest.integrity = Math.min(100, linked.manifest.integrity + ruling.integrityGuard);
+        linked.manifest.window.closesAtTick += 1;
+        linked.manifest.events.unshift({ tick: state.tick, event: "arbitration-freight-priority", caseId: caseState.id });
+        refreshFreightRiskInPlace(state, linked.manifest);
+      }
+      if (ruling.priority === "breach" && state.breach) {
+        state.breach.intensity = Math.max(0, state.breach.intensity - ruling.intensityRelief);
+        if (linked.sector && linked.sector.breach && linked.sector.breach.status === "contaminated") {
+          linked.sector.breach.status = "contained";
+        }
+        state.breach.history.unshift({ tick: state.tick, event: "arbitration-breach-priority", caseId: caseState.id });
+      }
+      if (ruling.priority === "rail" && linked.incident) {
+        linked.incident.pressure.mitigation += ruling.sabotageRelief;
+        linked.incident.events.unshift({ tick: state.tick, event: "arbitration-rail-priority", caseId: caseState.id });
+        refreshRailSabotageIncidentPressureInPlace(state, linked.incident);
+      }
+      state.crisisArbitration.carryover.bindingRulings += 1;
+      return bundle;
+    }
+
+    if (outcome === "partial") {
+      if (linked.manifest && !freightStatusTerminal(linked.manifest)) {
+        linked.manifest.integrity = Math.max(0, linked.manifest.integrity - Math.ceil(definition.integrityDamage / 2));
+        linked.manifest.events.unshift({ tick: state.tick, event: "arbitration-partial", caseId: caseState.id });
+      }
+      if (state.grid) {
+        state.grid.pressure += 1;
+      }
+      if (state.breach && ["active", "escaped"].includes(state.breach.status)) {
+        state.breach.intensity += 1;
+      }
+      if (linked.incident) {
+        linked.incident.pressure.base += 1;
+        refreshRailSabotageIncidentPressureInPlace(state, linked.incident);
+      }
+      state.crisisArbitration.carryover.arbitrationScar = Math.min(
+        12,
+        state.crisisArbitration.carryover.arbitrationScar + 1
+      );
+      return bundle;
+    }
+
+    if (linked.manifest && !freightStatusTerminal(linked.manifest)) {
+      linked.manifest.integrity = Math.max(0, linked.manifest.integrity - definition.integrityDamage);
+      linked.manifest.events.unshift({ tick: state.tick, event: "arbitration-failed", caseId: caseState.id });
+    }
+    if (state.grid) {
+      state.grid.pressure += definition.gridPressure;
+    }
+    if (state.breach && ["active", "escaped"].includes(state.breach.status)) {
+      state.breach.intensity += definition.breachIntensity;
+    }
+    if (linked.incident) {
+      linked.incident.pressure.base += definition.sabotagePressure;
+      refreshRailSabotageIncidentPressureInPlace(state, linked.incident);
+    }
+    if (linked.lane && !linked.lane.gridLock) {
+      markLaneGridLocked(linked.lane, "crisis-arbitration", state.tick + 2);
+    }
+    if (linked.sector) {
+      linked.sector.powered = false;
+    }
+    state.crisisArbitration.carryover.arbitrationScar = Math.min(
+      12,
+      state.crisisArbitration.carryover.arbitrationScar + definition.scarValue
+    );
+    if (!state.crisisArbitration.carryover.failedCases.includes(caseState.id)) {
+      state.crisisArbitration.carryover.failedCases.push(caseState.id);
+    }
+    if (!state.crisisArbitration.carryover.disputedLanes.includes(caseState.linked.laneId)) {
+      state.crisisArbitration.carryover.disputedLanes.push(caseState.linked.laneId);
+    }
+    return bundle;
+  }
+
+  function resolveCrisisCaseInPlace(state, caseState, priorityId = null, reason = "timer-expired") {
+    if (!state.crisisArbitration || !crisisCaseActionable(caseState)) {
+      return false;
+    }
+    const selectedPriority = priorityId || caseState.ruling.priority || caseState.priorityOrder[0];
+    const ruling = GAME_DATA.crisisArbitration.rulings[selectedPriority];
+    if (!ruling || !caseState.priorityOrder.includes(selectedPriority)) {
+      return false;
+    }
+    const score = crisisRulingScore(state, caseState, selectedPriority);
+    const outcome = crisisOutcomeForScore(caseState, score);
+    const bundle = applyCrisisPrioritySideEffectsInPlace(state, caseState, selectedPriority, outcome);
+    caseState.status = outcome;
+    caseState.outcome = outcome;
+    caseState.resolvedAtTick = state.tick;
+    caseState.ruling = {
+      status: "resolved",
+      priority: selectedPriority,
+      outcome,
+      binding: outcome === "binding",
+      score,
+      reason,
+    };
+    caseState.events.unshift({
+      tick: state.tick,
+      event: "case-ruled",
+      priorityId: selectedPriority,
+      outcome,
+      score,
+      reason,
+    });
+    state.crisisArbitration.outcomes[outcome] += 1;
+    recordCrisisContractRulingInPlace(state, caseState, selectedPriority, outcome, score);
+    state.crisisArbitration.history.unshift({
+      tick: state.tick,
+      event: "case-ruled",
+      caseId: caseState.id,
+      priorityId: selectedPriority,
+      outcome,
+      score,
+    });
+    refreshCrisisArbitrationPressureInPlace(state);
+    refreshCrisisArbitrationStatusInPlace(state);
+    state.log.unshift({ tick: state.tick, message: `${caseState.name} ${ruling.name} ruling ${outcome}; ${formatBundle(bundle)} applied.` });
+    return true;
+  }
+
+  function emergencyWorkPreemptsCrisisCaseInPlace(state, caseState) {
+    const runningEmergencyLane = state.lanes.find((lane) => (
+      lane.status === "running" && lane.currentJob && lane.currentJob.emergency
+    ));
+    if (
+      !runningEmergencyLane
+    ) {
+      return false;
+    }
+    caseState.dueTick += 1;
+    caseState.window.closesAtTick += 1;
+    caseState.pressure.base += 1;
+    caseState.status = "deferred";
+    caseState.events.unshift({
+      tick: state.tick,
+      event: "emergency-preempted",
+      laneId: runningEmergencyLane.id,
+      dueTick: caseState.dueTick,
+    });
+    state.crisisArbitration.history.unshift({
+      tick: state.tick,
+      event: "emergency-preempted",
+      caseId: caseState.id,
+      laneId: runningEmergencyLane.id,
+      dueTick: caseState.dueTick,
+    });
+    state.log.unshift({ tick: state.tick, message: `${caseState.name} deferred while ${runningEmergencyLane.name} runs emergency work.` });
+    return true;
+  }
+
+  function ruleCrisisCase(state, caseId, priorityId) {
+    const next = clone(state);
+    const caseState = crisisCaseState(next, caseId);
+    if (!crisisCaseActionable(caseState)) {
+      return withLog(next, "No open arbitration case can be ruled.");
+    }
+    if (!caseState.priorityOrder.includes(priorityId) || !GAME_DATA.crisisArbitration.rulings[priorityId]) {
+      return withLog(next, "Unknown arbitration priority ruling.");
+    }
+    const applied = resolveCrisisCaseInPlace(next, caseState, priorityId, "operator-ruling");
+    if (applied) {
+      const crisisCounter = crisisPriorityChoiceCounter(priorityId);
+      const campaignCounter = campaignCrisisPriorityChoiceCounter(priorityId);
+      if (crisisCounter) {
+        next.crisisArbitration.choices[crisisCounter] += 1;
+      }
+      if (campaignCounter) {
+        next.campaign.choices[campaignCounter] += 1;
+      }
+    }
+    return withLog(next, `${caseState.name} priority ruling filed.`);
+  }
+
+  function advanceCrisisArbitrationState(state) {
+    if (!state.crisisArbitration) {
+      return;
+    }
+    releaseCrisisArbitrationLocks(state);
+    openCrisisCasesInPlace(state);
+    state.crisisArbitration.cases.forEach((caseState) => {
+      if (!crisisCaseActionable(caseState)) {
+        return;
+      }
+      refreshCrisisCasePressureInPlace(state, caseState);
+      if (caseState.dueTick !== null && state.tick > caseState.dueTick) {
+        if (emergencyWorkPreemptsCrisisCaseInPlace(state, caseState)) {
+          return;
+        }
+        resolveCrisisCaseInPlace(state, caseState, caseState.ruling.priority, "timer-expired");
+      }
+    });
+    refreshCrisisArbitrationPressureInPlace(state);
+    refreshCrisisArbitrationStatusInPlace(state);
+  }
+
   function activeBreachSource(state) {
     return state.breach ? breachSourceDefinition(state.breach.sourceId) : null;
   }
@@ -3757,6 +4774,7 @@ const DarkFactoryDispatch = (() => {
       advanceGridState(next);
       advanceRailSabotageState(next);
       advanceFreightState(next);
+      advanceCrisisArbitrationState(next);
       next.lanes.forEach((lane) => {
         advanceLaneRecovery(next, lane);
         if (lane.status !== "running" || !lane.currentJob) {
@@ -4196,6 +5214,87 @@ const DarkFactoryDispatch = (() => {
     };
   }
 
+  function crisisArbitrationSurfaceState(state) {
+    const crisisArbitration = state.crisisArbitration;
+    if (!crisisArbitration) {
+      return null;
+    }
+    return {
+      release: crisisArbitration.release,
+      status: crisisArbitration.status,
+      pressure: crisisArbitration.pressure,
+      outcomes: clone(crisisArbitration.outcomes),
+      choices: clone(crisisArbitration.choices),
+      carryover: clone(crisisArbitration.carryover),
+      activeDocket: crisisArbitration.cases
+        .filter((caseState) => crisisCaseActionable(caseState))
+        .map((caseState) => ({
+          id: caseState.id,
+          name: caseState.name,
+          status: caseState.status,
+          dueTick: caseState.dueTick,
+          pressure: caseState.pressure.current,
+          evidenceScore: caseState.evidence.score,
+          assignedEvidence: caseState.evidence.assigned.map((entry) => entry.sourceId),
+          priorityOrder: caseState.priorityOrder.slice(),
+        })),
+      cases: crisisArbitration.cases.map((caseState) => {
+        const definition = crisisCaseDefinition(caseState.id);
+        const linked = crisisLinkedState(state, caseState);
+        return {
+          id: caseState.id,
+          name: caseState.name,
+          availableShift: caseState.availableShift,
+          status: caseState.status,
+          outcome: caseState.outcome,
+          openedAtTick: caseState.openedAtTick,
+          resolvedAtTick: caseState.resolvedAtTick,
+          dueTick: caseState.dueTick,
+          window: clone(caseState.window),
+          rulingTicks: caseState.rulingTicks,
+          linked: {
+            ...clone(caseState.linked),
+            laneStatus: linked.lane ? linked.lane.status : "missing",
+            laneGridLock: linked.lane && linked.lane.gridLock ? clone(linked.lane.gridLock) : null,
+            sectorStatus: linked.sector ? {
+              route: linked.sector.route,
+              isolated: linked.sector.isolated,
+              powered: linked.sector.powered,
+              reserveDraws: linked.sector.reserveDraws,
+              breach: linked.sector.breach ? clone(linked.sector.breach) : cleanBreachSectorState(caseState.linked.sectorId),
+            } : null,
+            breachStatus: state.breach ? state.breach.status : "missing",
+            breachSourceName: linked.source ? linked.source.name : titleCase(caseState.linked.breachSourceId),
+            manifestStatus: linked.manifest ? linked.manifest.status : "missing",
+            manifestIntegrity: linked.manifest ? linked.manifest.integrity : null,
+            railStatus: linked.incident ? linked.incident.status : "missing",
+            railPressure: linked.incident ? clone(linked.incident.pressure) : null,
+            contractStatus: linked.contract ? linked.contract.status : "missing",
+          },
+          evidence: clone(caseState.evidence),
+          priorityOrder: caseState.priorityOrder.slice(),
+          priorityOptions: caseState.priorityOrder.map((priorityId) => ({
+            id: priorityId,
+            name: GAME_DATA.crisisArbitration.rulings[priorityId].name,
+            score: crisisPriorityReadinessScore(state, caseState, priorityId),
+          })),
+          ruling: clone(caseState.ruling),
+          override: clone(caseState.override),
+          deferrals: caseState.deferrals,
+          protection: clone(caseState.protection),
+          pressure: clone(caseState.pressure),
+          bindingScore: definition ? definition.bindingScore : 0,
+          partialScore: definition ? definition.partialScore : 0,
+          reward: definition ? clone(definition.reward) : {},
+          partialPenalty: definition ? clone(definition.partialPenalty) : {},
+          failurePenalty: definition ? clone(definition.failurePenalty) : {},
+          events: caseState.events.slice(0, 6),
+        };
+      }),
+      history: crisisArbitration.history.slice(0, 8),
+    };
+  }
+
   function campaignSurfaceState(state) {
     const campaign = state.campaign;
     const policy = byId(GAME_DATA.campaign.queuePolicies, campaign.queuePolicy) || GAME_DATA.campaign.queuePolicies[0];
@@ -4277,11 +5376,20 @@ const DarkFactoryDispatch = (() => {
         sabotageInterceptions: campaign.choices.sabotageInterceptions,
         sabotageLaneRepairs: campaign.choices.sabotageLaneRepairs,
         sabotageCarrierReroutes: campaign.choices.sabotageCarrierReroutes,
+        crisisEvidenceAssignments: campaign.choices.crisisEvidenceAssignments,
+        crisisGridFirstRulings: campaign.choices.crisisGridFirstRulings,
+        crisisFreightFirstRulings: campaign.choices.crisisFreightFirstRulings,
+        crisisBreachFirstRulings: campaign.choices.crisisBreachFirstRulings,
+        crisisRailFirstRulings: campaign.choices.crisisRailFirstRulings,
+        crisisEmergencyOverrides: campaign.choices.crisisEmergencyOverrides,
+        crisisDeferrals: campaign.choices.crisisDeferrals,
+        crisisLaneProtections: campaign.choices.crisisLaneProtections,
       },
       grid: gridSurfaceState(state),
       breach: breachSurfaceState(state),
       freight: freightSurfaceState(state),
       railSabotage: railSabotageSurfaceState(state),
+      crisisArbitration: crisisArbitrationSurfaceState(state),
     };
   }
 
@@ -4391,6 +5499,47 @@ const DarkFactoryDispatch = (() => {
         previousRailCarryover.containedCells || 0
       ),
     };
+    const previousCrisisCarryover = state.crisisArbitration && state.crisisArbitration.carryover
+      ? state.crisisArbitration.carryover
+      : {};
+    const crisisCases = state.crisisArbitration && Array.isArray(state.crisisArbitration.cases)
+      ? state.crisisArbitration.cases
+      : [];
+    const unresolvedCrisis = crisisCases.filter((caseState) => crisisCaseActionable(caseState));
+    const partialCrisis = crisisCases.filter((caseState) => caseState.outcome === "partial");
+    const failedCrisis = crisisCases.filter((caseState) => caseState.outcome === "failed");
+    const crisisFailedIds = Array.from(new Set([
+      ...(Array.isArray(previousCrisisCarryover.failedCases) ? previousCrisisCarryover.failedCases : []),
+      ...failedCrisis.map((caseState) => caseState.id),
+      ...unresolvedCrisis.map((caseState) => caseState.id),
+    ]));
+    const crisisDisputedLanes = Array.from(new Set([
+      ...(Array.isArray(previousCrisisCarryover.disputedLanes) ? previousCrisisCarryover.disputedLanes : []),
+      ...failedCrisis.map((caseState) => caseState.linked.laneId),
+      ...unresolvedCrisis.map((caseState) => caseState.linked.laneId),
+    ])).slice(0, GAME_DATA.grid.sectors.length);
+    const crisisArbitrationCarryover = {
+      arbitrationScar: Math.min(
+        12,
+        (previousCrisisCarryover.arbitrationScar || 0) + unresolvedCrisis.length
+      ),
+      failedCases: crisisFailedIds.slice(0, GAME_DATA.crisisArbitration.cases.length),
+      disputedLanes: crisisDisputedLanes,
+      overridesSpent: Math.min(
+        24,
+        Math.max(
+          previousCrisisCarryover.overridesSpent || 0,
+          state.crisisArbitration ? state.crisisArbitration.carryover.overridesSpent || 0 : 0
+        )
+      ),
+      bindingRulings: Math.min(
+        24,
+        Math.max(
+          previousCrisisCarryover.bindingRulings || 0,
+          state.crisisArbitration ? state.crisisArbitration.carryover.bindingRulings || 0 : 0
+        )
+      ),
+    };
     ledger.push({
       shift: state.campaign.shift,
       phase: state.campaign.phase,
@@ -4442,6 +5591,20 @@ const DarkFactoryDispatch = (() => {
         })),
         carryover: railSabotageCarryover,
       } : null,
+      crisisArbitration: state.crisisArbitration ? {
+        status: state.crisisArbitration.status,
+        pressure: state.crisisArbitration.pressure,
+        outcomes: clone(state.crisisArbitration.outcomes),
+        cases: crisisCases.map((caseState) => ({
+          id: caseState.id,
+          status: caseState.status,
+          outcome: caseState.outcome,
+          dueTick: caseState.dueTick,
+          evidenceScore: caseState.evidence.score,
+          ruling: clone(caseState.ruling),
+        })),
+        carryover: crisisArbitrationCarryover,
+      } : null,
       finishedAtTick: state.tick,
     });
     return {
@@ -4451,6 +5614,7 @@ const DarkFactoryDispatch = (() => {
       breachCarryover,
       freightCarryover,
       railSabotageCarryover,
+      crisisArbitrationCarryover,
     };
   }
 
@@ -5313,12 +6477,18 @@ const DarkFactoryDispatch = (() => {
     interceptSabotageCell,
     rerouteSabotagedCarrier,
     repairSabotagedLane,
+    assignCrisisEvidence,
+    ruleCrisisCase,
+    buyCrisisEmergencyOverride,
+    deferCrisisCase,
+    protectCrisisLane,
     evaluateContracts,
     maybeActivateEmergencyContracts,
     advanceGridState,
     advanceBreachState,
     advanceFreightState,
     advanceRailSabotageState,
+    advanceCrisisArbitrationState,
     resetFactoryState,
     canPay,
     applyBundle,
@@ -5327,6 +6497,7 @@ const DarkFactoryDispatch = (() => {
     breachSurfaceState,
     freightSurfaceState,
     railSabotageSurfaceState,
+    crisisArbitrationSurfaceState,
     campaignSurfaceState,
   };
 

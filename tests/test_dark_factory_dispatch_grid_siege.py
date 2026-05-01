@@ -20,6 +20,7 @@ class DarkFactoryDispatchGridSiegeTests(unittest.TestCase):
             state = game.startAllLanes(state);
             state = game.stepFactory(state, 5);
             const surface = game.gridSurfaceState(state);
+            const crisis = game.crisisArbitrationSurfaceState(state);
 
             console.log(JSON.stringify({
               release: state.campaign.release,
@@ -36,6 +37,8 @@ class DarkFactoryDispatchGridSiegeTests(unittest.TestCase):
               lockedSectors: surface.sectors.filter((sector) => sector.blackoutLockedUntil !== null),
               railPressure: game.railSabotageSurfaceState(state).pressure,
               railOpenIncidents: game.railSabotageSurfaceState(state).incidents.filter((incident) => incident.status === "available").length,
+              crisisGridCase: crisis.cases.find((caseState) => caseState.id === "blackout-yard-jurisdiction"),
+              crisisPressure: crisis.pressure,
               pressure: surface.pressure,
               load: surface.load,
             }));
@@ -53,6 +56,9 @@ class DarkFactoryDispatchGridSiegeTests(unittest.TestCase):
         self.assertTrue(result["lockedSectors"])
         self.assertGreaterEqual(result["railPressure"], 1)
         self.assertGreaterEqual(result["railOpenIncidents"], 1)
+        self.assertEqual("clean-bus", result["crisisGridCase"]["linked"]["sectorId"])
+        self.assertEqual("open", result["crisisGridCase"]["status"])
+        self.assertGreaterEqual(result["crisisPressure"], 1)
         self.assertGreaterEqual(result["load"], 0)
         self.assertGreaterEqual(result["pressure"], 0)
 
