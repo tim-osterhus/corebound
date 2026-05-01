@@ -43,6 +43,11 @@ const IronLanternDescent = (() => {
       deployFilter: ["KeyJ"],
       startFan: ["KeyK"],
       ventGas: ["KeyT"],
+      repairRelay: ["Digit1"],
+      spoolCable: ["Digit2"],
+      triangulateEcho: ["Digit3"],
+      rescueCache: ["Digit4"],
+      liftBeacon: ["Digit5"],
       upgrade: ["KeyU"],
       reset: ["KeyR"],
     },
@@ -61,6 +66,8 @@ const IronLanternDescent = (() => {
         { id: "sump-bypass", name: "Sump Bypass", center: { x: -5, z: -88 }, size: { x: 18, z: 24 } },
         { id: "cinder-vent-shaft", name: "Cinder Vent Shaft", center: { x: 24, z: -72 }, size: { x: 18, z: 24 } },
         { id: "fan-relay-bay", name: "Fan Relay Bay", center: { x: -22, z: -88 }, size: { x: 20, z: 20 } },
+        { id: "echo-relay-alcove", name: "Echo Relay Alcove", center: { x: 28, z: -94 }, size: { x: 14, z: 24 } },
+        { id: "lift-beacon-station", name: "Lift Beacon Station", center: { x: -10, z: -106 }, size: { x: 26, z: 18 } },
       ],
     },
     player: {
@@ -184,6 +191,31 @@ const IronLanternDescent = (() => {
         lowVentilationDrainPerSecond: 0.22,
       },
     },
+    echoRelayNetwork: {
+      release: {
+        version: "0.4.0",
+        label: "v0.4.0 Echo Relay Network",
+        baseRelease: "v0.3.0 Cinder Vent Network",
+      },
+      actionRange: 5.6,
+      echoCharges: {
+        baseCharges: 2,
+      },
+      contract: {
+        id: "echo-relay-network-return-route",
+        label: "Echo Relay Network return route",
+        targetTriangulations: 2,
+        targetCaches: 2,
+        targetBeacons: 1,
+        targetMapProgress: 3,
+        targetRouteRelief: 36,
+      },
+      routeStability: {
+        echoNoiseDrainPerSecond: 0.3,
+        cableBreakDrainPerSecond: 0.36,
+        lowRelayDrainPerSecond: 0.24,
+      },
+    },
     lift: {
       id: "descent-lift",
       name: "Iron Lift",
@@ -252,6 +284,15 @@ const IronLanternDescent = (() => {
         radius: 2.7,
         value: 64,
         difficulty: 2.3,
+        remaining: 1,
+      },
+      {
+        id: "sample-echo-quartz",
+        name: "Echo Quartz",
+        position: { x: -9, y: 0.7, z: -106 },
+        radius: 2.6,
+        value: 74,
+        difficulty: 2.7,
         remaining: 1,
       },
     ],
@@ -629,6 +670,176 @@ const IronLanternDescent = (() => {
         },
       },
     ],
+    relaySites: [
+      {
+        id: "relay-cinder-echo-pylon",
+        name: "Cinder Echo Pylon",
+        relayId: "echo-cinder-pylon",
+        cableSpanId: "cable-cinder-lantern-line",
+        cacheId: "cache-cinder-rescue",
+        beaconId: "beacon-cinder-return",
+        kind: "repair-pylon",
+        passageId: "echo-relay-alcove",
+        chamber: "cinder echo relay alcove",
+        associatedPassages: ["east-shelf", "deep-room", "lower-pumpworks", "cinder-vent-shaft", "echo-relay-alcove"],
+        position: { x: 28, y: 0.35, z: -94 },
+        radius: 3.8,
+        influenceRadius: 14,
+        guideRadius: 10.5,
+        cableSpan: {
+          baseState: "broken",
+          breakSeverity: 0.54,
+          spooledState: "spooled",
+          tonedState: "toned",
+        },
+        echo: {
+          baseCharges: 1,
+          pulseCost: 1,
+          chargeYield: 1,
+          baseNoise: 0.42,
+          tunedNoise: 0.16,
+          overrunNoise: 0.86,
+        },
+        pulseWindow: {
+          opensAt: 58,
+          closesAt: 145,
+          driftAt: 190,
+          failAt: 230,
+          basePressure: 12,
+          driftPressure: 20,
+          overrunPressure: 34,
+        },
+        requirements: {
+          surveySiteId: "survey-cinder-rib",
+          chart: "partial",
+          pumpworksSiteId: "pump-cinder-sump",
+          pumpworksDrainage: "partial",
+          ventSiteId: "vent-cinder-rib-draft",
+          ventRelay: "partial",
+          lanternAnchor: false,
+        },
+        cache: {
+          oxygenRestore: 12,
+          cargoValue: 16,
+        },
+        beacon: {
+          oxygenCost: 8,
+          cargoCost: 10,
+          routeConfidenceFloor: 38,
+        },
+        oxygenCost: {
+          repair: 3,
+          cable: 4,
+          triangulate: 5,
+          cache: 0,
+          beacon: 8,
+          failure: 14,
+        },
+        route: {
+          repairBonus: 4,
+          cableBonus: 6,
+          triangulationBonus: 18,
+          beaconBonus: 10,
+          failurePenalty: 16,
+        },
+        rewards: {
+          payout: 88,
+          partialPayout: 34,
+          mapProgress: 1,
+          partialMapProgress: 0.5,
+          sampleValueBonus: 11,
+          routeRelief: 18,
+        },
+        consequences: {
+          sampleValuePenalty: 10,
+          routeStabilityPenalty: 12,
+        },
+      },
+      {
+        id: "relay-basalt-beacon-station",
+        name: "Basalt Beacon Station",
+        relayId: "echo-basalt-beacon",
+        cableSpanId: "cable-basalt-lift-return",
+        cacheId: "cache-basalt-rescue",
+        beaconId: "beacon-basalt-lift",
+        kind: "beacon-station",
+        passageId: "lift-beacon-station",
+        chamber: "lift beacon station",
+        associatedPassages: ["fault-gallery", "sump-bypass", "fan-relay-bay", "lift-beacon-station"],
+        position: { x: -10, y: 0.35, z: -106 },
+        radius: 4.2,
+        influenceRadius: 16,
+        guideRadius: 11.5,
+        cableSpan: {
+          baseState: "severed",
+          breakSeverity: 0.68,
+          spooledState: "spooled",
+          tonedState: "toned",
+        },
+        echo: {
+          baseCharges: 1,
+          pulseCost: 1,
+          chargeYield: 1,
+          baseNoise: 0.5,
+          tunedNoise: 0.12,
+          overrunNoise: 0.94,
+        },
+        pulseWindow: {
+          opensAt: 82,
+          closesAt: 170,
+          driftAt: 216,
+          failAt: 258,
+          basePressure: 16,
+          driftPressure: 28,
+          overrunPressure: 44,
+        },
+        requirements: {
+          surveySiteId: "survey-basalt-suture",
+          chart: "success",
+          pumpworksSiteId: "pump-basalt-gate",
+          pumpworksDrainage: "success",
+          ventSiteId: "vent-basalt-relay-bay",
+          ventRelay: "success",
+          lanternAnchor: true,
+        },
+        cache: {
+          oxygenRestore: 18,
+          cargoValue: 24,
+        },
+        beacon: {
+          oxygenCost: 10,
+          cargoCost: 20,
+          routeConfidenceFloor: 48,
+        },
+        oxygenCost: {
+          repair: 4,
+          cable: 5,
+          triangulate: 6,
+          cache: 0,
+          beacon: 10,
+          failure: 18,
+        },
+        route: {
+          repairBonus: 5,
+          cableBonus: 7,
+          triangulationBonus: 24,
+          beaconBonus: 14,
+          failurePenalty: 20,
+        },
+        rewards: {
+          payout: 132,
+          partialPayout: 50,
+          mapProgress: 2,
+          partialMapProgress: 1,
+          sampleValueBonus: 17,
+          routeRelief: 24,
+        },
+        consequences: {
+          sampleValuePenalty: 14,
+          routeStabilityPenalty: 16,
+        },
+      },
+    ],
     upgrades: [
       {
         id: "tank-weave",
@@ -664,6 +875,13 @@ const IronLanternDescent = (() => {
         cost: 130,
         summary: "+1 filter cartridge on future runs",
         effect: { filterCartridgeBonus: 1 },
+      },
+      {
+        id: "echo-capacitor",
+        name: "Echo Capacitor",
+        cost: 156,
+        summary: "+1 echo charge on future runs",
+        effect: { echoChargeBonus: 1 },
       },
     ],
   };
@@ -816,6 +1034,27 @@ const IronLanternDescent = (() => {
     return ["success", "partial", "failed"].includes(site.relayState);
   }
 
+  function relayWindowState(site, elapsed = 0) {
+    const window = site.pulseWindow || {};
+    if (elapsed < window.opensAt) {
+      return "pending";
+    }
+    if (elapsed <= window.closesAt) {
+      return "clear";
+    }
+    if (elapsed <= window.driftAt) {
+      return "drift";
+    }
+    if (elapsed <= window.failAt) {
+      return "noisy";
+    }
+    return "overrun";
+  }
+
+  function relayOutcomeComplete(site) {
+    return ["success", "partial", "failed"].includes(site.triangulationState);
+  }
+
   function computeSurveyRouteModifier(state) {
     if (!state.surveySites) {
       return 0;
@@ -906,6 +1145,47 @@ const IronLanternDescent = (() => {
     return Math.round(clamp(modifier, -40, 36));
   }
 
+  function computeRelayRouteModifier(state) {
+    if (!state.relaySites) {
+      return 0;
+    }
+    const modifier = state.relaySites.reduce((total, site) => {
+      const route = site.route || {};
+      const windowState = relayWindowState(site, state.elapsed || 0);
+      let siteModifier = 0;
+      if (site.pylonState === "repaired") {
+        siteModifier += route.repairBonus || 0;
+      } else if (site.pylonState === "tuned") {
+        siteModifier += (route.repairBonus || 0) + Math.round((route.cableBonus || 0) / 2);
+      }
+      if (site.cableState === "spooled") {
+        siteModifier += route.cableBonus || 0;
+      } else if (site.cableState === "toned") {
+        siteModifier += (route.cableBonus || 0) + Math.round((route.repairBonus || 0) / 2);
+      } else if (site.cableState === "patched") {
+        siteModifier += Math.round((route.cableBonus || 0) / 2);
+      }
+      if (site.triangulationState === "success") {
+        siteModifier += route.triangulationBonus || 0;
+      } else if (site.triangulationState === "partial") {
+        siteModifier += Math.round((route.triangulationBonus || 0) / 2);
+      }
+      if (site.beaconState === "fired") {
+        siteModifier += route.beaconBonus || 0;
+      } else if (site.beaconState === "misfired") {
+        siteModifier -= Math.round((route.failurePenalty || 0) / 2);
+      }
+      if ((windowState === "noisy" || windowState === "overrun") && !relayOutcomeComplete(site)) {
+        siteModifier -= Math.round((route.failurePenalty || 0) / 2);
+      }
+      if (site.triangulationState === "failed" || site.pulseState === "lost") {
+        siteModifier -= route.failurePenalty || 0;
+      }
+      return total + siteModifier;
+    }, 0);
+    return Math.round(clamp(modifier, -46, 42));
+  }
+
   function pumpworksGuidePoints(state) {
     return (state.pumpworksSites || [])
       .filter((site) => site.pumpPrimed || site.leakSealed || site.drainageState === "success" || site.drainageState === "partial")
@@ -930,6 +1210,24 @@ const IronLanternDescent = (() => {
       }));
   }
 
+  function relayGuidePoints(state) {
+    return (state.relaySites || [])
+      .filter((site) =>
+        site.triangulationState === "success" ||
+        site.triangulationState === "partial" ||
+        site.cableState === "spooled" ||
+        site.cableState === "toned" ||
+        site.beaconState === "fired"
+      )
+      .map((site) => ({
+        id: `${site.id}-echo-line`,
+        name: `${site.name} echo line`,
+        kind: "echo-relay",
+        position: site.position,
+        safeRadius: site.guideRadius || GAME_DATA.echoRelayNetwork.actionRange,
+      }));
+  }
+
   function routeGuidePoints(state) {
     const surveyStakes = (state.surveySites || [])
       .filter((site) => site.stakePlanted)
@@ -942,6 +1240,7 @@ const IronLanternDescent = (() => {
       }));
     const drainageLines = pumpworksGuidePoints(state);
     const ventRelays = ventGuidePoints(state);
+    const echoRelays = relayGuidePoints(state);
     return [
       {
         id: state.lift.id,
@@ -960,6 +1259,7 @@ const IronLanternDescent = (() => {
       ...surveyStakes,
       ...drainageLines,
       ...ventRelays,
+      ...echoRelays,
     ];
   }
 
@@ -1001,7 +1301,11 @@ const IronLanternDescent = (() => {
     if (points.length === 1) {
       returnConfidence = 100 - Math.max(0, liftDistance - state.lift.radius) * 2.4;
     }
-    returnConfidence += computeSurveyRouteModifier(state) + computePumpworksRouteModifier(state) + computeVentRouteModifier(state);
+    returnConfidence +=
+      computeSurveyRouteModifier(state) +
+      computePumpworksRouteModifier(state) +
+      computeVentRouteModifier(state) +
+      computeRelayRouteModifier(state);
     returnConfidence = Math.round(clamp(returnConfidence, 0, 100));
 
     let status = nearest.distance >= GAME_DATA.route.lostDistance ? "route lost" : "route thin";
@@ -1153,6 +1457,38 @@ const IronLanternDescent = (() => {
     }));
   }
 
+  function createRelaySites() {
+    return GAME_DATA.relaySites.map((site) => ({
+      ...clone(site),
+      position: clone(site.position),
+      pylonState: "damaged",
+      cableState: site.cableSpan.baseState,
+      cableSpliced: false,
+      echoCharge: site.echo.baseCharges,
+      echoNoise: site.echo.baseNoise,
+      cableBreakPressure: site.cableSpan.breakSeverity,
+      pulseState: "silent",
+      triangulationState: "open",
+      cacheState: {
+        id: site.cacheId,
+        status: "sealed",
+        oxygenRestore: site.cache.oxygenRestore,
+        cargoValue: site.cache.cargoValue,
+      },
+      beaconState: "armed",
+      outcome: "open",
+      payoutEarned: 0,
+      mapProgressEarned: 0,
+      routeReliefEarned: 0,
+      distance: null,
+      inRange: false,
+      windowState: "pending",
+      status: "dark",
+      lastAction: null,
+      lastMissing: [],
+    }));
+  }
+
   function upgradeCarryover(purchased) {
     const carryover = {
       oxygenMaxBonus: 0,
@@ -1160,6 +1496,7 @@ const IronLanternDescent = (() => {
       drillPowerBonus: 0,
       siphonChargeBonus: 0,
       filterCartridgeBonus: 0,
+      echoChargeBonus: 0,
     };
     purchased.forEach((id) => {
       const upgrade = GAME_DATA.upgrades.find((entry) => entry.id === id);
@@ -1171,6 +1508,7 @@ const IronLanternDescent = (() => {
       carryover.drillPowerBonus += upgrade.effect.drillPowerBonus || 0;
       carryover.siphonChargeBonus += upgrade.effect.siphonChargeBonus || 0;
       carryover.filterCartridgeBonus += upgrade.effect.filterCartridgeBonus || 0;
+      carryover.echoChargeBonus += upgrade.effect.echoChargeBonus || 0;
     });
     return carryover;
   }
@@ -1198,6 +1536,7 @@ const IronLanternDescent = (() => {
     const drillPower = GAME_DATA.mining.drillPower + carryover.drillPowerBonus;
     const siphonMax = GAME_DATA.pumpworks.siphons.baseCharges + carryover.siphonChargeBonus;
     const filterMax = GAME_DATA.cinderVentNetwork.filters.baseCharges + carryover.filterCartridgeBonus;
+    const echoMax = GAME_DATA.echoRelayNetwork.echoCharges.baseCharges + carryover.echoChargeBonus;
     const player = {
       position: clone(GAME_DATA.player.startPosition),
       facing: GAME_DATA.player.startFacing,
@@ -1246,6 +1585,7 @@ const IronLanternDescent = (() => {
       surveySites: createSurveySites(),
       pumpworksSites: createPumpworksSites(),
       ventSites: createVentSites(),
+      relaySites: createRelaySites(),
       survey: {
         release: clone(GAME_DATA.survey.release),
         contract: clone(GAME_DATA.survey.contract),
@@ -1307,6 +1647,31 @@ const IronLanternDescent = (() => {
         status: "vent network sealed",
         lastAction: null,
       },
+      echoRelayNetwork: {
+        release: clone(GAME_DATA.echoRelayNetwork.release),
+        contract: clone(GAME_DATA.echoRelayNetwork.contract),
+        echoCharges: echoMax,
+        maxEchoCharges: echoMax,
+        mapProgress: 0,
+        ledger: options.echoRelayLedger || 0,
+        value: 0,
+        completedSites: 0,
+        repairedRelays: 0,
+        cablesSpliced: 0,
+        triangulations: 0,
+        cachesClaimed: 0,
+        beaconsFired: 0,
+        routeRelief: 0,
+        activeSiteId: null,
+        activeSiteName: null,
+        activeSiteDistance: null,
+        activeSiteWindow: null,
+        activeSiteStatus: "none",
+        echoNoise: 0,
+        cableBreakPressure: 0,
+        status: "echo relays dark",
+        lastAction: null,
+      },
       routeStability: {
         stability: 100,
         status: "stable",
@@ -1351,6 +1716,8 @@ const IronLanternDescent = (() => {
         bankedPumpworksMapProgress: 0,
         bankedVentValue: 0,
         bankedVentMapProgress: 0,
+        bankedEchoRelayValue: 0,
+        bankedEchoRelayMapProgress: 0,
         lastBanked: 0,
       },
       hazardZones: createHazardZones(),
@@ -1383,7 +1750,7 @@ const IronLanternDescent = (() => {
       },
       run: {
         status: "active",
-        objective: "Descend, mark the route, drain lower pumpworks, restore cinder vents, survey fault plates, bank samples at the lift.",
+        objective: "Descend, mark the route, drain pumpworks, restore cinder vents, triangulate echo relays, bank samples at the lift.",
         failureReason: null,
         completeReason: null,
         count: options.runCount || 1,
@@ -1578,6 +1945,85 @@ const IronLanternDescent = (() => {
     return closest;
   }
 
+  function surveySiteForRelay(state, site) {
+    return (state.surveySites || []).find((entry) => entry.id === site.requirements.surveySiteId) || null;
+  }
+
+  function pumpworksSiteForRelay(state, site) {
+    return (state.pumpworksSites || []).find((entry) => entry.id === site.requirements.pumpworksSiteId) || null;
+  }
+
+  function ventSiteForRelay(state, site) {
+    return (state.ventSites || []).find((entry) => entry.id === site.requirements.ventSiteId) || null;
+  }
+
+  function ventRelayMeetsRequirement(ventSite, required) {
+    if (!required) {
+      return true;
+    }
+    if (!ventSite) {
+      return false;
+    }
+    if (required === "partial") {
+      return ventSite.relayState === "partial" || ventSite.relayState === "success";
+    }
+    return ventSite.relayState === required;
+  }
+
+  function relayRequirementStatus(state, site, options = {}) {
+    const surveySite = surveySiteForRelay(state, site);
+    const pumpworksSite = pumpworksSiteForRelay(state, site);
+    const ventSite = ventSiteForRelay(state, site);
+    const missing = [];
+    const requirements = site.requirements || {};
+    if (requirements.chart && !surveyChartMeetsRequirement(surveySite, requirements.chart)) {
+      missing.push(`${requirements.chart} survey chart`);
+    }
+    if (options.requirePumpworks && !pumpworksDrainageMeetsRequirement(pumpworksSite, requirements.pumpworksDrainage)) {
+      missing.push(`${requirements.pumpworksDrainage || "ready"} pumpworks drainage`);
+    }
+    if (options.requireVent && !ventRelayMeetsRequirement(ventSite, requirements.ventRelay)) {
+      missing.push(`${requirements.ventRelay || "ready"} cinder vent relay`);
+    }
+    if (requirements.lanternAnchor && !coveredByLantern(state)) {
+      missing.push("lantern anchor");
+    }
+    if (options.requirePylon && site.pylonState !== "repaired" && site.pylonState !== "tuned") {
+      missing.push("repaired relay pylon");
+    }
+    if (options.requireCable && site.cableState !== "spooled" && site.cableState !== "toned" && site.cableState !== "patched") {
+      missing.push("spooled cable span");
+    }
+    if (options.requireEchoCharge && ((state.echoRelayNetwork && state.echoRelayNetwork.echoCharges <= 0) || site.echoCharge <= 0)) {
+      missing.push("echo charge");
+    }
+    if (options.requireTriangulation && site.triangulationState !== "success" && site.triangulationState !== "partial") {
+      missing.push("echo triangulation");
+    }
+    return {
+      surveySite,
+      pumpworksSite,
+      ventSite,
+      missing,
+      ready: missing.length === 0,
+    };
+  }
+
+  function nearestRelaySite(state, options = {}) {
+    const includeCompleted = Boolean(options.includeCompleted);
+    let closest = null;
+    (state.relaySites || []).forEach((site) => {
+      if (!includeCompleted && relayOutcomeComplete(site) && site.cacheState.status === "claimed" && site.beaconState !== "armed") {
+        return;
+      }
+      const siteDistance = distance(state.player.position, site.position);
+      if (!closest || siteDistance < closest.distance) {
+        closest = { site, distance: siteDistance };
+      }
+    });
+    return closest;
+  }
+
   function computeRouteStability(state, routeState = null, hazardState = null) {
     if (!state.surveySites) {
       return {
@@ -1713,6 +2159,56 @@ const IronLanternDescent = (() => {
       pressure += Math.max(0, sitePressure);
     });
 
+    (state.relaySites || []).forEach((site) => {
+      const windowState = relayWindowState(site, state.elapsed || 0);
+      const siteDistance = distance(state.player.position, site.position);
+      const activePressure =
+        siteDistance <= site.influenceRadius ||
+        site.pylonState !== "damaged" ||
+        site.cableState !== site.cableSpan.baseState ||
+        site.triangulationState !== "open" ||
+        site.cacheState.status === "claimed" ||
+        site.beaconState !== "armed";
+      if (!activePressure) {
+        return;
+      }
+      const pulseWindow = site.pulseWindow || {};
+      let sitePressure =
+        (pulseWindow.basePressure || 0) +
+        Math.round(((site.echoNoise || 0) + (site.cableBreakPressure || 0)) * 10);
+      if (windowState === "drift") {
+        sitePressure += pulseWindow.driftPressure || 0;
+        warnings.push(`${site.name} echo drift`);
+      } else if (windowState === "noisy" || windowState === "overrun") {
+        sitePressure += pulseWindow.overrunPressure || 0;
+        warnings.push(`${site.name} echo overrun`);
+      }
+      if (site.pylonState === "repaired" || site.pylonState === "tuned") {
+        sitePressure -= site.route.repairBonus || 0;
+      }
+      if (site.cableState === "spooled" || site.cableState === "toned") {
+        sitePressure -= site.route.cableBonus || 0;
+      } else if (site.cableState === "patched") {
+        sitePressure -= Math.round((site.route.cableBonus || 0) / 2);
+      }
+      if (site.triangulationState === "success") {
+        sitePressure -= site.rewards.routeRelief || 0;
+      } else if (site.triangulationState === "partial") {
+        sitePressure -= Math.round((site.rewards.routeRelief || 0) / 2);
+      } else if (site.triangulationState === "failed") {
+        sitePressure += site.consequences.routeStabilityPenalty || 0;
+      }
+      if (site.cacheState.status === "claimed") {
+        sitePressure -= 4;
+      }
+      if (site.beaconState === "fired") {
+        sitePressure -= site.route.beaconBonus || 0;
+      } else if (site.beaconState === "misfired") {
+        sitePressure += Math.round((site.consequences.routeStabilityPenalty || 0) / 2);
+      }
+      pressure += Math.max(0, sitePressure);
+    });
+
     const stability = Math.round(clamp(settings.base - pressure, 0, 100));
     let status = "stable";
     if (stability < 35) {
@@ -1727,7 +2223,11 @@ const IronLanternDescent = (() => {
       status,
       pressure: Math.round(pressure),
       warnings,
-      routeModifier: computeSurveyRouteModifier(state) + computePumpworksRouteModifier(state) + computeVentRouteModifier(state),
+      routeModifier:
+        computeSurveyRouteModifier(state) +
+        computePumpworksRouteModifier(state) +
+        computeVentRouteModifier(state) +
+        computeRelayRouteModifier(state),
     };
   }
 
@@ -1905,6 +2405,96 @@ const IronLanternDescent = (() => {
     return state;
   }
 
+  function relayStatus(site) {
+    if (site.triangulationState === "success") {
+      return "triangulated";
+    }
+    if (site.triangulationState === "partial") {
+      return "weak triangulation";
+    }
+    if (site.triangulationState === "failed") {
+      return "echo lost";
+    }
+    if (site.beaconState === "fired") {
+      return "beacon fired";
+    }
+    if (site.cableState === "spooled" || site.cableState === "toned") {
+      return "cable spooled";
+    }
+    if (site.cableState === "patched") {
+      return "cable patched";
+    }
+    if (site.pylonState === "repaired" || site.pylonState === "tuned") {
+      return "pylon repaired";
+    }
+    if (site.windowState === "noisy" || site.windowState === "overrun") {
+      return "echo noise";
+    }
+    if (site.inRange) {
+      return "relay ready";
+    }
+    return "dark";
+  }
+
+  function syncEchoRelayNetworkState(state) {
+    if (!state.echoRelayNetwork || !state.relaySites) {
+      return state;
+    }
+    let completedSites = 0;
+    let repairedRelays = 0;
+    let cablesSpliced = 0;
+    let triangulations = 0;
+    let cachesClaimed = 0;
+    let beaconsFired = 0;
+    let totalEchoNoise = 0;
+    let totalCableBreakPressure = 0;
+    state.relaySites.forEach((site) => {
+      site.distance = Number(distance(state.player.position, site.position).toFixed(1));
+      site.inRange = site.distance <= GAME_DATA.echoRelayNetwork.actionRange;
+      site.windowState = relayWindowState(site, state.elapsed || 0);
+      if (site.triangulationState === "success" || site.triangulationState === "partial") {
+        completedSites += 1;
+      }
+      if (site.pylonState === "repaired" || site.pylonState === "tuned") {
+        repairedRelays += 1;
+      }
+      if (site.cableState === "spooled" || site.cableState === "toned") {
+        cablesSpliced += 1;
+      }
+      if (site.triangulationState === "success") {
+        triangulations += 1;
+      }
+      if (site.cacheState.status === "claimed") {
+        cachesClaimed += 1;
+      }
+      if (site.beaconState === "fired") {
+        beaconsFired += 1;
+      }
+      site.status = relayStatus(site);
+      totalEchoNoise += site.echoNoise || 0;
+      totalCableBreakPressure += site.cableBreakPressure || 0;
+    });
+
+    const active = nearestRelaySite(state) || nearestRelaySite(state, { includeCompleted: true });
+    state.echoRelayNetwork.completedSites = completedSites;
+    state.echoRelayNetwork.repairedRelays = repairedRelays;
+    state.echoRelayNetwork.cablesSpliced = cablesSpliced;
+    state.echoRelayNetwork.triangulations = triangulations;
+    state.echoRelayNetwork.cachesClaimed = cachesClaimed;
+    state.echoRelayNetwork.beaconsFired = beaconsFired;
+    state.echoRelayNetwork.activeSiteId = active ? active.site.id : null;
+    state.echoRelayNetwork.activeSiteName = active ? active.site.name : null;
+    state.echoRelayNetwork.activeSiteDistance = active ? Number(active.distance.toFixed(1)) : null;
+    state.echoRelayNetwork.activeSiteWindow = active ? active.site.windowState : null;
+    state.echoRelayNetwork.activeSiteStatus = active ? active.site.status : "none";
+    state.echoRelayNetwork.echoNoise = Number((totalEchoNoise / Math.max(1, state.relaySites.length)).toFixed(2));
+    state.echoRelayNetwork.cableBreakPressure = Number((totalCableBreakPressure / Math.max(1, state.relaySites.length)).toFixed(2));
+    state.echoRelayNetwork.status = active
+      ? `${active.site.name}: ${active.site.status} / ${active.site.windowState}`
+      : "echo relays triangulated";
+    return state;
+  }
+
   function surveyOxygenDrain(state, routeState = null, hazardState = null) {
     if (state.run.status !== "active" || !state.surveySites) {
       return 0;
@@ -2053,6 +2643,65 @@ const IronLanternDescent = (() => {
     return Number(drain.toFixed(3));
   }
 
+  function echoRelayOxygenDrain(state, routeState = null, hazardState = null) {
+    if (state.run.status !== "active" || !state.relaySites) {
+      return 0;
+    }
+    const route = routeState || state.route || computeRouteState(state);
+    const hazard = hazardState || currentHazardExposure(state);
+    let drain = 0;
+    if (route.returnConfidence < 68) {
+      drain += ((68 - route.returnConfidence) / 68) * GAME_DATA.echoRelayNetwork.routeStability.lowRelayDrainPerSecond;
+    }
+    if (hazard.names.length) {
+      drain += hazard.names.length * 0.035;
+    }
+    state.relaySites.forEach((site) => {
+      if (site.triangulationState === "success" && site.beaconState === "fired") {
+        return;
+      }
+      const siteDistance = distance(state.player.position, site.position);
+      if (siteDistance > site.influenceRadius) {
+        return;
+      }
+      const exposure = Math.max(0, 1 - siteDistance / site.influenceRadius);
+      const windowState = relayWindowState(site, state.elapsed || 0);
+      let siteDrain =
+        (site.echoNoise || 0) * GAME_DATA.echoRelayNetwork.routeStability.echoNoiseDrainPerSecond +
+        (site.cableBreakPressure || 0) * GAME_DATA.echoRelayNetwork.routeStability.cableBreakDrainPerSecond;
+      if (windowState === "noisy") {
+        siteDrain += 0.3;
+      } else if (windowState === "overrun") {
+        siteDrain += 0.52;
+      }
+      if (site.pylonState === "repaired" || site.pylonState === "tuned") {
+        siteDrain *= 0.82;
+      }
+      if (site.cableState === "spooled" || site.cableState === "toned") {
+        siteDrain *= 0.64;
+      } else if (site.cableState === "patched") {
+        siteDrain *= 0.78;
+      }
+      if (site.triangulationState === "success") {
+        siteDrain *= 0.42;
+      } else if (site.triangulationState === "partial") {
+        siteDrain *= 0.58;
+      }
+      if (site.cacheState.status === "claimed") {
+        siteDrain *= 0.86;
+      }
+      const linkedVent = ventSiteForRelay(state, site);
+      if (linkedVent && ventRelayMeetsRequirement(linkedVent, site.requirements.ventRelay)) {
+        siteDrain *= 0.82;
+      }
+      if (coveredByLantern(state)) {
+        siteDrain *= 0.84;
+      }
+      drain += exposure * siteDrain;
+    });
+    return Number(drain.toFixed(3));
+  }
+
   function sampleSurveyValueBonus(state, node) {
     const passage = cavePassageAt(node.position);
     if (!passage || !state.surveySites) {
@@ -2100,6 +2749,24 @@ const IronLanternDescent = (() => {
       : Math.round((site.rewards.sampleValueBonus || 0) / 2);
   }
 
+  function sampleRelayValueBonus(state, node) {
+    const passage = cavePassageAt(node.position);
+    if (!passage || !state.relaySites) {
+      return 0;
+    }
+    const site = state.relaySites.find(
+      (entry) =>
+        (entry.associatedPassages || []).includes(passage.id) &&
+        (entry.triangulationState === "success" || entry.triangulationState === "partial")
+    );
+    if (!site) {
+      return 0;
+    }
+    return site.triangulationState === "success"
+      ? site.rewards.sampleValueBonus || 0
+      : Math.round((site.rewards.sampleValueBonus || 0) / 2);
+  }
+
   function oxygenDrainRate(state) {
     if (state.run.status !== "active") {
       return 0;
@@ -2112,7 +2779,8 @@ const IronLanternDescent = (() => {
       hazard.oxygenDrainPerSecond +
       surveyOxygenDrain(state, route, hazard) +
       pumpworksOxygenDrain(state, route, hazard) +
-      ventNetworkOxygenDrain(state, route, hazard);
+      ventNetworkOxygenDrain(state, route, hazard) +
+      echoRelayOxygenDrain(state, route, hazard);
     if (liftDistance <= state.lift.radius) {
       rate *= GAME_DATA.oxygen.liftDrainMultiplier;
     } else if (coveredByLantern(state)) {
@@ -2164,6 +2832,7 @@ const IronLanternDescent = (() => {
     syncSurveyState(state);
     syncPumpworksState(state);
     syncVentNetworkState(state);
+    syncEchoRelayNetworkState(state);
 
     const sample = nearestSample(state);
     const sampleInRange = sample && sample.distance <= state.scanner.range;
@@ -2185,7 +2854,24 @@ const IronLanternDescent = (() => {
       (!sampleInRange || vent.distance <= sample.distance) &&
       (!surveyInRange || vent.distance <= survey.distance) &&
       (!pumpworksInRange || vent.distance <= pumpworks.distance);
-    const target = ventIsActionable || ventPrecedesSample
+    const relay = nearestRelaySite(state);
+    const relayInRange = relay && relay.distance <= state.scanner.range;
+    const relayIsActionable = relayInRange && relay.distance <= GAME_DATA.echoRelayNetwork.actionRange;
+    const relayPrecedesSample =
+      relayInRange &&
+      (!sampleInRange || relay.distance <= sample.distance) &&
+      (!surveyInRange || relay.distance <= survey.distance) &&
+      (!pumpworksInRange || relay.distance <= pumpworks.distance) &&
+      (!ventInRange || relay.distance <= vent.distance);
+    const target = relayIsActionable || relayPrecedesSample
+      ? {
+          id: relay.site.id,
+          kind: "echo-relay",
+          name: relay.site.name,
+          position: relay.site.position,
+          distance: relay.distance,
+        }
+      : ventIsActionable || ventPrecedesSample
       ? {
           id: vent.site.id,
           kind: "vent-network",
@@ -3073,6 +3759,375 @@ const IronLanternDescent = (() => {
     return syncDerivedState(next);
   }
 
+  function relayActionTarget(state, siteId = null) {
+    const site = siteId
+      ? (state.relaySites || []).find((entry) => entry.id === siteId)
+      : nearestRelaySite(state, { includeCompleted: true })?.site;
+    if (!site) {
+      return { site: null, distance: Infinity, inRange: false };
+    }
+    const siteDistance = distance(state.player.position, site.position);
+    return {
+      site,
+      distance: siteDistance,
+      inRange: siteDistance <= GAME_DATA.echoRelayNetwork.actionRange,
+    };
+  }
+
+  function recordRelayMiss(next, target, action) {
+    const message = target.site
+      ? `${action} needs ${target.site.name} within ${GAME_DATA.echoRelayNetwork.actionRange}m.`
+      : `No echo relay site available for ${action}.`;
+    next.echoRelayNetwork.lastAction = "out of range";
+    next.log.unshift({ tick: next.tick, message });
+    return syncDerivedState(next);
+  }
+
+  function relayActionCost(state, site, action) {
+    let cost = action === "beacon" ? site.beacon.oxygenCost : site.oxygenCost[action] || 0;
+    if (site.pylonState === "repaired" || site.pylonState === "tuned") {
+      cost = Math.max(0, Math.round(cost * 0.88));
+    }
+    const linkedVent = ventSiteForRelay(state, site);
+    if (linkedVent && ventRelayMeetsRequirement(linkedVent, site.requirements.ventRelay)) {
+      cost = Math.max(0, Math.round(cost * 0.84));
+    }
+    if (coveredByLantern(state)) {
+      cost = Math.max(0, Math.round(cost * 0.86));
+    }
+    return cost;
+  }
+
+  function spendRelayOxygen(next, site, action) {
+    const cost = relayActionCost(next, site, action);
+    next.oxygen.current = Math.max(0, Number((next.oxygen.current - cost).toFixed(3)));
+    if (next.oxygen.current <= 0) {
+      next.run.status = "failed";
+      next.run.failureReason = "echo relay oxygen loss";
+      next.run.objective = "Echo relay work overran the oxygen reserve. Restart from the lift.";
+    }
+    return cost;
+  }
+
+  function applyRelayOutcome(next, site, outcome) {
+    const success = outcome === "success";
+    const partial = outcome === "partial";
+    site.triangulationState = outcome;
+    site.outcome = outcome;
+    site.pulseState = success ? "triangulated" : partial ? "split echo" : "lost";
+    site.pylonState = success ? "tuned" : site.pylonState;
+    site.cableState = success ? site.cableSpan.tonedState : partial ? site.cableState : "snapped";
+    site.cableSpliced = success || partial;
+    site.echoNoise = success
+      ? site.echo.tunedNoise
+      : partial
+        ? Math.max(site.echo.tunedNoise, Number((site.echo.baseNoise * 0.7).toFixed(2)))
+        : site.echo.overrunNoise;
+    site.cableBreakPressure = success
+      ? 0.08
+      : partial
+        ? 0.24
+        : Math.min(1, Number((site.cableSpan.breakSeverity + 0.18).toFixed(2)));
+    site.payoutEarned = success ? site.rewards.payout : partial ? site.rewards.partialPayout : 0;
+    site.mapProgressEarned = success ? site.rewards.mapProgress : partial ? site.rewards.partialMapProgress : 0;
+    site.routeReliefEarned = success
+      ? site.rewards.routeRelief
+      : partial
+        ? Math.round((site.rewards.routeRelief || 0) / 2)
+        : 0;
+    next.echoRelayNetwork.value += site.payoutEarned;
+    next.echoRelayNetwork.mapProgress = Number((next.echoRelayNetwork.mapProgress + site.mapProgressEarned).toFixed(2));
+    next.echoRelayNetwork.routeRelief += site.routeReliefEarned;
+    if (partial && next.cargo.value > 0) {
+      const penalty = Math.min(next.cargo.value, site.consequences.sampleValuePenalty || 0);
+      next.cargo.value -= penalty;
+      site.lastAction = `echo triangulation partial, sample value spent ${penalty}cr`;
+    } else {
+      site.lastAction = `echo triangulation ${outcome}`;
+    }
+    next.echoRelayNetwork.lastAction = `${site.name} ${outcome}`;
+    return { payout: site.payoutEarned, mapProgress: site.mapProgressEarned, routeRelief: site.routeReliefEarned };
+  }
+
+  function repairRelayPylon(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = relayActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordRelayMiss(next, target, "Relay pylon repair");
+    }
+    const site = target.site;
+    if (site.pylonState === "repaired" || site.pylonState === "tuned") {
+      next.echoRelayNetwork.lastAction = "relay pylon already repaired";
+      site.lastAction = next.echoRelayNetwork.lastAction;
+      return syncDerivedState(next);
+    }
+    const requirements = relayRequirementStatus(next, site);
+    const windowState = relayWindowState(site, next.elapsed || 0);
+    spendRelayOxygen(next, site, windowState === "overrun" ? "failure" : "repair");
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    if (windowState === "overrun") {
+      site.pylonState = "shorted";
+      site.triangulationState = "failed";
+      site.outcome = "failed";
+      site.pulseState = "lost";
+      site.echoNoise = site.echo.overrunNoise;
+      site.lastAction = "relay repair failed";
+      next.echoRelayNetwork.lastAction = `relay repair failed: ${site.id}`;
+      next.log.unshift({ tick: next.tick, message: `${site.name} shorted under echo overrun.` });
+      return syncDerivedState(next);
+    }
+    if (!requirements.ready || windowState === "noisy") {
+      site.pylonState = "repaired";
+      site.echoNoise = Math.max(site.echo.tunedNoise, Number((site.echoNoise - 0.08).toFixed(2)));
+      site.lastMissing = requirements.missing.length ? requirements.missing : [windowState];
+      site.lastAction = `relay repair partial: ${site.lastMissing.join(", ")}`;
+      next.echoRelayNetwork.lastAction = `relay repair partial: ${site.id}`;
+      next.log.unshift({
+        tick: next.tick,
+        message: `${site.name} relay pylon repaired, but ${site.lastMissing.join(", ")} keeps the echo line noisy.`,
+      });
+      return syncDerivedState(next);
+    }
+    site.pylonState = "repaired";
+    site.echoNoise = Math.max(site.echo.tunedNoise, Number((site.echoNoise - 0.18).toFixed(2)));
+    site.lastMissing = [];
+    site.lastAction = "relay pylon repaired";
+    next.echoRelayNetwork.lastAction = `relay repaired: ${site.id}`;
+    next.log.unshift({ tick: next.tick, message: `${site.name} relay pylon repaired in ${site.chamber}.` });
+    return syncDerivedState(next);
+  }
+
+  function spoolRelayCable(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = relayActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordRelayMiss(next, target, "Relay cable spool");
+    }
+    const site = target.site;
+    if (site.cableState === "spooled" || site.cableState === "toned") {
+      next.echoRelayNetwork.lastAction = "relay cable already spooled";
+      site.lastAction = next.echoRelayNetwork.lastAction;
+      return syncDerivedState(next);
+    }
+    const requirements = relayRequirementStatus(next, site, {
+      requirePylon: true,
+      requirePumpworks: true,
+    });
+    const windowState = relayWindowState(site, next.elapsed || 0);
+    spendRelayOxygen(next, site, windowState === "overrun" ? "failure" : "cable");
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    if (windowState === "overrun" || site.pylonState === "shorted") {
+      site.cableState = "snapped";
+      site.triangulationState = "failed";
+      site.outcome = "failed";
+      site.pulseState = "lost";
+      site.cableBreakPressure = Math.min(1, Number((site.cableSpan.breakSeverity + 0.2).toFixed(2)));
+      site.lastAction = "relay cable failed";
+      next.echoRelayNetwork.lastAction = `relay cable failed: ${site.id}`;
+      next.log.unshift({ tick: next.tick, message: `${site.name} cable span snapped under echo overrun.` });
+      return syncDerivedState(next);
+    }
+    if (!requirements.ready || windowState === "noisy") {
+      site.cableState = "patched";
+      site.cableSpliced = true;
+      site.pulseState = "weak charge";
+      site.echoCharge = Math.max(site.echoCharge, site.echo.chargeYield);
+      site.cableBreakPressure = Math.max(0.26, Number((site.cableBreakPressure - 0.16).toFixed(2)));
+      site.lastMissing = requirements.missing.length ? requirements.missing : [windowState];
+      site.lastAction = `relay cable patched: ${site.lastMissing.join(", ")}`;
+      next.echoRelayNetwork.lastAction = `relay cable patched: ${site.id}`;
+      next.log.unshift({
+        tick: next.tick,
+        message: `${site.name} cable span patched; ${site.lastMissing.join(", ")} limits echo charge.`,
+      });
+      return syncDerivedState(next);
+    }
+    site.cableState = site.cableSpan.spooledState;
+    site.cableSpliced = true;
+    site.pulseState = "charged";
+    site.echoCharge = Math.max(site.echoCharge, site.echo.chargeYield);
+    site.cableBreakPressure = 0.12;
+    site.lastMissing = [];
+    site.lastAction = "relay cable spooled";
+    next.echoRelayNetwork.lastAction = `relay cable spooled: ${site.id}`;
+    next.log.unshift({ tick: next.tick, message: `${site.name} cable span ${site.cableSpanId} spooled across the break.` });
+    return syncDerivedState(next);
+  }
+
+  function triangulateEchoRoute(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = relayActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordRelayMiss(next, target, "Echo triangulation");
+    }
+    const site = target.site;
+    if (relayOutcomeComplete(site)) {
+      next.echoRelayNetwork.lastAction = `already triangulated: ${site.triangulationState}`;
+      site.lastAction = next.echoRelayNetwork.lastAction;
+      return syncDerivedState(next);
+    }
+    const requirements = relayRequirementStatus(next, site, {
+      requirePylon: true,
+      requireCable: true,
+      requirePumpworks: true,
+      requireVent: true,
+      requireEchoCharge: true,
+    });
+    const windowState = relayWindowState(site, next.elapsed || 0);
+    let outcome = "partial";
+    if (
+      windowState === "overrun" ||
+      site.pylonState === "damaged" ||
+      site.pylonState === "shorted" ||
+      site.cableState === site.cableSpan.baseState ||
+      site.cableState === "snapped" ||
+      next.echoRelayNetwork.echoCharges <= 0 ||
+      site.echoCharge <= 0
+    ) {
+      outcome = "failed";
+    } else if (
+      requirements.ready &&
+      site.cableState === "spooled" &&
+      next.route.returnConfidence >= 34 &&
+      next.routeStability.stability >= 34 &&
+      (windowState === "clear" || windowState === "drift")
+    ) {
+      outcome = "success";
+    }
+
+    spendRelayOxygen(next, site, outcome === "failed" ? "failure" : "triangulate");
+    if (next.run.status !== "active" && outcome !== "success") {
+      site.triangulationState = "failed";
+      site.outcome = "failed";
+      return syncDerivedState(next);
+    }
+    if (site.echoCharge > 0) {
+      site.echoCharge -= site.echo.pulseCost || 1;
+    }
+    if (next.echoRelayNetwork.echoCharges > 0) {
+      next.echoRelayNetwork.echoCharges -= site.echo.pulseCost || 1;
+    }
+    site.lastMissing = requirements.missing;
+    const reward = applyRelayOutcome(next, site, outcome);
+    next.log.unshift({
+      tick: next.tick,
+      message: `${site.name} echo triangulation ${outcome}: +${reward.payout}cr / +${reward.mapProgress} map / +${reward.routeRelief} route.`,
+    });
+    if (outcome === "failed") {
+      next.run.objective = next.oxygen.current <= 0
+        ? next.run.objective
+        : "An echo pulse collapsed the relay route. Return or restart before oxygen runs out.";
+    }
+    return syncDerivedState(next);
+  }
+
+  function claimRescueCache(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = relayActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordRelayMiss(next, target, "Rescue cache");
+    }
+    const site = target.site;
+    if (site.cacheState.status === "claimed") {
+      next.echoRelayNetwork.lastAction = "rescue cache claimed";
+      site.lastAction = next.echoRelayNetwork.lastAction;
+      return syncDerivedState(next);
+    }
+    const requirements = relayRequirementStatus(next, site, { requirePylon: true, requireTriangulation: true });
+    if (!requirements.ready) {
+      site.lastMissing = requirements.missing;
+      site.lastAction = `rescue cache blocked: ${requirements.missing.join(", ")}`;
+      next.echoRelayNetwork.lastAction = "rescue cache blocked";
+      next.log.unshift({ tick: next.tick, message: `${site.name} rescue cache needs ${requirements.missing.join(" + ")}.` });
+      return syncDerivedState(next);
+    }
+    spendRelayOxygen(next, site, "cache");
+    const restored = site.cacheState.oxygenRestore || 0;
+    next.oxygen.current = Math.min(next.oxygen.max, Number((next.oxygen.current + restored).toFixed(3)));
+    next.cargo.value += site.cacheState.cargoValue || 0;
+    site.cacheState.status = "claimed";
+    site.lastMissing = [];
+    site.lastAction = "rescue cache claimed";
+    next.echoRelayNetwork.lastAction = `rescue cache: ${site.id}`;
+    next.log.unshift({
+      tick: next.tick,
+      message: `${site.name} rescue cache restored ${restored} oxygen and ${site.cacheState.cargoValue || 0}cr salvage.`,
+    });
+    return syncDerivedState(next);
+  }
+
+  function fireLiftBeacon(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = relayActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordRelayMiss(next, target, "Emergency lift beacon");
+    }
+    const site = target.site;
+    if (site.beaconState === "fired" || site.beaconState === "misfired") {
+      next.echoRelayNetwork.lastAction = `lift beacon already ${site.beaconState}`;
+      site.lastAction = next.echoRelayNetwork.lastAction;
+      return syncDerivedState(next);
+    }
+    const requirements = relayRequirementStatus(next, site, {
+      requirePylon: true,
+      requireCable: true,
+      requireTriangulation: true,
+    });
+    const routeReady = next.route.returnConfidence >= site.beacon.routeConfidenceFloor;
+    spendRelayOxygen(next, site, "beacon");
+    const cargoCost = Math.min(next.cargo.value, site.beacon.cargoCost || 0);
+    next.cargo.value -= cargoCost;
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    if (!requirements.ready || !routeReady) {
+      site.beaconState = "misfired";
+      site.pulseState = "beacon weak";
+      site.echoNoise = Math.min(site.echo.overrunNoise, Number((site.echoNoise + 0.12).toFixed(2)));
+      site.lastMissing = requirements.missing.slice();
+      if (!routeReady) {
+        site.lastMissing.push("route confidence");
+      }
+      site.lastAction = `lift beacon misfired: ${site.lastMissing.join(", ")}`;
+      next.echoRelayNetwork.lastAction = `lift beacon misfired: ${site.id}`;
+      next.log.unshift({
+        tick: next.tick,
+        message: `${site.name} lift beacon misfired after spending ${cargoCost}cr cargo value.`,
+      });
+      return syncDerivedState(next);
+    }
+    site.beaconState = "fired";
+    site.pulseState = "beacon fired";
+    site.echoNoise = Math.max(site.echo.tunedNoise, Number((site.echoNoise - 0.08).toFixed(2)));
+    site.lastMissing = [];
+    site.lastAction = `lift beacon fired, cargo value spent ${cargoCost}cr`;
+    next.echoRelayNetwork.lastAction = `lift beacon fired: ${site.id}`;
+    next.log.unshift({
+      tick: next.tick,
+      message: `${site.name} emergency lift beacon fired at a ${cargoCost}cr cargo cost.`,
+    });
+    return syncDerivedState(next);
+  }
+
   function mineNearestSample(state, deltaSeconds = 1) {
     const next = clone(state);
     if (next.run.status !== "active") {
@@ -3106,7 +4161,8 @@ const IronLanternDescent = (() => {
         node.value +
         sampleSurveyValueBonus(next, node) +
         samplePumpworksValueBonus(next, node) +
-        sampleVentValueBonus(next, node);
+        sampleVentValueBonus(next, node) +
+        sampleRelayValueBonus(next, node);
       node.mineState.progress -= node.difficulty;
       node.remaining -= 1;
       node.mineState.lastYield = yieldValue;
@@ -3155,6 +4211,12 @@ const IronLanternDescent = (() => {
         ventStatus: next.ventNetwork.activeSiteStatus,
         ventGasPressure: next.ventNetwork.gasPressure,
         ventStaleAirPressure: next.ventNetwork.staleAirPressure,
+        echoRelaySiteId: next.echoRelayNetwork.activeSiteId,
+        echoRelayWindow: next.echoRelayNetwork.activeSiteWindow,
+        echoRelayStatus: next.echoRelayNetwork.activeSiteStatus,
+        echoCharges: next.echoRelayNetwork.echoCharges,
+        echoNoise: next.echoRelayNetwork.echoNoise,
+        cableBreakPressure: next.echoRelayNetwork.cableBreakPressure,
       };
       next.log.unshift({
         tick: next.tick,
@@ -3181,7 +4243,9 @@ const IronLanternDescent = (() => {
     const bankedPumpworksMapProgress = next.pumpworks ? next.pumpworks.mapProgress : 0;
     const bankedVentValue = next.ventNetwork ? next.ventNetwork.value : 0;
     const bankedVentMapProgress = next.ventNetwork ? next.ventNetwork.mapProgress : 0;
-    next.credits += bankedValue + bankedSurveyValue + bankedPumpworksValue + bankedVentValue;
+    const bankedEchoRelayValue = next.echoRelayNetwork ? next.echoRelayNetwork.value : 0;
+    const bankedEchoRelayMapProgress = next.echoRelayNetwork ? next.echoRelayNetwork.mapProgress : 0;
+    next.credits += bankedValue + bankedSurveyValue + bankedPumpworksValue + bankedVentValue + bankedEchoRelayValue;
     next.lift.bankedSamples += bankedSamples;
     next.lift.bankedSurveyValue += bankedSurveyValue;
     next.lift.bankedMapProgress = Number((next.lift.bankedMapProgress + bankedMapProgress).toFixed(2));
@@ -3189,7 +4253,9 @@ const IronLanternDescent = (() => {
     next.lift.bankedPumpworksMapProgress = Number((next.lift.bankedPumpworksMapProgress + bankedPumpworksMapProgress).toFixed(2));
     next.lift.bankedVentValue += bankedVentValue;
     next.lift.bankedVentMapProgress = Number((next.lift.bankedVentMapProgress + bankedVentMapProgress).toFixed(2));
-    next.lift.lastBanked = bankedValue + bankedSurveyValue + bankedPumpworksValue + bankedVentValue;
+    next.lift.bankedEchoRelayValue = (next.lift.bankedEchoRelayValue || 0) + bankedEchoRelayValue;
+    next.lift.bankedEchoRelayMapProgress = Number(((next.lift.bankedEchoRelayMapProgress || 0) + bankedEchoRelayMapProgress).toFixed(2));
+    next.lift.lastBanked = bankedValue + bankedSurveyValue + bankedPumpworksValue + bankedVentValue + bankedEchoRelayValue;
     next.cargo.samples = 0;
     next.cargo.value = 0;
     if (next.survey) {
@@ -3207,6 +4273,11 @@ const IronLanternDescent = (() => {
       next.ventNetwork.value = 0;
       next.ventNetwork.mapProgress = 0;
     }
+    if (next.echoRelayNetwork) {
+      next.echoRelayNetwork.ledger = Number((next.echoRelayNetwork.ledger + bankedEchoRelayMapProgress).toFixed(2));
+      next.echoRelayNetwork.value = 0;
+      next.echoRelayNetwork.mapProgress = 0;
+    }
     const bankedRunValue =
       bankedSamples > 0 ||
       bankedSurveyValue > 0 ||
@@ -3214,13 +4285,15 @@ const IronLanternDescent = (() => {
       bankedPumpworksValue > 0 ||
       bankedPumpworksMapProgress > 0 ||
       bankedVentValue > 0 ||
-      bankedVentMapProgress > 0;
+      bankedVentMapProgress > 0 ||
+      bankedEchoRelayValue > 0 ||
+      bankedEchoRelayMapProgress > 0;
     next.run.status = bankedRunValue ? "extracted" : "active";
-    next.run.completeReason = bankedRunValue ? "samples, survey, pumpworks, or vent network banked" : null;
-    next.run.objective = bankedRunValue ? "Vent relays, drainage, survey, and samples banked. Buy an upgrade or restart for another descent." : next.run.objective;
+    next.run.completeReason = bankedRunValue ? "samples, survey, pumpworks, vent network, or echo relay progress banked" : null;
+    next.run.objective = bankedRunValue ? "Echo relays, vent relays, drainage, survey, and samples banked. Buy an upgrade or restart for another descent." : next.run.objective;
     next.log.unshift({
       tick: next.tick,
-      message: `Lift banked ${bankedSamples} sample(s), ${bankedMapProgress + bankedPumpworksMapProgress + bankedVentMapProgress} map, and ${bankedValue + bankedSurveyValue + bankedPumpworksValue + bankedVentValue}cr.`,
+      message: `Lift banked ${bankedSamples} sample(s), ${bankedMapProgress + bankedPumpworksMapProgress + bankedVentMapProgress + bankedEchoRelayMapProgress} map, and ${bankedValue + bankedSurveyValue + bankedPumpworksValue + bankedVentValue + bankedEchoRelayValue}cr.`,
     });
     return syncDerivedState(next);
   }
@@ -3261,6 +4334,7 @@ const IronLanternDescent = (() => {
       surveyLedger: state.survey ? state.survey.ledger : 0,
       pumpworksLedger: state.pumpworks ? state.pumpworks.ledger : 0,
       ventNetworkLedger: state.ventNetwork ? state.ventNetwork.ledger : 0,
+      echoRelayLedger: state.echoRelayNetwork ? state.echoRelayNetwork.ledger : 0,
     });
     next.log.unshift({ tick: 0, message: `Run ${next.run.count} initialized with carryover.` });
     return syncDerivedState(next);
@@ -3313,6 +4387,21 @@ const IronLanternDescent = (() => {
     }
     if (controls.ventGas) {
       next = ventGasPocket(next);
+    }
+    if (controls.repairRelay) {
+      next = repairRelayPylon(next);
+    }
+    if (controls.spoolCable) {
+      next = spoolRelayCable(next);
+    }
+    if (controls.triangulateEcho) {
+      next = triangulateEchoRoute(next);
+    }
+    if (controls.rescueCache) {
+      next = claimRescueCache(next);
+    }
+    if (controls.liftBeacon) {
+      next = fireLiftBeacon(next);
     }
     if (controls.interact) {
       next = returnToLift(next);
@@ -3557,6 +4646,9 @@ const IronLanternDescent = (() => {
     const activeSite = activeSurveySite(state);
     const activePump = activePumpworksSite(state);
     const activeVent = activeVentSite(state);
+    const activeRelay = state.relaySites.find((site) => site.id === state.echoRelayNetwork.activeSiteId) ||
+      nearestRelaySite(state, { includeCompleted: true })?.site ||
+      null;
     const surveyTarget = activeSite
       ? `${activeSite.name} / ${activeSite.status} / ${Math.round(activeSite.distance || 0)}m`
       : "survey complete";
@@ -3582,7 +4674,9 @@ const IronLanternDescent = (() => {
       ? `${Math.round(state.ventNetwork.gasPressure * 100)}g avg / stale ${Math.round(state.ventNetwork.staleAirPressure * 100)} / clear ${state.ventNetwork.gasCleared}`
       : `${state.ventNetwork.gasCleared} / ${state.ventNetwork.contract.targetGasCleared} cleared`;
     let targetName = "Iron Lift";
-    if (state.scanner.targetKind === "vent-network" && activeVent) {
+    if (state.scanner.targetKind === "echo-relay" && activeRelay) {
+      targetName = activeRelay.name;
+    } else if (state.scanner.targetKind === "vent-network" && activeVent) {
       targetName = activeVent.name;
     } else if (state.scanner.targetKind === "pumpworks" && activePump) {
       targetName = activePump.name;
@@ -3828,6 +4922,31 @@ const IronLanternDescent = (() => {
       }
       if (control === "ventGas") {
         currentState = ventGasPocket(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "repairRelay") {
+        currentState = repairRelayPylon(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "spoolCable") {
+        currentState = spoolRelayCable(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "triangulateEcho") {
+        currentState = triangulateEchoRoute(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "rescueCache") {
+        currentState = claimRescueCache(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "liftBeacon") {
+        currentState = fireLiftBeacon(currentState);
         renderHud(currentState);
         return;
       }
@@ -4867,6 +5986,7 @@ const IronLanternDescent = (() => {
     createSurveySites,
     createPumpworksSites,
     createVentSites,
+    createRelaySites,
     stepRun,
     applyMovement,
     placeLantern,
@@ -4882,6 +6002,11 @@ const IronLanternDescent = (() => {
     deployFilterCartridge,
     startPressureFan,
     ventGasPocket,
+    repairRelayPylon,
+    spoolRelayCable,
+    triangulateEchoRoute,
+    claimRescueCache,
+    fireLiftBeacon,
     mineNearestSample,
     pulseScanner,
     returnToLift,
@@ -4897,15 +6022,19 @@ const IronLanternDescent = (() => {
     surveySiteWindowState,
     pumpworksWindowState,
     ventWindowState,
+    relayWindowState,
     surveyOxygenDrain,
     pumpworksOxygenDrain,
     ventNetworkOxygenDrain,
+    echoRelayOxygenDrain,
     nearestSurveySite,
     nearestPumpworksSite,
     nearestVentSite,
+    nearestRelaySite,
     sampleSurveyValueBonus,
     samplePumpworksValueBonus,
     sampleVentValueBonus,
+    sampleRelayValueBonus,
     currentHazardExposure,
     nearestSample,
     cavePassageAt,

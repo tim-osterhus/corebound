@@ -119,6 +119,20 @@ class IronLanternDescentFoundationTests(unittest.TestCase):
                 typeof game.ventGasPocket,
               ],
               filterCharges: state.ventNetwork.filters,
+              echoRelease: game.GAME_DATA.echoRelayNetwork.release.label,
+              echoBaseRelease: game.GAME_DATA.echoRelayNetwork.release.baseRelease,
+              relayCount: state.relaySites.length,
+              relayPassages: state.relaySites.map((site) => site.passageId).sort(),
+              echoContractTriangulations: state.echoRelayNetwork.contract.targetTriangulations,
+              echoContractMap: state.echoRelayNetwork.contract.targetMapProgress,
+              echoChoices: [
+                typeof game.repairRelayPylon,
+                typeof game.spoolRelayCable,
+                typeof game.triangulateEchoRoute,
+                typeof game.claimRescueCache,
+                typeof game.fireLiftBeacon,
+              ],
+              echoCharges: state.echoRelayNetwork.echoCharges,
               routeStability: state.routeStability.stability,
               surveyChoices: [
                 typeof game.plantSurveyStake,
@@ -175,6 +189,15 @@ class IronLanternDescentFoundationTests(unittest.TestCase):
         self.assertEqual(3, result["ventContractMap"])
         self.assertEqual(["function", "function", "function", "function"], result["ventChoices"])
         self.assertEqual(1, result["filterCharges"])
+        self.assertEqual("v0.4.0 Echo Relay Network", result["echoRelease"])
+        self.assertEqual("v0.3.0 Cinder Vent Network", result["echoBaseRelease"])
+        self.assertGreaterEqual(result["relayCount"], 2)
+        self.assertIn("echo-relay-alcove", result["relayPassages"])
+        self.assertIn("lift-beacon-station", result["relayPassages"])
+        self.assertEqual(2, result["echoContractTriangulations"])
+        self.assertEqual(3, result["echoContractMap"])
+        self.assertEqual(["function", "function", "function", "function", "function"], result["echoChoices"])
+        self.assertEqual(2, result["echoCharges"])
         self.assertGreater(result["routeStability"], 0)
         self.assertEqual(["function", "function", "function", "function"], result["surveyChoices"])
         self.assertGreater(result["scannerRange"], 10)
@@ -183,7 +206,14 @@ class IronLanternDescentFoundationTests(unittest.TestCase):
         self.assertEqual(0, result["credits"])
         self.assertGreaterEqual(result["upgradeCount"], 1)
         self.assertEqual(
-            ["drillPowerBonus", "filterCartridgeBonus", "lanternChargeBonus", "oxygenMaxBonus", "siphonChargeBonus"],
+            [
+                "drillPowerBonus",
+                "echoChargeBonus",
+                "filterCartridgeBonus",
+                "lanternChargeBonus",
+                "oxygenMaxBonus",
+                "siphonChargeBonus",
+            ],
             result["carryoverKeys"],
         )
         self.assertEqual("close-third", result["cameraMode"])

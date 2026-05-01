@@ -24,9 +24,12 @@ class IronLanternDescentCinderVentNetworkTests(unittest.TestCase):
               release: state.ventNetwork.release.label,
               baseRelease: state.ventNetwork.release.baseRelease,
               pumpworksRelease: state.pumpworks.release.label,
+              echoRelease: state.echoRelayNetwork.release.label,
+              echoBaseRelease: state.echoRelayNetwork.release.baseRelease,
               passageIds: game.GAME_DATA.cave.passages.map((passage) => passage.id),
               collisionPassage: state.movement.collision.lastPassage,
               ventCount: state.ventSites.length,
+              relayCount: state.relaySites.length,
               nearestVent: nearest.site.id,
               activeVent: state.ventNetwork.activeSiteId,
               scannerKind: state.scanner.targetKind,
@@ -48,10 +51,13 @@ class IronLanternDescentCinderVentNetworkTests(unittest.TestCase):
         self.assertEqual("v0.3.0 Cinder Vent Network", result["release"])
         self.assertEqual("v0.2.0 Deep Pumpworks", result["baseRelease"])
         self.assertEqual("v0.2.0 Deep Pumpworks", result["pumpworksRelease"])
+        self.assertEqual("v0.4.0 Echo Relay Network", result["echoRelease"])
+        self.assertEqual("v0.3.0 Cinder Vent Network", result["echoBaseRelease"])
         self.assertIn("cinder-vent-shaft", result["passageIds"])
         self.assertIn("fan-relay-bay", result["passageIds"])
         self.assertEqual("cinder-vent-shaft", result["collisionPassage"])
         self.assertGreaterEqual(result["ventCount"], 2)
+        self.assertGreaterEqual(result["relayCount"], 2)
         self.assertEqual("vent-cinder-rib-draft", result["nearestVent"])
         self.assertEqual("vent-cinder-rib-draft", result["activeVent"])
         self.assertEqual("vent-network", result["scannerKind"])
