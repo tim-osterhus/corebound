@@ -95,6 +95,17 @@ class IronLanternDescentFoundationTests(unittest.TestCase):
               surveyCount: state.surveySites.length,
               surveyPassages: state.surveySites.map((site) => site.passageId).sort(),
               surveyContractTarget: state.survey.contract.targetMapProgress,
+              pumpworksRelease: game.GAME_DATA.pumpworks.release.label,
+              pumpworksCount: state.pumpworksSites.length,
+              pumpworksPassages: state.pumpworksSites.map((site) => site.passageId).sort(),
+              pumpworksContractTarget: state.pumpworks.contract.targetDrainedSites,
+              pumpworksChoices: [
+                typeof game.primePumpStation,
+                typeof game.turnPressureValve,
+                typeof game.deploySiphonCharge,
+                typeof game.sealLeakSeam,
+              ],
+              siphonCharges: state.pumpworks.siphons,
               routeStability: state.routeStability.stability,
               surveyChoices: [
                 typeof game.plantSurveyStake,
@@ -135,6 +146,13 @@ class IronLanternDescentFoundationTests(unittest.TestCase):
         self.assertIn("east-shelf", result["surveyPassages"])
         self.assertIn("fault-gallery", result["surveyPassages"])
         self.assertEqual(3, result["surveyContractTarget"])
+        self.assertEqual("v0.2.0 Deep Pumpworks", result["pumpworksRelease"])
+        self.assertGreaterEqual(result["pumpworksCount"], 2)
+        self.assertIn("lower-pumpworks", result["pumpworksPassages"])
+        self.assertIn("sump-bypass", result["pumpworksPassages"])
+        self.assertEqual(2, result["pumpworksContractTarget"])
+        self.assertEqual(["function", "function", "function", "function"], result["pumpworksChoices"])
+        self.assertEqual(1, result["siphonCharges"])
         self.assertGreater(result["routeStability"], 0)
         self.assertEqual(["function", "function", "function", "function"], result["surveyChoices"])
         self.assertGreater(result["scannerRange"], 10)
@@ -142,7 +160,7 @@ class IronLanternDescentFoundationTests(unittest.TestCase):
         self.assertEqual("active", result["runStatus"])
         self.assertEqual(0, result["credits"])
         self.assertGreaterEqual(result["upgradeCount"], 1)
-        self.assertEqual(["drillPowerBonus", "lanternChargeBonus", "oxygenMaxBonus"], result["carryoverKeys"])
+        self.assertEqual(["drillPowerBonus", "lanternChargeBonus", "oxygenMaxBonus", "siphonChargeBonus"], result["carryoverKeys"])
         self.assertEqual("close-third", result["cameraMode"])
         self.assertTrue(result["hasCameraVectors"])
 

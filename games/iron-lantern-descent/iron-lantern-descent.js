@@ -35,6 +35,10 @@ const IronLanternDescent = (() => {
       braceSeam: ["KeyB"],
       chartSurvey: ["KeyX"],
       airCache: ["KeyN"],
+      primePump: ["KeyP"],
+      turnValve: ["KeyO"],
+      deploySiphon: ["KeyY"],
+      sealLeak: ["KeyH"],
       upgrade: ["KeyU"],
       reset: ["KeyR"],
     },
@@ -49,6 +53,8 @@ const IronLanternDescent = (() => {
         { id: "west-pocket", name: "West Pocket", center: { x: -14, z: -45 }, size: { x: 28, z: 12 } },
         { id: "fault-gallery", name: "Fault Gallery", center: { x: -18, z: -61 }, size: { x: 16, z: 22 } },
         { id: "deep-room", name: "Deep Room", center: { x: 0, z: -70 }, size: { x: 24, z: 20 } },
+        { id: "lower-pumpworks", name: "Lower Pumpworks", center: { x: 11, z: -74 }, size: { x: 18, z: 24 } },
+        { id: "sump-bypass", name: "Sump Bypass", center: { x: -5, z: -88 }, size: { x: 18, z: 24 } },
       ],
     },
     player: {
@@ -126,6 +132,28 @@ const IronLanternDescent = (() => {
         collapseDrainPerSecond: 0.54,
       },
     },
+    pumpworks: {
+      release: {
+        version: "0.2.0",
+        label: "v0.2.0 Deep Pumpworks",
+        baseRelease: "v0.1.0 Faultline Survey",
+      },
+      actionRange: 5.2,
+      siphons: {
+        baseCharges: 1,
+      },
+      contract: {
+        id: "deep-pumpworks-drainage-route",
+        label: "Deep Pumpworks drainage route",
+        targetDrainedSites: 2,
+        targetMapProgress: 3,
+        targetPressureRelief: 50,
+      },
+      routeStability: {
+        lowStabilityDrainPerSecond: 0.28,
+        floodExposureDrainPerSecond: 0.42,
+      },
+    },
     lift: {
       id: "descent-lift",
       name: "Iron Lift",
@@ -186,6 +214,15 @@ const IronLanternDescent = (() => {
         value: 70,
         difficulty: 2.5,
         remaining: 2,
+      },
+      {
+        id: "sample-sump-pearl",
+        name: "Sump Pearl",
+        position: { x: -4, y: 0.7, z: -91 },
+        radius: 2.7,
+        value: 64,
+        difficulty: 2.3,
+        remaining: 1,
       },
     ],
     surveySites: [
@@ -284,6 +321,142 @@ const IronLanternDescent = (() => {
         },
       },
     ],
+    pumpworksSites: [
+      {
+        id: "pump-cinder-sump",
+        name: "Cinder Sump Pump",
+        pumpId: "pump-cinder-sump",
+        valveId: "valve-cinder-return",
+        kind: "pump-station",
+        passageId: "lower-pumpworks",
+        chamber: "cinder sump pump room",
+        associatedPassages: ["east-shelf", "deep-room", "lower-pumpworks"],
+        position: { x: 10, y: 0.35, z: -72 },
+        radius: 3.6,
+        influenceRadius: 13,
+        guideRadius: 9.5,
+        flood: {
+          baseLevel: 0.58,
+          partialLevel: 0.34,
+          drainedLevel: 0.14,
+          surgeLevel: 0.86,
+        },
+        pressureWindow: {
+          opensAt: 12,
+          closesAt: 96,
+          surgeAt: 132,
+          failAt: 168,
+          basePressure: 10,
+          surgePressure: 18,
+          floodPressure: 30,
+        },
+        requirements: {
+          surveySiteId: "survey-cinder-rib",
+          stake: true,
+          brace: false,
+          chart: "partial",
+          lanternAnchor: false,
+          siphon: false,
+        },
+        leak: {
+          id: "leak-cinder-return",
+          requiresStake: true,
+          requiresBrace: false,
+          pressureRelief: 8,
+        },
+        oxygenCost: {
+          prime: 3,
+          valve: 4,
+          siphon: 2,
+          seal: 2,
+          failure: 12,
+        },
+        route: {
+          primeBonus: 3,
+          leakRelief: 4,
+          drainBonus: 20,
+          failurePenalty: 12,
+        },
+        rewards: {
+          payout: 64,
+          partialPayout: 24,
+          mapProgress: 1,
+          partialMapProgress: 0.5,
+          sampleValueBonus: 10,
+          pressureRelief: 20,
+        },
+        consequences: {
+          sampleValuePenalty: 8,
+        },
+      },
+      {
+        id: "pump-basalt-gate",
+        name: "Basalt Gate Valve",
+        pumpId: "pump-basalt-gate",
+        valveId: "valve-basalt-siphon",
+        kind: "pressure-valve",
+        passageId: "sump-bypass",
+        chamber: "basalt siphon gallery",
+        associatedPassages: ["fault-gallery", "deep-room", "sump-bypass"],
+        position: { x: -4, y: 0.35, z: -88 },
+        radius: 4.1,
+        influenceRadius: 15,
+        guideRadius: 10.5,
+        flood: {
+          baseLevel: 0.72,
+          partialLevel: 0.42,
+          drainedLevel: 0.16,
+          surgeLevel: 0.94,
+        },
+        pressureWindow: {
+          opensAt: 35,
+          closesAt: 118,
+          surgeAt: 154,
+          failAt: 190,
+          basePressure: 14,
+          surgePressure: 24,
+          floodPressure: 38,
+        },
+        requirements: {
+          surveySiteId: "survey-basalt-suture",
+          stake: true,
+          brace: true,
+          chart: "success",
+          lanternAnchor: true,
+          siphon: true,
+        },
+        leak: {
+          id: "leak-basalt-gate",
+          requiresStake: true,
+          requiresBrace: true,
+          pressureRelief: 12,
+        },
+        oxygenCost: {
+          prime: 4,
+          valve: 6,
+          siphon: 3,
+          seal: 3,
+          failure: 15,
+        },
+        route: {
+          primeBonus: 4,
+          leakRelief: 6,
+          drainBonus: 22,
+          failurePenalty: 16,
+        },
+        rewards: {
+          payout: 96,
+          partialPayout: 38,
+          mapProgress: 2,
+          partialMapProgress: 1,
+          sampleValueBonus: 16,
+          pressureRelief: 32,
+        },
+        consequences: {
+          sampleValuePenalty: 12,
+        },
+      },
+    ],
     upgrades: [
       {
         id: "tank-weave",
@@ -305,6 +478,13 @@ const IronLanternDescent = (() => {
         cost: 95,
         summary: "faster sample extraction",
         effect: { drillPowerBonus: 0.42 },
+      },
+      {
+        id: "siphon-cartridge",
+        name: "Siphon Cartridge",
+        cost: 118,
+        summary: "+1 siphon charge on future runs",
+        effect: { siphonChargeBonus: 1 },
       },
     ],
   };
@@ -415,6 +595,27 @@ const IronLanternDescent = (() => {
     return ["success", "partial", "failed"].includes(site.chartState);
   }
 
+  function pumpworksWindowState(site, elapsed = 0) {
+    const window = site.pressureWindow || {};
+    if (elapsed < window.opensAt) {
+      return "pending";
+    }
+    if (elapsed <= window.closesAt) {
+      return "drain";
+    }
+    if (elapsed <= window.surgeAt) {
+      return "surge";
+    }
+    if (elapsed <= window.failAt) {
+      return "flood";
+    }
+    return "overrun";
+  }
+
+  function pumpworksOutcomeComplete(site) {
+    return ["success", "partial", "failed"].includes(site.drainageState);
+  }
+
   function computeSurveyRouteModifier(state) {
     if (!state.surveySites) {
       return 0;
@@ -443,6 +644,48 @@ const IronLanternDescent = (() => {
     return Math.round(clamp(modifier, -36, 24));
   }
 
+  function computePumpworksRouteModifier(state) {
+    if (!state.pumpworksSites) {
+      return 0;
+    }
+    const modifier = state.pumpworksSites.reduce((total, site) => {
+      const route = site.route || {};
+      const windowState = pumpworksWindowState(site, state.elapsed || 0);
+      let siteModifier = 0;
+      if (site.pumpPrimed) {
+        siteModifier += route.primeBonus || 0;
+      }
+      if (site.leakSealed) {
+        siteModifier += route.leakRelief || 0;
+      }
+      if (site.drainageState === "success") {
+        siteModifier += route.drainBonus || 0;
+      } else if (site.drainageState === "partial") {
+        siteModifier += Math.round((route.drainBonus || 0) / 2);
+      }
+      if ((windowState === "surge" || windowState === "flood") && !pumpworksOutcomeComplete(site)) {
+        siteModifier -= Math.round((route.failurePenalty || 0) / 2);
+      }
+      if (site.drainageState === "failed" || windowState === "overrun") {
+        siteModifier -= route.failurePenalty || 0;
+      }
+      return total + siteModifier;
+    }, 0);
+    return Math.round(clamp(modifier, -44, 32));
+  }
+
+  function pumpworksGuidePoints(state) {
+    return (state.pumpworksSites || [])
+      .filter((site) => site.pumpPrimed || site.leakSealed || site.drainageState === "success" || site.drainageState === "partial")
+      .map((site) => ({
+        id: `${site.id}-drainage-line`,
+        name: `${site.name} drainage line`,
+        kind: "pumpworks-drainage",
+        position: site.position,
+        safeRadius: site.guideRadius || GAME_DATA.pumpworks.actionRange,
+      }));
+  }
+
   function routeGuidePoints(state) {
     const surveyStakes = (state.surveySites || [])
       .filter((site) => site.stakePlanted)
@@ -453,6 +696,7 @@ const IronLanternDescent = (() => {
         position: site.position,
         safeRadius: GAME_DATA.survey.stakes.safetyRadius,
       }));
+    const drainageLines = pumpworksGuidePoints(state);
     return [
       {
         id: state.lift.id,
@@ -469,6 +713,7 @@ const IronLanternDescent = (() => {
         safeRadius: anchor.safetyRadius,
       })),
       ...surveyStakes,
+      ...drainageLines,
     ];
   }
 
@@ -510,7 +755,7 @@ const IronLanternDescent = (() => {
     if (points.length === 1) {
       returnConfidence = 100 - Math.max(0, liftDistance - state.lift.radius) * 2.4;
     }
-    returnConfidence += computeSurveyRouteModifier(state);
+    returnConfidence += computeSurveyRouteModifier(state) + computePumpworksRouteModifier(state);
     returnConfidence = Math.round(clamp(returnConfidence, 0, 100));
 
     let status = nearest.distance >= GAME_DATA.route.lostDistance ? "route lost" : "route thin";
@@ -612,11 +857,36 @@ const IronLanternDescent = (() => {
     }));
   }
 
+  function createPumpworksSites() {
+    return GAME_DATA.pumpworksSites.map((site) => ({
+      ...clone(site),
+      position: clone(site.position),
+      floodLevel: site.flood.baseLevel,
+      pumpState: "idle",
+      pumpPrimed: false,
+      valveState: "closed",
+      siphonDeployed: false,
+      leakSealed: false,
+      drainageState: "open",
+      outcome: "open",
+      payoutEarned: 0,
+      mapProgressEarned: 0,
+      pressureReliefEarned: 0,
+      distance: null,
+      inRange: false,
+      windowState: "pending",
+      status: "flooded",
+      lastAction: null,
+      lastMissing: [],
+    }));
+  }
+
   function upgradeCarryover(purchased) {
     const carryover = {
       oxygenMaxBonus: 0,
       lanternChargeBonus: 0,
       drillPowerBonus: 0,
+      siphonChargeBonus: 0,
     };
     purchased.forEach((id) => {
       const upgrade = GAME_DATA.upgrades.find((entry) => entry.id === id);
@@ -626,6 +896,7 @@ const IronLanternDescent = (() => {
       carryover.oxygenMaxBonus += upgrade.effect.oxygenMaxBonus || 0;
       carryover.lanternChargeBonus += upgrade.effect.lanternChargeBonus || 0;
       carryover.drillPowerBonus += upgrade.effect.drillPowerBonus || 0;
+      carryover.siphonChargeBonus += upgrade.effect.siphonChargeBonus || 0;
     });
     return carryover;
   }
@@ -651,6 +922,7 @@ const IronLanternDescent = (() => {
     const oxygenMax = GAME_DATA.oxygen.baseMax + carryover.oxygenMaxBonus;
     const lanternMax = GAME_DATA.lanterns.baseCharges + carryover.lanternChargeBonus;
     const drillPower = GAME_DATA.mining.drillPower + carryover.drillPowerBonus;
+    const siphonMax = GAME_DATA.pumpworks.siphons.baseCharges + carryover.siphonChargeBonus;
     const player = {
       position: clone(GAME_DATA.player.startPosition),
       facing: GAME_DATA.player.startFacing,
@@ -697,6 +969,7 @@ const IronLanternDescent = (() => {
         lastPlaced: null,
       },
       surveySites: createSurveySites(),
+      pumpworksSites: createPumpworksSites(),
       survey: {
         release: clone(GAME_DATA.survey.release),
         contract: clone(GAME_DATA.survey.contract),
@@ -715,6 +988,25 @@ const IronLanternDescent = (() => {
         activeSiteWindow: null,
         activeSiteStatus: "none",
         status: "survey open",
+        lastAction: null,
+      },
+      pumpworks: {
+        release: clone(GAME_DATA.pumpworks.release),
+        contract: clone(GAME_DATA.pumpworks.contract),
+        siphons: siphonMax,
+        maxSiphons: siphonMax,
+        mapProgress: 0,
+        ledger: options.pumpworksLedger || 0,
+        value: 0,
+        completedSites: 0,
+        pressureRelief: 0,
+        activeSiteId: null,
+        activeSiteName: null,
+        activeSiteDistance: null,
+        activeSiteWindow: null,
+        activeSiteStatus: "none",
+        floodLevel: 0,
+        status: "pumpworks flooded",
         lastAction: null,
       },
       routeStability: {
@@ -757,6 +1049,8 @@ const IronLanternDescent = (() => {
         bankedSamples: 0,
         bankedSurveyValue: 0,
         bankedMapProgress: 0,
+        bankedPumpworksValue: 0,
+        bankedPumpworksMapProgress: 0,
         lastBanked: 0,
       },
       hazardZones: createHazardZones(),
@@ -789,7 +1083,7 @@ const IronLanternDescent = (() => {
       },
       run: {
         status: "active",
-        objective: "Descend, mark the route, survey fault plates, bank samples at the lift.",
+        objective: "Descend, mark the route, drain lower pumpworks, survey fault plates, bank samples at the lift.",
         failureReason: null,
         completeReason: null,
         count: options.runCount || 1,
@@ -840,6 +1134,73 @@ const IronLanternDescent = (() => {
     let closest = null;
     (state.surveySites || []).forEach((site) => {
       if (!includeCompleted && surveyOutcomeComplete(site)) {
+        return;
+      }
+      const siteDistance = distance(state.player.position, site.position);
+      if (!closest || siteDistance < closest.distance) {
+        closest = { site, distance: siteDistance };
+      }
+    });
+    return closest;
+  }
+
+  function surveySiteForPumpworks(state, site) {
+    return (state.surveySites || []).find((entry) => entry.id === site.requirements.surveySiteId) || null;
+  }
+
+  function surveyChartMeetsRequirement(surveySite, required) {
+    if (!required) {
+      return true;
+    }
+    if (!surveySite) {
+      return false;
+    }
+    if (required === "partial") {
+      return surveySite.chartState === "partial" || surveySite.chartState === "success";
+    }
+    return surveySite.chartState === required;
+  }
+
+  function pumpworksRequirementStatus(state, site, options = {}) {
+    const surveySite = surveySiteForPumpworks(state, site);
+    const missing = [];
+    const requirements = site.requirements || {};
+    const leak = site.leak || {};
+    if (requirements.stake && (!surveySite || !surveySite.stakePlanted)) {
+      missing.push("survey stake");
+    }
+    if (requirements.brace && (!surveySite || !surveySite.braceInstalled)) {
+      missing.push("brace frame");
+    }
+    if (requirements.chart && !surveyChartMeetsRequirement(surveySite, requirements.chart)) {
+      missing.push(`${requirements.chart} survey chart`);
+    }
+    if (requirements.lanternAnchor && !coveredByLantern(state)) {
+      missing.push("lantern anchor");
+    }
+    if (options.requireSiphon && requirements.siphon && !site.siphonDeployed) {
+      missing.push("siphon charge");
+    }
+    if (options.forLeak) {
+      if (leak.requiresStake && (!surveySite || !surveySite.stakePlanted)) {
+        missing.push("survey stake leak line");
+      }
+      if (leak.requiresBrace && (!surveySite || !surveySite.braceInstalled)) {
+        missing.push("brace frame leak line");
+      }
+    }
+    return {
+      surveySite,
+      missing,
+      ready: missing.length === 0,
+    };
+  }
+
+  function nearestPumpworksSite(state, options = {}) {
+    const includeCompleted = Boolean(options.includeCompleted);
+    let closest = null;
+    (state.pumpworksSites || []).forEach((site) => {
+      if (!includeCompleted && pumpworksOutcomeComplete(site)) {
         return;
       }
       const siteDistance = distance(state.player.position, site.position);
@@ -902,6 +1263,47 @@ const IronLanternDescent = (() => {
       pressure += Math.max(0, sitePressure);
     });
 
+    (state.pumpworksSites || []).forEach((site) => {
+      const windowState = pumpworksWindowState(site, state.elapsed || 0);
+      const siteDistance = distance(state.player.position, site.position);
+      const activePressure =
+        siteDistance <= site.influenceRadius ||
+        site.pumpPrimed ||
+        site.leakSealed ||
+        site.siphonDeployed ||
+        pumpworksOutcomeComplete(site);
+      if (!activePressure) {
+        return;
+      }
+      const pressureWindow = site.pressureWindow || {};
+      let sitePressure = pressureWindow.basePressure || 0;
+      if (windowState === "surge") {
+        sitePressure += pressureWindow.surgePressure || 0;
+        warnings.push(`${site.name} pressure surge`);
+      } else if (windowState === "flood" || windowState === "overrun") {
+        sitePressure += pressureWindow.floodPressure || 0;
+        warnings.push(`${site.name} flood pulse`);
+      }
+      sitePressure += Math.round((site.floodLevel || 0) * 10);
+      if (site.pumpPrimed) {
+        sitePressure -= site.route.primeBonus || 0;
+      }
+      if (site.leakSealed) {
+        sitePressure -= site.leak.pressureRelief || 0;
+      }
+      if (site.siphonDeployed) {
+        sitePressure -= 6;
+      }
+      if (site.drainageState === "success") {
+        sitePressure -= site.rewards.pressureRelief || 0;
+      } else if (site.drainageState === "partial") {
+        sitePressure -= Math.round((site.rewards.pressureRelief || 0) / 2);
+      } else if (site.drainageState === "failed") {
+        sitePressure += site.route.failurePenalty || 0;
+      }
+      pressure += Math.max(0, sitePressure);
+    });
+
     const stability = Math.round(clamp(settings.base - pressure, 0, 100));
     let status = "stable";
     if (stability < 35) {
@@ -960,6 +1362,65 @@ const IronLanternDescent = (() => {
     return state;
   }
 
+  function pumpworksStatus(site) {
+    if (site.drainageState === "success") {
+      return "drained";
+    }
+    if (site.drainageState === "partial") {
+      return "partly drained";
+    }
+    if (site.drainageState === "failed") {
+      return "flood locked";
+    }
+    if (site.leakSealed && site.siphonDeployed) {
+      return "sealed siphon";
+    }
+    if (site.valveState !== "closed") {
+      return site.valveState;
+    }
+    if (site.pumpPrimed) {
+      return "primed";
+    }
+    if (site.windowState === "surge" || site.windowState === "flood") {
+      return "pressure rising";
+    }
+    if (site.inRange) {
+      return "pump ready";
+    }
+    return "flooded";
+  }
+
+  function syncPumpworksState(state) {
+    if (!state.pumpworks || !state.pumpworksSites) {
+      return state;
+    }
+    let completedSites = 0;
+    let totalFloodLevel = 0;
+    state.pumpworksSites.forEach((site) => {
+      site.distance = Number(distance(state.player.position, site.position).toFixed(1));
+      site.inRange = site.distance <= GAME_DATA.pumpworks.actionRange;
+      site.windowState = pumpworksWindowState(site, state.elapsed || 0);
+      if (site.drainageState === "success" || site.drainageState === "partial") {
+        completedSites += 1;
+      }
+      site.status = pumpworksStatus(site);
+      totalFloodLevel += site.floodLevel || 0;
+    });
+
+    const active = nearestPumpworksSite(state) || nearestPumpworksSite(state, { includeCompleted: true });
+    state.pumpworks.completedSites = completedSites;
+    state.pumpworks.activeSiteId = active ? active.site.id : null;
+    state.pumpworks.activeSiteName = active ? active.site.name : null;
+    state.pumpworks.activeSiteDistance = active ? Number(active.distance.toFixed(1)) : null;
+    state.pumpworks.activeSiteWindow = active ? active.site.windowState : null;
+    state.pumpworks.activeSiteStatus = active ? active.site.status : "none";
+    state.pumpworks.floodLevel = Number((totalFloodLevel / Math.max(1, state.pumpworksSites.length)).toFixed(2));
+    state.pumpworks.status = active
+      ? `${active.site.name}: ${active.site.status} / ${active.site.windowState}`
+      : "pumpworks drained";
+    return state;
+  }
+
   function surveyOxygenDrain(state, routeState = null, hazardState = null) {
     if (state.run.status !== "active" || !state.surveySites) {
       return 0;
@@ -1001,6 +1462,56 @@ const IronLanternDescent = (() => {
     return Number(drain.toFixed(3));
   }
 
+  function pumpworksOxygenDrain(state, routeState = null, hazardState = null) {
+    if (state.run.status !== "active" || !state.pumpworksSites) {
+      return 0;
+    }
+    const route = routeState || state.route || computeRouteState(state);
+    const hazard = hazardState || currentHazardExposure(state);
+    let drain = 0;
+    if (route.returnConfidence < 58) {
+      drain += ((58 - route.returnConfidence) / 58) * GAME_DATA.pumpworks.routeStability.lowStabilityDrainPerSecond;
+    }
+    if (hazard.names.length) {
+      drain += hazard.names.length * 0.05;
+    }
+    state.pumpworksSites.forEach((site) => {
+      if (site.drainageState === "success") {
+        return;
+      }
+      const siteDistance = distance(state.player.position, site.position);
+      if (siteDistance > site.influenceRadius) {
+        return;
+      }
+      const exposure = Math.max(0, 1 - siteDistance / site.influenceRadius);
+      const windowState = pumpworksWindowState(site, state.elapsed || 0);
+      let siteDrain = (site.floodLevel || 0) * GAME_DATA.pumpworks.routeStability.floodExposureDrainPerSecond;
+      if (windowState === "surge") {
+        siteDrain += 0.24;
+      } else if (windowState === "flood" || windowState === "overrun") {
+        siteDrain += 0.42;
+      }
+      if (site.pumpPrimed) {
+        siteDrain *= 0.76;
+      }
+      if (site.leakSealed) {
+        siteDrain *= 0.72;
+      }
+      if (site.siphonDeployed) {
+        siteDrain *= 0.68;
+      }
+      if (site.drainageState === "partial") {
+        siteDrain *= 0.5;
+      }
+      const linkedSurvey = surveySiteForPumpworks(state, site);
+      if (linkedSurvey && linkedSurvey.airCacheState && linkedSurvey.airCacheState.status === "depleted") {
+        siteDrain *= 0.84;
+      }
+      drain += exposure * siteDrain;
+    });
+    return Number(drain.toFixed(3));
+  }
+
   function sampleSurveyValueBonus(state, node) {
     const passage = cavePassageAt(node.position);
     if (!passage || !state.surveySites) {
@@ -1012,6 +1523,24 @@ const IronLanternDescent = (() => {
     return site ? site.rewards.sampleValueBonus || 0 : 0;
   }
 
+  function samplePumpworksValueBonus(state, node) {
+    const passage = cavePassageAt(node.position);
+    if (!passage || !state.pumpworksSites) {
+      return 0;
+    }
+    const site = state.pumpworksSites.find(
+      (entry) =>
+        (entry.associatedPassages || []).includes(passage.id) &&
+        (entry.drainageState === "success" || entry.drainageState === "partial")
+    );
+    if (!site) {
+      return 0;
+    }
+    return site.drainageState === "success"
+      ? site.rewards.sampleValueBonus || 0
+      : Math.round((site.rewards.sampleValueBonus || 0) / 2);
+  }
+
   function oxygenDrainRate(state) {
     if (state.run.status !== "active") {
       return 0;
@@ -1019,7 +1548,11 @@ const IronLanternDescent = (() => {
     const hazard = currentHazardExposure(state);
     const route = computeRouteState(state);
     const liftDistance = distance(state.player.position, state.lift.position);
-    let rate = state.oxygen.baseDrainPerSecond + hazard.oxygenDrainPerSecond + surveyOxygenDrain(state, route, hazard);
+    let rate =
+      state.oxygen.baseDrainPerSecond +
+      hazard.oxygenDrainPerSecond +
+      surveyOxygenDrain(state, route, hazard) +
+      pumpworksOxygenDrain(state, route, hazard);
     if (liftDistance <= state.lift.radius) {
       rate *= GAME_DATA.oxygen.liftDrainMultiplier;
     } else if (coveredByLantern(state)) {
@@ -1069,13 +1602,29 @@ const IronLanternDescent = (() => {
     state.route = computeRouteState(state);
     state.routeStability = computeRouteStability(state, state.route, hazard);
     syncSurveyState(state);
+    syncPumpworksState(state);
 
     const sample = nearestSample(state);
     const sampleInRange = sample && sample.distance <= state.scanner.range;
     const survey = nearestSurveySite(state);
     const surveyInRange = survey && survey.distance <= state.scanner.range;
     const surveyIsActionable = surveyInRange && survey.distance <= GAME_DATA.survey.actionRange;
-    const target = surveyIsActionable || (surveyInRange && !sampleInRange)
+    const pumpworks = nearestPumpworksSite(state);
+    const pumpworksInRange = pumpworks && pumpworks.distance <= state.scanner.range;
+    const pumpworksIsActionable = pumpworksInRange && pumpworks.distance <= GAME_DATA.pumpworks.actionRange;
+    const pumpworksPrecedesSample =
+      pumpworksInRange &&
+      (!sampleInRange || pumpworks.distance <= sample.distance) &&
+      (!surveyInRange || pumpworks.distance <= survey.distance);
+    const target = pumpworksIsActionable || pumpworksPrecedesSample
+      ? {
+          id: pumpworks.site.id,
+          kind: "pumpworks",
+          name: pumpworks.site.name,
+          position: pumpworks.site.position,
+          distance: pumpworks.distance,
+        }
+      : surveyIsActionable || (surveyInRange && !sampleInRange)
       ? {
           id: survey.site.id,
           kind: "survey",
@@ -1389,6 +1938,254 @@ const IronLanternDescent = (() => {
     return syncDerivedState(next);
   }
 
+  function pumpworksActionTarget(state, siteId = null) {
+    const site = siteId
+      ? (state.pumpworksSites || []).find((entry) => entry.id === siteId)
+      : nearestPumpworksSite(state, { includeCompleted: true })?.site;
+    if (!site) {
+      return { site: null, distance: Infinity, inRange: false };
+    }
+    const siteDistance = distance(state.player.position, site.position);
+    return {
+      site,
+      distance: siteDistance,
+      inRange: siteDistance <= GAME_DATA.pumpworks.actionRange,
+    };
+  }
+
+  function recordPumpworksMiss(next, target, action) {
+    const message = target.site
+      ? `${action} needs ${target.site.name} within ${GAME_DATA.pumpworks.actionRange}m.`
+      : `No pumpworks station available for ${action}.`;
+    next.pumpworks.lastAction = "out of range";
+    next.log.unshift({ tick: next.tick, message });
+    return syncDerivedState(next);
+  }
+
+  function pumpworksActionCost(state, site, action) {
+    let cost = site.oxygenCost[action] || 0;
+    const linkedSurvey = surveySiteForPumpworks(state, site);
+    if (linkedSurvey && linkedSurvey.airCacheState && linkedSurvey.airCacheState.status === "depleted") {
+      cost = Math.max(1, Math.round(cost * 0.78));
+    }
+    return cost;
+  }
+
+  function spendPumpworksOxygen(next, site, action) {
+    const cost = pumpworksActionCost(next, site, action);
+    next.oxygen.current = Math.max(0, Number((next.oxygen.current - cost).toFixed(3)));
+    if (next.oxygen.current <= 0) {
+      next.run.status = "failed";
+      next.run.failureReason = "pumpworks oxygen loss";
+      next.run.objective = "Flood pressure overran the oxygen reserve. Restart from the lift.";
+    }
+    return cost;
+  }
+
+  function applyPumpworksOutcome(next, site, outcome) {
+    const success = outcome === "success";
+    const partial = outcome === "partial";
+    site.drainageState = outcome;
+    site.outcome = outcome;
+    site.valveState = success ? "regulated" : partial ? "choked" : "overrun";
+    site.floodLevel = success
+      ? site.flood.drainedLevel
+      : partial
+        ? site.flood.partialLevel
+        : site.flood.surgeLevel;
+    site.payoutEarned = success ? site.rewards.payout : partial ? site.rewards.partialPayout : 0;
+    site.mapProgressEarned = success ? site.rewards.mapProgress : partial ? site.rewards.partialMapProgress : 0;
+    site.pressureReliefEarned = success
+      ? site.rewards.pressureRelief
+      : partial
+        ? Math.round(site.rewards.pressureRelief / 2)
+        : 0;
+    next.pumpworks.value += site.payoutEarned;
+    next.pumpworks.mapProgress = Number((next.pumpworks.mapProgress + site.mapProgressEarned).toFixed(2));
+    next.pumpworks.pressureRelief += site.pressureReliefEarned;
+    if (partial && next.cargo.value > 0) {
+      const penalty = Math.min(next.cargo.value, site.consequences.sampleValuePenalty || 0);
+      next.cargo.value -= penalty;
+      site.lastAction = `valve partial, sample value bled ${penalty}cr`;
+    } else {
+      site.lastAction = `valve ${outcome}`;
+    }
+    next.pumpworks.lastAction = `${site.name} ${outcome}`;
+    return { payout: site.payoutEarned, mapProgress: site.mapProgressEarned };
+  }
+
+  function primePumpStation(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = pumpworksActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordPumpworksMiss(next, target, "Pump prime");
+    }
+    const site = target.site;
+    if (site.pumpPrimed) {
+      next.pumpworks.lastAction = "pump already primed";
+      site.lastAction = next.pumpworks.lastAction;
+      return syncDerivedState(next);
+    }
+    const requirements = pumpworksRequirementStatus(next, site);
+    const windowState = pumpworksWindowState(site, next.elapsed || 0);
+    spendPumpworksOxygen(next, site, windowState === "overrun" ? "failure" : "prime");
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    if (windowState === "overrun") {
+      site.pumpState = "jammed";
+      site.drainageState = "failed";
+      site.outcome = "failed";
+      site.floodLevel = site.flood.surgeLevel;
+      site.lastAction = "prime failed";
+      next.pumpworks.lastAction = `prime failed: ${site.id}`;
+      next.log.unshift({ tick: next.tick, message: `${site.name} pump jammed after the flood pulse.` });
+      return syncDerivedState(next);
+    }
+    if (!requirements.ready || windowState === "flood") {
+      site.pumpState = "misaligned";
+      site.pumpPrimed = false;
+      site.lastMissing = requirements.missing;
+      site.floodLevel = Math.min(site.flood.surgeLevel, Number((site.flood.baseLevel + 0.08).toFixed(2)));
+      site.lastAction = `prime partial: ${requirements.missing.join(", ") || windowState}`;
+      next.pumpworks.lastAction = `prime partial: ${site.id}`;
+      next.log.unshift({
+        tick: next.tick,
+        message: `${site.name} pump prime partial; ${requirements.missing.join(", ") || "flood pulse"} still unsettled.`,
+      });
+      return syncDerivedState(next);
+    }
+    site.pumpPrimed = true;
+    site.pumpState = windowState === "surge" ? "surge primed" : "primed";
+    site.floodLevel = Math.max(site.flood.partialLevel, Number((site.floodLevel - 0.16).toFixed(2)));
+    site.lastMissing = [];
+    site.lastAction = "pump primed";
+    next.pumpworks.lastAction = `pump primed: ${site.id}`;
+    next.log.unshift({ tick: next.tick, message: `${site.name} primed against ${site.valveId}.` });
+    return syncDerivedState(next);
+  }
+
+  function deploySiphonCharge(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = pumpworksActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordPumpworksMiss(next, target, "Siphon charge");
+    }
+    const site = target.site;
+    if (site.siphonDeployed) {
+      next.pumpworks.lastAction = "siphon already deployed";
+      site.lastAction = next.pumpworks.lastAction;
+      return syncDerivedState(next);
+    }
+    if (next.pumpworks.siphons <= 0) {
+      next.pumpworks.lastAction = "no siphon charges";
+      next.log.unshift({ tick: next.tick, message: "No siphon charges remain." });
+      return syncDerivedState(next);
+    }
+    spendPumpworksOxygen(next, site, "siphon");
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    next.pumpworks.siphons -= 1;
+    site.siphonDeployed = true;
+    site.floodLevel = Math.max(site.flood.partialLevel, Number((site.floodLevel - 0.12).toFixed(2)));
+    site.lastAction = "siphon deployed";
+    next.pumpworks.lastAction = `siphon deployed: ${site.id}`;
+    next.log.unshift({ tick: next.tick, message: `${site.name} siphon charge set in ${site.chamber}.` });
+    return syncDerivedState(next);
+  }
+
+  function sealLeakSeam(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = pumpworksActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordPumpworksMiss(next, target, "Leak seal");
+    }
+    const site = target.site;
+    if (site.leakSealed) {
+      next.pumpworks.lastAction = "leak already sealed";
+      site.lastAction = next.pumpworks.lastAction;
+      return syncDerivedState(next);
+    }
+    const requirements = pumpworksRequirementStatus(next, site, { forLeak: true });
+    if (!requirements.ready) {
+      site.lastMissing = requirements.missing;
+      site.lastAction = `leak seal blocked: ${requirements.missing.join(", ")}`;
+      next.pumpworks.lastAction = "leak seal blocked";
+      next.log.unshift({ tick: next.tick, message: `${site.name} leak seam needs ${requirements.missing.join(" + ")}.` });
+      return syncDerivedState(next);
+    }
+    spendPumpworksOxygen(next, site, "seal");
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    site.leakSealed = true;
+    site.floodLevel = Math.max(site.flood.partialLevel, Number((site.floodLevel - 0.1).toFixed(2)));
+    site.lastMissing = [];
+    site.lastAction = "leak sealed";
+    next.pumpworks.lastAction = `leak sealed: ${site.id}`;
+    next.log.unshift({ tick: next.tick, message: `${site.name} leak seam sealed before the valve turn.` });
+    return syncDerivedState(next);
+  }
+
+  function turnPressureValve(state, siteId = null) {
+    const next = syncDerivedState(clone(state));
+    if (next.run.status !== "active") {
+      return syncDerivedState(next);
+    }
+    const target = pumpworksActionTarget(next, siteId);
+    if (!target.inRange) {
+      return recordPumpworksMiss(next, target, "Pressure valve");
+    }
+    const site = target.site;
+    if (pumpworksOutcomeComplete(site)) {
+      next.pumpworks.lastAction = `already drained: ${site.drainageState}`;
+      site.lastAction = next.pumpworks.lastAction;
+      return syncDerivedState(next);
+    }
+    const windowState = pumpworksWindowState(site, next.elapsed || 0);
+    const requirements = pumpworksRequirementStatus(next, site, { requireSiphon: true });
+    const routeStable = next.route.returnConfidence >= 35 && next.routeStability.stability >= 35;
+    let outcome = "partial";
+    if (windowState === "overrun" || !site.pumpPrimed) {
+      outcome = "failed";
+    } else if (
+      requirements.ready &&
+      routeStable &&
+      (windowState === "drain" || (windowState === "surge" && site.leakSealed))
+    ) {
+      outcome = "success";
+    }
+
+    spendPumpworksOxygen(next, site, outcome === "failed" ? "failure" : "valve");
+    if (next.run.status !== "active" && outcome !== "success") {
+      site.drainageState = "failed";
+      site.outcome = "failed";
+      return syncDerivedState(next);
+    }
+    const reward = applyPumpworksOutcome(next, site, outcome);
+    site.lastMissing = requirements.missing;
+    next.log.unshift({
+      tick: next.tick,
+      message: `${site.name} pressure valve ${outcome}: +${reward.payout}cr / +${reward.mapProgress} map.`,
+    });
+    if (outcome === "failed") {
+      next.run.objective = next.oxygen.current <= 0
+        ? next.run.objective
+        : "A flood pulse locked the pumpworks route. Return or restart before oxygen runs out.";
+    }
+    return syncDerivedState(next);
+  }
+
   function mineNearestSample(state, deltaSeconds = 1) {
     const next = clone(state);
     if (next.run.status !== "active") {
@@ -1418,7 +2215,7 @@ const IronLanternDescent = (() => {
       node.remaining > 0 &&
       next.cargo.samples < next.cargo.capacity
     ) {
-      const yieldValue = node.value + sampleSurveyValueBonus(next, node);
+      const yieldValue = node.value + sampleSurveyValueBonus(next, node) + samplePumpworksValueBonus(next, node);
       node.mineState.progress -= node.difficulty;
       node.remaining -= 1;
       node.mineState.lastYield = yieldValue;
@@ -1458,6 +2255,10 @@ const IronLanternDescent = (() => {
         surveySiteId: next.survey.activeSiteId,
         surveyWindow: next.survey.activeSiteWindow,
         surveyStatus: next.survey.activeSiteStatus,
+        pumpworksSiteId: next.pumpworks.activeSiteId,
+        pumpworksWindow: next.pumpworks.activeSiteWindow,
+        pumpworksStatus: next.pumpworks.activeSiteStatus,
+        pumpworksFloodLevel: next.pumpworks.floodLevel,
       };
       next.log.unshift({
         tick: next.tick,
@@ -1480,11 +2281,15 @@ const IronLanternDescent = (() => {
     const bankedSamples = next.cargo.samples;
     const bankedSurveyValue = next.survey ? next.survey.value : 0;
     const bankedMapProgress = next.survey ? next.survey.mapProgress : 0;
-    next.credits += bankedValue + bankedSurveyValue;
+    const bankedPumpworksValue = next.pumpworks ? next.pumpworks.value : 0;
+    const bankedPumpworksMapProgress = next.pumpworks ? next.pumpworks.mapProgress : 0;
+    next.credits += bankedValue + bankedSurveyValue + bankedPumpworksValue;
     next.lift.bankedSamples += bankedSamples;
     next.lift.bankedSurveyValue += bankedSurveyValue;
     next.lift.bankedMapProgress = Number((next.lift.bankedMapProgress + bankedMapProgress).toFixed(2));
-    next.lift.lastBanked = bankedValue + bankedSurveyValue;
+    next.lift.bankedPumpworksValue += bankedPumpworksValue;
+    next.lift.bankedPumpworksMapProgress = Number((next.lift.bankedPumpworksMapProgress + bankedPumpworksMapProgress).toFixed(2));
+    next.lift.lastBanked = bankedValue + bankedSurveyValue + bankedPumpworksValue;
     next.cargo.samples = 0;
     next.cargo.value = 0;
     if (next.survey) {
@@ -1492,13 +2297,23 @@ const IronLanternDescent = (() => {
       next.survey.value = 0;
       next.survey.mapProgress = 0;
     }
-    const bankedRunValue = bankedSamples > 0 || bankedSurveyValue > 0 || bankedMapProgress > 0;
+    if (next.pumpworks) {
+      next.pumpworks.ledger = Number((next.pumpworks.ledger + bankedPumpworksMapProgress).toFixed(2));
+      next.pumpworks.value = 0;
+      next.pumpworks.mapProgress = 0;
+    }
+    const bankedRunValue =
+      bankedSamples > 0 ||
+      bankedSurveyValue > 0 ||
+      bankedMapProgress > 0 ||
+      bankedPumpworksValue > 0 ||
+      bankedPumpworksMapProgress > 0;
     next.run.status = bankedRunValue ? "extracted" : "active";
-    next.run.completeReason = bankedRunValue ? "samples or survey banked" : null;
-    next.run.objective = bankedRunValue ? "Survey and samples banked. Buy an upgrade or restart for another descent." : next.run.objective;
+    next.run.completeReason = bankedRunValue ? "samples, survey, or pumpworks banked" : null;
+    next.run.objective = bankedRunValue ? "Drainage, survey, and samples banked. Buy an upgrade or restart for another descent." : next.run.objective;
     next.log.unshift({
       tick: next.tick,
-      message: `Lift banked ${bankedSamples} sample(s), ${bankedMapProgress} map, and ${bankedValue + bankedSurveyValue}cr.`,
+      message: `Lift banked ${bankedSamples} sample(s), ${bankedMapProgress + bankedPumpworksMapProgress} map, and ${bankedValue + bankedSurveyValue + bankedPumpworksValue}cr.`,
     });
     return syncDerivedState(next);
   }
@@ -1537,6 +2352,7 @@ const IronLanternDescent = (() => {
       upgrades: state.upgrades.purchased,
       runCount: state.run.count + 1,
       surveyLedger: state.survey ? state.survey.ledger : 0,
+      pumpworksLedger: state.pumpworks ? state.pumpworks.ledger : 0,
     });
     next.log.unshift({ tick: 0, message: `Run ${next.run.count} initialized with carryover.` });
     return syncDerivedState(next);
@@ -1565,6 +2381,18 @@ const IronLanternDescent = (() => {
     }
     if (controls.airCache) {
       next = activateAirCache(next);
+    }
+    if (controls.primePump) {
+      next = primePumpStation(next);
+    }
+    if (controls.deploySiphon) {
+      next = deploySiphonCharge(next);
+    }
+    if (controls.sealLeak) {
+      next = sealLeakSeam(next);
+    }
+    if (controls.turnValve) {
+      next = turnPressureValve(next);
     }
     if (controls.interact) {
       next = returnToLift(next);
@@ -1823,6 +2651,26 @@ const IronLanternDescent = (() => {
       }
       if (control === "airCache") {
         currentState = activateAirCache(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "primePump") {
+        currentState = primePumpStation(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "deploySiphon") {
+        currentState = deploySiphonCharge(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "sealLeak") {
+        currentState = sealLeakSeam(currentState);
+        renderHud(currentState);
+        return;
+      }
+      if (control === "turnValve") {
+        currentState = turnPressureValve(currentState);
         renderHud(currentState);
         return;
       }
@@ -2482,6 +3330,7 @@ const IronLanternDescent = (() => {
     createSampleNodes,
     createHazardZones,
     createSurveySites,
+    createPumpworksSites,
     stepRun,
     applyMovement,
     placeLantern,
@@ -2489,6 +3338,10 @@ const IronLanternDescent = (() => {
     braceSurveySite,
     chartFaultSurvey,
     activateAirCache,
+    primePumpStation,
+    turnPressureValve,
+    deploySiphonCharge,
+    sealLeakSeam,
     mineNearestSample,
     pulseScanner,
     returnToLift,
@@ -2502,9 +3355,13 @@ const IronLanternDescent = (() => {
     computeRouteState,
     computeRouteStability,
     surveySiteWindowState,
+    pumpworksWindowState,
     surveyOxygenDrain,
+    pumpworksOxygenDrain,
     nearestSurveySite,
+    nearestPumpworksSite,
     sampleSurveyValueBonus,
+    samplePumpworksValueBonus,
     currentHazardExposure,
     nearestSample,
     cavePassageAt,
