@@ -7,7 +7,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "data" / "games.json"
 INDEX_PATH = ROOT / "index.html"
 GAME_DIR = ROOT / "games" / "iron-lantern-descent"
-SNAPSHOT_DIR = GAME_DIR / "versions" / "0.3.0"
+SNAPSHOT_DIR = GAME_DIR / "versions" / "0.4.0"
+CINDER_SNAPSHOT_DIR = GAME_DIR / "versions" / "0.3.0"
 DEEP_PUMPWORKS_SNAPSHOT_DIR = GAME_DIR / "versions" / "0.2.0"
 FAULTLINE_SNAPSHOT_DIR = GAME_DIR / "versions" / "0.1.0"
 BASELINE_SNAPSHOT_DIR = GAME_DIR / "versions" / "0.0.1"
@@ -33,41 +34,47 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
 
         self.assertEqual("iron-lantern-descent", game["slug"])
         self.assertEqual("Iron Lantern Descent", game["title"])
-        self.assertEqual("0.3.0", game["version"])
+        self.assertEqual("0.4.0", game["version"])
         self.assertEqual("games/iron-lantern-descent/", game["path"])
         self.assertEqual("games/iron-lantern-descent/assets/arcade-title-card.png", game["thumbnail"])
-        self.assertEqual("v0.3.0 Cinder Vent Network", game["release"]["label"])
-        self.assertIn("cinder vent shafts", game["release"]["copy"])
-        self.assertIn("filter cartridges", game["release"]["copy"])
-        self.assertIn("fresh-air relays", game["release"]["copy"])
-        self.assertIn("lift-banked vent map progress", game["release"]["copy"])
+        self.assertEqual("v0.4.0 Echo Relay Network", game["release"]["label"])
+        self.assertIn("repairable echo pylons", game["release"]["copy"])
+        self.assertIn("broken signal cable spans", game["release"]["copy"])
+        self.assertIn("rescue caches", game["release"]["copy"])
+        self.assertIn("emergency lift beacons", game["release"]["copy"])
+        self.assertIn("lift-banked echo map progress", game["release"]["copy"])
         self.assertNotIn("snapshot", game)
 
-        self.assertEqual("0.3.0", version["version"])
-        self.assertEqual("games/iron-lantern-descent/versions/0.3.0/", version["path"])
+        self.assertEqual("0.4.0", version["version"])
+        self.assertEqual("games/iron-lantern-descent/versions/0.4.0/", version["path"])
         self.assertEqual("2026-05-01", version["releasedAt"])
         self.assertEqual(game["release"]["label"], version["label"])
-        self.assertIn("Cinder Vent Network adds cinder vent shaft", version["summary"])
-        self.assertIn("fresh-air relay payouts", version["summary"])
+        self.assertIn("Echo Relay Network adds echo relay alcove", version["summary"])
+        self.assertIn("rescue-cache and emergency-beacon decisions", version["summary"])
         self.assertNotIn("commit", version)
         self.assertTrue((ROOT / version["path"]).is_dir())
 
-        self.assertEqual("0.2.0", game["versions"][1]["version"])
-        self.assertEqual("games/iron-lantern-descent/versions/0.2.0/", game["versions"][1]["path"])
-        self.assertEqual("v0.2.0 Deep Pumpworks", game["versions"][1]["label"])
+        self.assertEqual("0.3.0", game["versions"][1]["version"])
+        self.assertEqual("games/iron-lantern-descent/versions/0.3.0/", game["versions"][1]["path"])
+        self.assertEqual("v0.3.0 Cinder Vent Network", game["versions"][1]["label"])
         self.assertTrue((ROOT / game["versions"][1]["path"]).is_dir())
 
-        self.assertEqual("0.1.0", game["versions"][2]["version"])
-        self.assertEqual("games/iron-lantern-descent/versions/0.1.0/", game["versions"][2]["path"])
-        self.assertEqual("v0.1.0 Faultline Survey", game["versions"][2]["label"])
+        self.assertEqual("0.2.0", game["versions"][2]["version"])
+        self.assertEqual("games/iron-lantern-descent/versions/0.2.0/", game["versions"][2]["path"])
+        self.assertEqual("v0.2.0 Deep Pumpworks", game["versions"][2]["label"])
         self.assertTrue((ROOT / game["versions"][2]["path"]).is_dir())
 
-        self.assertEqual("0.0.1", game["versions"][3]["version"])
-        self.assertEqual("games/iron-lantern-descent/versions/0.0.1/", game["versions"][3]["path"])
-        self.assertEqual("v0.0.1 Lantern Route", game["versions"][3]["label"])
+        self.assertEqual("0.1.0", game["versions"][3]["version"])
+        self.assertEqual("games/iron-lantern-descent/versions/0.1.0/", game["versions"][3]["path"])
+        self.assertEqual("v0.1.0 Faultline Survey", game["versions"][3]["label"])
         self.assertTrue((ROOT / game["versions"][3]["path"]).is_dir())
 
-    def test_cinder_vent_snapshot_is_playable_static_copy_without_nested_version_history(self) -> None:
+        self.assertEqual("0.0.1", game["versions"][4]["version"])
+        self.assertEqual("games/iron-lantern-descent/versions/0.0.1/", game["versions"][4]["path"])
+        self.assertEqual("v0.0.1 Lantern Route", game["versions"][4]["label"])
+        self.assertTrue((ROOT / game["versions"][4]["path"]).is_dir())
+
+    def test_echo_relay_snapshot_is_playable_static_copy_without_nested_version_history(self) -> None:
         for relative_path in (
             "index.html",
             "iron-lantern-descent.css",
@@ -89,6 +96,8 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         snapshot_html = (SNAPSHOT_DIR / "index.html").read_text(encoding="utf-8")
         live_script = (GAME_DIR / "iron-lantern-descent.js").read_text(encoding="utf-8")
         snapshot_script = (SNAPSHOT_DIR / "iron-lantern-descent.js").read_text(encoding="utf-8")
+        cinder_html = (CINDER_SNAPSHOT_DIR / "index.html").read_text(encoding="utf-8")
+        cinder_script = (CINDER_SNAPSHOT_DIR / "iron-lantern-descent.js").read_text(encoding="utf-8")
         pumpworks_html = (DEEP_PUMPWORKS_SNAPSHOT_DIR / "index.html").read_text(encoding="utf-8")
         pumpworks_script = (DEEP_PUMPWORKS_SNAPSHOT_DIR / "iron-lantern-descent.js").read_text(encoding="utf-8")
         faultline_html = (FAULTLINE_SNAPSHOT_DIR / "index.html").read_text(encoding="utf-8")
@@ -98,18 +107,33 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         self.assertIn("<title>Iron Lantern Descent</title>", snapshot_html)
         self.assertIn('src="vendor/three.min.js"', snapshot_html)
         self.assertIn('lanternAnchor: "assets/lantern-anchor.png"', snapshot_script)
-        self.assertIn("v0.3.0 cinder vent network", live_html)
-        self.assertIn("v0.3.0 cinder vent network", snapshot_html)
+        self.assertIn("v0.4.0 echo relay network", live_html)
+        self.assertIn("v0.4.0 echo relay network", snapshot_html)
         self.assertIn("lower-pumpworks", snapshot_script)
         self.assertIn("Cinder Sump Pump", snapshot_script)
         self.assertIn("cinder-vent-shaft", snapshot_script)
         self.assertIn("fan-relay-bay", snapshot_script)
+        self.assertIn("echo-relay-alcove", snapshot_script)
+        self.assertIn("lift-beacon-station", snapshot_script)
         self.assertIn("openDraftGate", snapshot_script)
         self.assertIn("deployFilterCartridge", snapshot_script)
         self.assertIn("startPressureFan", snapshot_script)
         self.assertIn("ventGasPocket", snapshot_script)
+        self.assertIn("repairRelayPylon", snapshot_script)
+        self.assertIn("spoolRelayCable", snapshot_script)
+        self.assertIn("triangulateEchoRoute", snapshot_script)
+        self.assertIn("claimRescueCache", snapshot_script)
+        self.assertIn("fireLiftBeacon", snapshot_script)
         self.assertIn("vent-readout", snapshot_html)
         self.assertIn("Cinder Vents", snapshot_html)
+        self.assertIn("relay-readout", snapshot_html)
+        self.assertIn("Echo Relays", snapshot_html)
+        self.assertIn("relay-site-list", snapshot_html)
+        self.assertIn("beacon-action", snapshot_html)
+        self.assertIn("v0.3.0 cinder vent network", cinder_html)
+        self.assertIn("v0.3.0 Cinder Vent Network", cinder_script)
+        self.assertNotIn("v0.4.0 Echo Relay Network", cinder_script)
+        self.assertNotIn("relay-site-list", cinder_html)
         self.assertIn("v0.2.0 deep pumpworks", pumpworks_html)
         self.assertIn("v0.2.0 Deep Pumpworks", pumpworks_script)
         self.assertNotIn("vent-readout", pumpworks_html)
@@ -121,6 +145,8 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         self.assertIn("pumpworks-readout", snapshot_html)
         self.assertNotIn("pumpworks-readout", faultline_html)
         self.assertNotIn("survey-readout", baseline_html)
+        self.assertIn("v0.4.0 Echo Relay Network", live_script)
+        self.assertIn("v0.4.0 Echo Relay Network", snapshot_script)
         self.assertIn("v0.3.0 Cinder Vent Network", live_script)
         self.assertIn("v0.3.0 Cinder Vent Network", snapshot_script)
         self.assertIn("v0.2.0 Deep Pumpworks", live_script)
@@ -135,11 +161,13 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
 
         self.assertIn("games <strong>4 games</strong>", html)
         self.assertIn('href="games/iron-lantern-descent/"', html)
+        self.assertIn('href="games/iron-lantern-descent/versions/0.4.0/"', html)
         self.assertIn('href="games/iron-lantern-descent/versions/0.3.0/"', html)
         self.assertIn('href="games/iron-lantern-descent/versions/0.2.0/"', html)
         self.assertIn('href="games/iron-lantern-descent/versions/0.1.0/"', html)
         self.assertIn('href="games/iron-lantern-descent/versions/0.0.1/"', html)
         self.assertIn('aria-label="Iron Lantern Descent snapshots"', html)
+        self.assertIn("v0.4.0 Echo Relay Network", html)
         self.assertIn("v0.3.0 Cinder Vent Network", html)
         self.assertIn("v0.2.0 Deep Pumpworks", html)
         self.assertIn("v0.1.0 Faultline Survey", html)
@@ -153,7 +181,7 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         self.assertEqual(5, report["asset_count"])
         self.assertTrue(all(asset["ok"] and asset["issues"] == [] for asset in report["assets"]))
 
-    def test_release_smoke_report_covers_arcade_and_cinder_vent_decision_path(self) -> None:
+    def test_release_smoke_report_covers_arcade_and_echo_relay_decision_path(self) -> None:
         report = json.loads(SMOKE_REPORT_PATH.read_text(encoding="utf-8"))
 
         self.assertTrue(report["ok"])
@@ -162,17 +190,27 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         self.assertTrue(report["checks"]["arcadeNarrow"])
         self.assertTrue(report["checks"]["desktopCanvasNonblank"])
         self.assertTrue(report["checks"]["narrowCanvasNonblank"])
-        self.assertTrue(report["checks"]["cinderVentDecision"])
+        self.assertTrue(report["checks"]["echoRelayDecision"])
         self.assertTrue(report["checks"]["directOverflow"])
-        self.assertIn("0.3.0", report["arcade"]["desktop"]["versionText"])
-        self.assertEqual("v0.3.0 cinder vent network", report["direct"]["desktop"]["eyebrow"])
-        self.assertIn("v0.3.0 Cinder Vent Network", report["arcade"]["desktop"]["releaseLabel"])
+        self.assertIn("0.4.0", report["arcade"]["desktop"]["versionText"])
+        self.assertEqual("v0.4.0 echo relay network", report["direct"]["desktop"]["eyebrow"])
+        self.assertIn("v0.4.0 Echo Relay Network", report["arcade"]["desktop"]["releaseLabel"])
+        self.assertTrue(report["arcade"]["desktop"]["hasSnapshot040"])
         self.assertTrue(report["arcade"]["desktop"]["hasSnapshot030"])
         self.assertTrue(report["arcade"]["desktop"]["hasSnapshot020"])
-        self.assertIn("gas pocket success", report["direct"]["desktop"]["cinderVentDecision"]["lastLog"])
-        self.assertIn("Cinder Rib Draft", report["direct"]["desktop"]["cinderVentDecision"]["ventReadout"])
-        self.assertGreaterEqual(report["direct"]["desktop"]["cinderVentDecision"]["relaysOnline"], 1)
-        self.assertGreaterEqual(report["direct"]["desktop"]["cinderVentDecision"]["gasCleared"], 1)
+        self.assertIn("echo triangulation success", report["direct"]["desktop"]["echoRelayDecision"]["lastLog"])
+        self.assertEqual("v0.4.0 Echo Relay Network", report["direct"]["desktop"]["echoRelayDecision"]["release"])
+        self.assertEqual("v0.3.0 Cinder Vent Network", report["direct"]["desktop"]["echoRelayDecision"]["baseRelease"])
+        self.assertEqual("tuned", report["direct"]["desktop"]["echoRelayDecision"]["pylonState"])
+        self.assertEqual("toned", report["direct"]["desktop"]["echoRelayDecision"]["cableState"])
+        self.assertEqual("success", report["direct"]["desktop"]["echoRelayDecision"]["triangulationState"])
+        self.assertEqual("claimed", report["direct"]["desktop"]["echoRelayDecision"]["cacheState"])
+        self.assertIn(
+            report["direct"]["desktop"]["echoRelayDecision"]["beaconState"],
+            ("fired", "misfired", "armed"),
+        )
+        self.assertGreaterEqual(report["direct"]["desktop"]["echoRelayDecision"]["mapProgress"], 1)
+        self.assertGreater(report["direct"]["desktop"]["echoRelayDecision"]["routeConfidenceAfter"], report["direct"]["desktop"]["echoRelayDecision"]["routeConfidenceBefore"])
         self.assertGreater(report["direct"]["desktop"]["canvas"]["nonDark"], 0)
         self.assertGreater(report["direct"]["narrow"]["canvas"]["nonDark"], 0)
 
