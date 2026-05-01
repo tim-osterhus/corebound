@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "live",
-    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.5.0 Rail Sabotage rail-security release, Void Prospector's v0.5.0 Knife Wake Interdiction pirate-cell release, and Iron Lantern Descent's v0.2.0 Deep Pumpworks release."
+    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.5.0 Rail Sabotage rail-security release, Void Prospector's v0.5.0 Knife Wake Interdiction pirate-cell release, and Iron Lantern Descent's v0.3.0 Cinder Vent Network release."
   },
   "games": [
     {
@@ -191,16 +191,23 @@
     {
       "slug": "iron-lantern-descent",
       "title": "Iron Lantern Descent",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "status": "playable",
-      "summary": "Descend from the iron lift into a compact 3D faultline cave, manage oxygen, lantern route confidence, survey seams, and Deep Pumpworks flood pressure, then prime pumps, regulate valves, seal leaks, spend siphon charges, drain lower passages, mine boosted samples, bank map plates, and buy carryover upgrades.",
+      "summary": "Descend from the iron lift into a compact 3D faultline cave, manage oxygen, lantern route confidence, survey seams, Deep Pumpworks flood pressure, and Cinder Vent Network airflow, then open draft gates, start pressure fans, deploy filters, vent gas pockets, restore fresh-air relays, mine boosted samples, bank map plates, and buy carryover upgrades.",
       "path": "games/iron-lantern-descent/",
       "thumbnail": "games/iron-lantern-descent/assets/arcade-title-card.png",
       "release": {
-        "label": "v0.2.0 Deep Pumpworks",
-        "copy": "Deep Pumpworks extends Faultline Survey with lower pump rooms, cinder sump and basalt siphon stations, pressure windows, flood levels, leak seals, pump priming, valve regulation, siphon charges, drainage rewards, route-stability relief, oxygen tradeoffs, sample bonuses, and lift-banked pumpworks map progress."
+        "label": "v0.3.0 Cinder Vent Network",
+        "copy": "Cinder Vent Network extends Deep Pumpworks with cinder vent shafts, draft gates, filter cartridges, gas pockets, pressure fans, fresh-air relays, stale-air pressure, survey and pump drainage prerequisites, airflow relief, route-stability recovery, sample bonuses, and lift-banked vent map progress."
       },
       "versions": [
+        {
+          "version": "0.3.0",
+          "path": "games/iron-lantern-descent/versions/0.3.0/",
+          "releasedAt": "2026-05-01",
+          "label": "v0.3.0 Cinder Vent Network",
+          "summary": "Cinder Vent Network adds cinder vent shaft and fan relay bay passages, draft-gate, filter, fan, and gas-pocket decisions, stale-air and airflow relief, fresh-air relay payouts, route-stability recovery, sample bonuses, and vent map progress on top of Deep Pumpworks."
+        },
         {
           "version": "0.2.0",
           "path": "games/iron-lantern-descent/versions/0.2.0/",

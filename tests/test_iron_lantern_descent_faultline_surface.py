@@ -21,7 +21,7 @@ class IronLanternDescentFaultlineSurfaceTests(unittest.TestCase):
         css = source_text("iron-lantern-descent.css")
 
         for token in (
-            "v0.2.0 deep pumpworks",
+            "v0.3.0 cinder vent network",
             "survey-readout",
             "stability-readout",
             "pumpworks-readout",
