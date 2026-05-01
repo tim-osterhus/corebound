@@ -5629,6 +5629,7 @@ const DarkFactoryDispatch = (() => {
       grid: document.getElementById("grid-siege-board"),
       freight: document.getElementById("freight-lockdown-board"),
       sabotage: document.getElementById("rail-sabotage-board"),
+      crisis: document.getElementById("crisis-arbitration-board"),
       lanes: document.getElementById("lane-board"),
       queue: document.getElementById("queue-list"),
       contracts: document.getElementById("contract-board"),
@@ -5775,6 +5776,28 @@ const DarkFactoryDispatch = (() => {
       }
       render(currentState);
     });
+    dom.crisis.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-action][data-case]");
+      if (!button) {
+        return;
+      }
+      if (button.dataset.action === "crisis-evidence") {
+        currentState = assignCrisisEvidence(currentState, button.dataset.case, button.dataset.source);
+      }
+      if (button.dataset.action === "crisis-override") {
+        currentState = buyCrisisEmergencyOverride(currentState, button.dataset.case);
+      }
+      if (button.dataset.action === "crisis-defer") {
+        currentState = deferCrisisCase(currentState, button.dataset.case);
+      }
+      if (button.dataset.action === "crisis-protect") {
+        currentState = protectCrisisLane(currentState, button.dataset.case);
+      }
+      if (button.dataset.action === "crisis-rule") {
+        currentState = ruleCrisisCase(currentState, button.dataset.case, button.dataset.priority);
+      }
+      render(currentState);
+    });
     dom.lanes.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-action]");
       if (!button) {
@@ -5872,6 +5895,7 @@ const DarkFactoryDispatch = (() => {
     renderGridSiege(state);
     renderFreightLockdown(state);
     renderRailSabotage(state);
+    renderCrisisArbitration(state);
     renderLanes(state);
     renderQueue(state);
     renderContracts(state);
@@ -5891,6 +5915,7 @@ const DarkFactoryDispatch = (() => {
     const surface = campaignSurfaceState(state);
     const breach = surface.breach;
     const rail = surface.railSabotage;
+    const crisis = surface.crisisArbitration;
     const activeTrace = breach.trace.status === "active";
     const traceText = activeTrace ? `due t${breach.trace.dueTick}` : breach.trace.status;
     const compromisedCount = breach.queue.filter((entry) => entry.compromised).length;
@@ -5902,6 +5927,14 @@ const DarkFactoryDispatch = (() => {
     const railDetail = activeRailIncident
       ? `${activeRailIncident.dockName} / ${activeRailIncident.status} / ${activeRailIncident.manifestId}`
       : "no suspect manifest";
+    const activeCrisisCase = crisis
+      ? crisis.cases.find((caseState) => crisisCaseActionableStatus(caseState.status))
+        || crisis.cases.find((caseState) => ["binding", "partial", "failed"].includes(caseState.status))
+        || crisis.cases[0]
+      : null;
+    const crisisDetail = activeCrisisCase
+      ? `${activeCrisisCase.status} / ${activeCrisisCase.linked.laneId} / ${activeCrisisCase.linked.contractId}`
+      : "no docket";
     const traceDisabled = !activeTrace || breach.status !== "active" || !canPay(state.resources, breach.trace.cost);
     const deferDisabled = !activeTrace || breach.status !== "active" || !canPay(state.resources, breach.trace.deferCost);
     dom.queuePolicySelect.value = surface.queuePolicy.id;
@@ -5937,6 +5970,12 @@ const DarkFactoryDispatch = (() => {
         <strong>${rail ? rail.release : "offline"}</strong>
         <p>${rail ? `pressure ${rail.pressure} / contained ${rail.outcomes.contained} / failed ${rail.outcomes.failed}` : "rail security offline"}</p>
         <p>${railDetail}</p>
+      </article>
+      <article class="escalation-card crisis-card" data-surface="crisis-arbitration" data-alert="${crisis ? crisis.status : "offline"}">
+        <span>Crisis Arbitration</span>
+        <strong>${crisis ? crisis.release : "offline"}</strong>
+        <p>${crisis ? `pressure ${crisis.pressure} / binding ${crisis.outcomes.binding} / failed ${crisis.outcomes.failed}` : "arbitration offline"}</p>
+        <p>${crisisDetail}</p>
       </article>
       <article class="escalation-card breach-card" data-surface="breach" data-alert="${breach.status}">
         <span>Signal Breach</span>
@@ -6252,6 +6291,114 @@ const DarkFactoryDispatch = (() => {
                 <button type="button" data-action="sabotage-reroute" data-incident="${incident.id}" data-sector="${incident.sectorId}" ${rerouteDisabled ? "disabled" : ""}>reroute</button>
                 <button type="button" data-action="sabotage-intercept" data-incident="${incident.id}" ${interceptDisabled ? "disabled" : ""}>intercept</button>
                 <button type="button" data-action="sabotage-repair" data-incident="${incident.id}" ${repairDisabled ? "disabled" : ""}>repair</button>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function crisisCaseActionableStatus(status) {
+    return ["open", "evidence-ready", "deferred", "protected"].includes(status);
+  }
+
+  function crisisEvidenceSealMarkup(caseState) {
+    return caseState.evidence.required.map((sourceId) => {
+      const source = GAME_DATA.crisisArbitration.evidenceSources[sourceId];
+      const assigned = caseState.evidence.assigned.find((entry) => entry.sourceId === sourceId);
+      const detail = assigned ? `${assigned.score} / ${assigned.detail}` : `cost ${formatBundle(source.cost)}`;
+      return `
+        <span data-source="${sourceId}" data-assigned="${assigned ? "true" : "false"}">
+          <strong>${source.name}</strong>
+          <small>${detail}</small>
+        </span>
+      `;
+    }).join("");
+  }
+
+  function crisisLatestEvent(caseState) {
+    if (!caseState.events.length) {
+      return "no docket events";
+    }
+    const event = caseState.events[0];
+    return `last ${titleCase(event.event)} / t${event.tick}`;
+  }
+
+  function renderCrisisArbitration(state) {
+    const surface = crisisArbitrationSurfaceState(state);
+    if (!surface) {
+      dom.crisis.innerHTML = `<div class="empty-note">crisis arbitration offline</div>`;
+      return;
+    }
+
+    dom.crisis.innerHTML = `
+      <div class="crisis-summary" data-crisis="summary">
+        <span>${surface.release}</span>
+        <span>status ${surface.status}</span>
+        <span>pressure ${surface.pressure}</span>
+        <span>outcomes ${surface.outcomes.binding} binding / ${surface.outcomes.partial} partial / ${surface.outcomes.failed} failed</span>
+        <span>scar ${surface.carryover.arbitrationScar} / overrides ${surface.carryover.overridesSpent} / bindings ${surface.carryover.bindingRulings}</span>
+      </div>
+      <div class="crisis-case-list" data-crisis="docket">
+        ${surface.cases.map((caseState) => {
+          const actionable = crisisCaseActionableStatus(caseState.status);
+          const linked = caseState.linked;
+          const laneBlocked = linked.laneGridLock ? `locked ${linked.laneGridLock.reason}` : linked.laneStatus;
+          const sector = linked.sectorStatus;
+          const sectorText = sector
+            ? `${sector.route} / ${sector.powered ? "powered" : "dark"}${sector.isolated ? " / isolated" : ""}`
+            : "sector missing";
+          const railPressure = linked.railPressure ? `${linked.railPressure.current}/${linked.railPressure.base}` : "n/a";
+          const timerText = caseState.dueTick === null
+            ? `window t${caseState.window.opensAtTick}-${caseState.window.closesAtTick}`
+            : `ruling due t${caseState.dueTick} / closes t${caseState.window.closesAtTick}`;
+          const overrideDisabled = !actionable || caseState.override.spent || !canPay(state.resources, GAME_DATA.crisisArbitration.override.cost);
+          const deferDisabled = !actionable || !canPay(state.resources, GAME_DATA.crisisArbitration.defer.cost);
+          const protectDisabled = !actionable || caseState.protection.laneGuarded || !canPay(state.resources, GAME_DATA.crisisArbitration.laneProtection.cost);
+          const evidenceButtons = caseState.evidence.required.map((sourceId) => {
+            const source = GAME_DATA.crisisArbitration.evidenceSources[sourceId];
+            const assigned = caseState.evidence.assigned.some((entry) => entry.sourceId === sourceId);
+            const disabled = !actionable || assigned || !canPay(state.resources, source.cost);
+            return `<button type="button" data-action="crisis-evidence" data-case="${caseState.id}" data-source="${sourceId}" ${disabled ? "disabled" : ""}>${sourceId}</button>`;
+          }).join("");
+          const priorityButtons = caseState.priorityOptions.map((option) => {
+            const disabled = !actionable;
+            return `<button type="button" data-action="crisis-rule" data-case="${caseState.id}" data-priority="${option.id}" ${disabled ? "disabled" : ""}>${option.name} ${option.score}</button>`;
+          }).join("");
+          return `
+            <article class="crisis-case-card" data-case="${caseState.id}" data-status="${caseState.status}" data-actionable="${actionable ? "true" : "false"}" data-protected="${caseState.protection.laneGuarded ? "true" : "false"}" data-outcome="${caseState.outcome || "pending"}">
+              <div class="crisis-case-title">
+                <strong>${caseState.name}</strong>
+                <span class="status-pill">${caseState.status}</span>
+              </div>
+              <div class="crisis-case-meta">
+                <span>${timerText}</span>
+                <span>lane ${caseState.linked.laneId} / ${laneBlocked}</span>
+                <span>grid ${caseState.linked.sectorId} / ${sectorText}</span>
+                <span>breach ${linked.breachSourceName} / ${linked.breachStatus}</span>
+                <span>freight ${caseState.linked.manifestId} / ${linked.manifestStatus} / integrity ${linked.manifestIntegrity === null ? "n/a" : `${linked.manifestIntegrity}%`}</span>
+                <span>rail ${caseState.linked.railIncidentId} / ${linked.railStatus} / pressure ${railPressure}</span>
+                <span>contract ${caseState.linked.contractId} / ${linked.contractStatus}</span>
+                <span>score ${caseState.evidence.score}/${caseState.bindingScore} binding / ${caseState.partialScore} partial</span>
+                <span>override ${caseState.override.spent ? "spent" : formatBundle(GAME_DATA.crisisArbitration.override.cost)} / defer ${formatBundle(GAME_DATA.crisisArbitration.defer.cost)}</span>
+                <span>protect ${caseState.protection.laneGuarded ? "guarded" : formatBundle(GAME_DATA.crisisArbitration.laneProtection.cost)} / pressure ${caseState.pressure.current}</span>
+                <span>reward ${formatBundle(caseState.reward)}</span>
+                <span>risk ${formatBundle(caseState.failurePenalty)} / ${crisisLatestEvent(caseState)}</span>
+              </div>
+              <div class="crisis-evidence-seals" aria-label="${caseState.name} evidence seals">
+                ${crisisEvidenceSealMarkup(caseState)}
+              </div>
+              <div class="crisis-evidence-actions">
+                ${evidenceButtons}
+              </div>
+              <div class="crisis-priority-actions">
+                ${priorityButtons}
+              </div>
+              <div class="crisis-actions">
+                <button type="button" data-action="crisis-override" data-case="${caseState.id}" ${overrideDisabled ? "disabled" : ""}>override</button>
+                <button type="button" data-action="crisis-defer" data-case="${caseState.id}" ${deferDisabled ? "disabled" : ""}>defer</button>
+                <button type="button" data-action="crisis-protect" data-case="${caseState.id}" ${protectDisabled ? "disabled" : ""}>protect</button>
               </div>
             </article>
           `;

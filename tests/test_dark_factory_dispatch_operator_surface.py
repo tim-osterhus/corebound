@@ -27,11 +27,13 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             'id="grid-siege-board"',
             'id="freight-lockdown-board"',
             'id="rail-sabotage-board"',
+            'id="crisis-arbitration-board"',
             'id="queue-policy-select"',
             "Queue policy",
             "Grid Siege",
             "Freight Lockdown",
             "Rail Sabotage",
+            "Crisis Arbitration",
             "Production floor",
             "Queued jobs",
             "Dispatch board",
@@ -46,16 +48,19 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             "breachSurfaceState",
             "freightSurfaceState",
             "railSabotageSurfaceState",
+            "crisisArbitrationSurfaceState",
             "renderEscalationSurface",
             "renderGridSiege",
             "renderFreightLockdown",
             "renderRailSabotage",
+            "renderCrisisArbitration",
             'data-surface="campaign"',
             'data-surface="emergency"',
             'data-surface="progression"',
             'data-surface="choices"',
             'data-surface="breach"',
             'data-surface="rail-sabotage"',
+            'data-surface="crisis-arbitration"',
             'data-grid="sectors"',
             'data-action="overdrive"',
             'data-action="breach-trace"',
@@ -88,11 +93,19 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             'data-action="sabotage-reroute"',
             'data-action="sabotage-intercept"',
             'data-action="sabotage-repair"',
+            'data-crisis="summary"',
+            'data-crisis="docket"',
+            'data-action="crisis-evidence"',
+            'data-action="crisis-override"',
+            'data-action="crisis-defer"',
+            'data-action="crisis-protect"',
+            'data-action="crisis-rule"',
             'data-compromised="${compromised ? "true" : "false"}"',
             'data-breach-directive="${entry.breachDirective ? "true" : "false"}"',
             'data-freight-directive="${entry.freightDirective ? "true" : "false"}"',
             'data-sabotage-directive="${entry.sabotageDirective ? "true" : "false"}"',
             'data-breach-quarantine="${quarantineActive ? "true" : "false"}"',
+            'data-protected="${caseState.protection.laneGuarded ? "true" : "false"}"',
             "setQueuePolicy(currentState",
             "toggleLaneOverdrive(",
             "cleanseCompromisedQueueEntry(currentState",
@@ -119,6 +132,11 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             "rerouteSabotagedCarrier(currentState",
             "interceptSabotageCell(currentState",
             "repairSabotagedLane(currentState",
+            "assignCrisisEvidence(currentState",
+            "buyCrisisEmergencyOverride(currentState",
+            "deferCrisisCase(currentState",
+            "protectCrisisLane(currentState",
+            "ruleCrisisCase(currentState",
         ):
             self.assertIn(token, js)
 
@@ -137,6 +155,16 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             ".rail-incident-meta",
             ".sabotage-rail",
             ".rail-actions",
+            ".crisis-panel",
+            ".crisis-board",
+            ".crisis-summary",
+            ".crisis-case-list",
+            ".crisis-case-card",
+            ".crisis-case-meta",
+            ".crisis-evidence-seals",
+            ".crisis-evidence-actions",
+            ".crisis-priority-actions",
+            ".crisis-actions",
             ".freight-summary",
             ".freight-manifest-list",
             ".freight-manifest-card",
@@ -154,6 +182,7 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             '.escalation-card[data-surface="breach"][data-alert="active"]',
             '.escalation-card[data-surface="rail-sabotage"][data-alert="incident-open"]',
             '.escalation-card[data-surface="rail-sabotage"][data-alert="sabotaged"]',
+            '.escalation-card[data-surface="crisis-arbitration"][data-alert="docket-open"]',
             '.lane-card[data-overdrive="true"]',
             '.lane-card[data-breach-quarantine="true"]',
             '.grid-sector-card[data-isolated="true"]',
@@ -171,6 +200,9 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             '.job-card[data-family="sabotage"]',
             '.freight-manifest-card[data-status="available"]',
             '.freight-manifest-card[data-route-alert="true"]',
+            '.crisis-case-card[data-actionable="true"]',
+            '.crisis-case-card[data-protected="true"]',
+            '.crisis-evidence-seals span[data-assigned="true"]',
             "@media (max-width: 720px)",
             "grid-template-areas:",
             "overflow-wrap: anywhere",
@@ -409,6 +441,85 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
         self.assertEqual(1, result["choices"]["sabotageInterceptions"])
         self.assertIn("interception resolved", result["latestLog"]["message"])
 
+    def test_crisis_arbitration_surface_model_exposes_actionable_operator_state(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
+            let state = game.createInitialState({ seed: 661, faultsEnabled: false });
+            state = game.stepFactory(state, 4);
+            state.resources.circuits = 12;
+            state.resources.power = 12;
+            state.resources.drones = 4;
+            state.resources.defenses = 4;
+            state.resources.scrap = 30;
+            state.resources.stability = 60;
+            state.resources.reputation = 3;
+
+            const beforeSurface = game.crisisArbitrationSurfaceState(state);
+            const beforeCase = beforeSurface.cases.find((caseState) => caseState.id === "ashline-dock-priority");
+
+            state = game.buyCrisisEmergencyOverride(state, "ashline-dock-priority");
+            state = game.deferCrisisCase(state, "ashline-dock-priority");
+            state = game.protectCrisisLane(state, "ashline-dock-priority");
+            for (const sourceId of ["queue", "lane", "grid", "breach", "freight", "rail"]) {
+              state = game.assignCrisisEvidence(state, "ashline-dock-priority", sourceId);
+            }
+            const readySurface = game.crisisArbitrationSurfaceState(state);
+            const readyCase = readySurface.cases.find((caseState) => caseState.id === "ashline-dock-priority");
+            state = game.ruleCrisisCase(state, "ashline-dock-priority", "freight-first");
+            const ruledSurface = game.crisisArbitrationSurfaceState(state);
+            const ruledCase = ruledSurface.cases.find((caseState) => caseState.id === "ashline-dock-priority");
+            const lane = state.lanes.find((candidate) => candidate.id === "forge-line");
+            const choices = game.campaignSurfaceState(state).choices;
+
+            console.log(JSON.stringify({
+              beforeSurface,
+              beforeCase,
+              readyCase,
+              ruledSurface,
+              ruledCase,
+              lane,
+              choices,
+              latestLog: state.log[0],
+            }));
+            """
+        )
+
+        before = result["beforeCase"]
+        ready = result["readyCase"]
+        ruled = result["ruledCase"]
+
+        self.assertEqual("v0.6.0 Crisis Arbitration", result["beforeSurface"]["release"])
+        self.assertEqual("open", before["status"])
+        self.assertEqual("forge-line", before["linked"]["laneId"])
+        self.assertEqual("forge-bus", before["linked"]["sectorId"])
+        self.assertEqual("spoofed-dispatch-uplink", before["linked"]["breachSourceId"])
+        self.assertEqual("ashline-spare-crates", before["linked"]["manifestId"])
+        self.assertEqual("ashline-rail-spoof", before["linked"]["railIncidentId"])
+        self.assertEqual("perimeter-grid", before["linked"]["contractId"])
+        self.assertGreater(before["dueTick"], before["openedAtTick"])
+        self.assertIn("Grid First", [option["name"] for option in before["priorityOptions"]])
+        self.assertEqual("docket-open", result["beforeSurface"]["status"])
+
+        self.assertTrue(ready["override"]["spent"])
+        self.assertEqual(1, ready["deferrals"])
+        self.assertTrue(ready["protection"]["laneGuarded"])
+        self.assertEqual(["queue", "lane", "grid", "breach", "freight", "rail"], [
+            entry["sourceId"] for entry in ready["evidence"]["assigned"]
+        ])
+        self.assertGreaterEqual(ready["evidence"]["score"], ready["evidence"]["minimum"])
+        self.assertEqual("ashline-dock-priority", result["lane"]["crisisProtection"]["caseId"])
+
+        self.assertIn(ruled["status"], {"binding", "partial", "failed"})
+        self.assertEqual("freight-first", ruled["ruling"]["priority"])
+        self.assertEqual("resolved", ruled["ruling"]["status"])
+        self.assertEqual(1, result["choices"]["crisisEmergencyOverrides"])
+        self.assertEqual(1, result["choices"]["crisisDeferrals"])
+        self.assertEqual(1, result["choices"]["crisisLaneProtections"])
+        self.assertEqual(6, result["choices"]["crisisEvidenceAssignments"])
+        self.assertEqual(1, result["choices"]["crisisFreightFirstRulings"])
+        self.assertIn("priority ruling filed", result["latestLog"]["message"])
+
     def test_grid_siege_layout_contract_uses_named_areas_and_narrow_stacking(self) -> None:
         css = source_text("dark-factory-dispatch.css")
 
@@ -416,19 +527,22 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             '"lanes grid grid"',
             '"lanes freight freight"',
             '"lanes sabotage sabotage"',
+            '"lanes crisis crisis"',
             '"controls controls log"',
             '"lanes lanes"',
             '"grid grid"',
             '"freight freight"',
             '"sabotage sabotage"',
+            '"crisis crisis"',
             '"controls log"',
             '"lanes"',
             '"grid"',
             '"freight"',
             '"sabotage"',
+            '"crisis"',
             ".grid-summary,\n  .grid-sector-meta",
             ".grid-actions,\n  .directive-actions",
-            ".breach-actions,\n  .contract-reward",
+            ".breach-actions,\n  .crisis-actions",
         ):
             self.assertIn(token, css)
 
@@ -459,6 +573,9 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
         self.assertNotIn("assets/carrier-", combined)
         self.assertNotIn("assets/sabotage-", combined)
         self.assertNotIn("assets/rail-", combined)
+        self.assertNotIn("assets/crisis-", combined)
+        self.assertNotIn("assets/arbitration-", combined)
+        self.assertNotIn("assets/docket-", combined)
 
     def run_node(self, script: str) -> dict:
         completed = subprocess.run(

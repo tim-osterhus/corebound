@@ -43,11 +43,17 @@ class DarkFactoryDispatchAssetIntegrationTests(unittest.TestCase):
         self.assertIn('data-sabotage-sweep="${jobType.sabotageSweep ? "true" : "false"}"', files["dark-factory-dispatch.js"])
         self.assertIn('id="freight-lockdown-board"', files["index.html"])
         self.assertIn('id="rail-sabotage-board"', files["index.html"])
+        self.assertIn('id="crisis-arbitration-board"', files["index.html"])
+        self.assertIn('data-action="crisis-evidence"', files["dark-factory-dispatch.js"])
+        self.assertIn('data-action="crisis-rule"', files["dark-factory-dispatch.js"])
         self.assertNotIn("assets/job-compile-countermeasures.png", files["dark-factory-dispatch.js"])
         self.assertNotIn("assets/job-inspect-cargo-seals.png", files["dark-factory-dispatch.js"])
         self.assertNotIn("assets/freight-", "\n".join(files.values()))
         self.assertNotIn("assets/sabotage-", "\n".join(files.values()))
         self.assertNotIn("assets/rail-", "\n".join(files.values()))
+        self.assertNotIn("assets/crisis-", "\n".join(files.values()))
+        self.assertNotIn("assets/arbitration-", "\n".join(files.values()))
+        self.assertNotIn("assets/docket-", "\n".join(files.values()))
 
     def test_lane_job_and_fault_renderers_use_generated_icon_paths(self) -> None:
         script = source_text("dark-factory-dispatch.js")
