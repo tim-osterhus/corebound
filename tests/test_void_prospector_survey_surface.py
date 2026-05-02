@@ -95,6 +95,42 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "service-gate-tuners-action",
             "countermeasure-action",
             "event-log",
+            "data-surface=\"flight\"",
+            "data-advanced=\"locked\"",
+            "data-help=\"closed\"",
+            "cockpit-objective-text",
+            "cockpit-objective-progress",
+            "cockpit-hull",
+            "cockpit-fuel",
+            "cockpit-cargo",
+            "cockpit-distance",
+            "center-reticle",
+            "reticle-state",
+            "reticle-range",
+            "edge-arrow",
+            "station-world-label",
+            "target-world-label",
+            "threat-world-label",
+            "radar-panel",
+            "radar-blips",
+            "cockpit-bearing",
+            "prompt-primary",
+            "prompt-secondary",
+            "cockpit-speed",
+            "cockpit-heat",
+            "cockpit-reticle-summary",
+            "station-panel",
+            "station-sale-summary",
+            "station-refuel-summary",
+            "station-repair-summary",
+            "station-contract-summary",
+            "station-upgrade-list",
+            "station-launch-action",
+            "help-panel",
+            "help-objective",
+            "help-target",
+            "help-controls",
+            "help-restart-action",
         ):
             self.assertIn(hook, html)
 
@@ -136,6 +172,23 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             ".signal-list",
             ".signal-row",
             ".event-log",
+            ".cockpit-objective",
+            ".resource-strip",
+            ".center-reticle",
+            ".world-label-layer",
+            ".world-label",
+            ".radar-panel",
+            ".radar-blip",
+            ".prompt-stack",
+            ".flight-widget-strip",
+            ".station-panel",
+            ".station-summary-grid",
+            ".station-upgrade-list",
+            ".help-panel",
+            ".legacy-telemetry",
+            ".advanced-target-data",
+            ".prospector-shell[data-surface=\"station\"] .flight-only",
+            ".prospector-shell[data-help=\"closed\"] .control-strip",
             "max-height: calc(100vh - 96px)",
             "max-height: min(260px, max(190px, calc(100vh - 520px)))",
             "overflow: auto",
@@ -148,6 +201,9 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
 
         self.assertRegex(css, r"\.survey-panel\s*\{[^}]*position: fixed")
         self.assertRegex(css, r"\.target-panel\s*\{[^}]*max-height: calc\(100vh - 96px\)")
+        self.assertRegex(css, r"\.legacy-telemetry\s*\{[^}]*display: none")
+        self.assertRegex(css, r"\.center-reticle\s*\{[^}]*position: fixed")
+        self.assertRegex(css, r"\.radar-panel\s*\{[^}]*position: fixed")
         self.assertRegex(css, r"@media \(max-height: 700px\) and \(min-width: 981px\)[\s\S]*?\.survey-panel\s*\{[^}]*position: relative")
         self.assertRegex(css, r"@media \(max-width: 980px\)[\s\S]*?\.survey-panel\s*\{[^}]*position: relative")
         self.assertRegex(css, r"@media \(max-width: 980px\)[\s\S]*?\.target-panel\s*\{[^}]*position: relative")
@@ -158,6 +214,127 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         self.assertIn('.signal-row[data-state="transit window open"]', css)
         self.assertNotIn("border-radius: 12px", css)
         self.assertNotIn("overflow-x: scroll", css)
+
+    def test_first_load_cockpit_surface_keeps_primary_flight_readable(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/void-prospector/void-prospector.js");
+            const state = game.createInitialState({ seed: 33 });
+            const surface = game.surveyCockpitSurface(state).cockpit;
+            console.log(JSON.stringify({
+              mode: surface.mode,
+              advancedOpen: surface.advancedOpen,
+              objectiveText: surface.objectiveText,
+              objectiveProgressText: surface.objectiveProgressText,
+              resources: surface.resources,
+              reticle: surface.reticle,
+              labels: surface.labels,
+              radarKinds: surface.radar.blips.map((blip) => blip.kind),
+              promptCount: surface.prompts.length,
+              prompts: surface.prompts,
+              targetCard: surface.targetCard,
+              stationOpen: surface.stationMenu.open,
+              upgradePreviewCount: surface.stationMenu.upgrades.length,
+            }));
+            """
+        )
+
+        self.assertEqual("flight", result["mode"])
+        self.assertFalse(result["advancedOpen"])
+        self.assertIn("Cinder Node", result["objectiveText"])
+        self.assertEqual("0/3 ore / active", result["objectiveProgressText"])
+        self.assertEqual("100 / 100", result["resources"]["hull"])
+        self.assertEqual("100 / 100", result["resources"]["fuel"])
+        self.assertEqual("0 / 6", result["resources"]["cargo"])
+        self.assertIn("m", result["resources"]["targetDistance"])
+        self.assertEqual("target-out-of-range", result["reticle"]["state"])
+        self.assertEqual("Station", result["labels"]["station"]["role"])
+        self.assertEqual("Frontier Spoke", result["labels"]["station"]["name"])
+        self.assertEqual("Ore target", result["labels"]["target"]["role"])
+        self.assertEqual("Cinder Node", result["labels"]["target"]["name"])
+        self.assertEqual("hidden", result["labels"]["threat"]["state"])
+        self.assertIn("station", result["radarKinds"])
+        self.assertIn("asteroid", result["radarKinds"])
+        self.assertLessEqual(result["promptCount"], 2)
+        self.assertIn("Align the reticle", result["prompts"][0])
+        self.assertEqual("Cinder Node", result["targetCard"]["name"])
+        self.assertFalse(result["stationOpen"])
+        self.assertGreaterEqual(result["upgradePreviewCount"], 1)
+        self.assertLessEqual(result["upgradePreviewCount"], 3)
+
+    def test_cockpit_surface_syncs_range_return_station_threat_and_offscreen_states(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/void-prospector/void-prospector.js");
+            let state = game.createInitialState({ seed: 33 });
+            const node = state.asteroids[0];
+
+            state.ship.position = { x: node.position.x + 2, y: node.position.y, z: node.position.z + 1 };
+            state.ship.velocity = { x: 0, y: 0, z: 0 };
+            state = game.setTarget(state, "asteroid", node.id);
+            const miningSurface = game.surveyCockpitSurface(state).cockpit;
+
+            state.cargo.ore = state.cargo.capacity;
+            state = game.stepSpaceflight(state, {}, 0);
+            const fullSurface = game.surveyCockpitSurface(state).cockpit;
+
+            state.cargo.ore = 0;
+            state.ship.heading = Math.PI;
+            state = game.stepSpaceflight(state, {}, 0);
+            const offscreenSurface = game.surveyCockpitSurface(state).cockpit;
+
+            state.systemAccess.pirate = true;
+            state.disclosure.pirate = true;
+            state.pirate.state = "shadowing";
+            state.pirate.encounterState = "shadow";
+            state = game.stepSpaceflight(state, {}, 0);
+            const threatSurface = game.surveyCockpitSurface(state).cockpit;
+
+            state.ship.position = { ...state.station.position };
+            state.ship.velocity = { x: 0, y: 0, z: 0 };
+            state = game.setTarget(state, "station", state.station.id);
+            state = game.stepSpaceflight(state, {}, 0);
+            const dockableSurface = game.surveyCockpitSurface(state).cockpit;
+            const docked = game.dockAtStation(state);
+            const stationSurface = game.surveyCockpitSurface(docked).cockpit;
+            const launchedSurface = game.surveyCockpitSurface(game.launchFromStation(docked)).cockpit;
+
+            console.log(JSON.stringify({
+              miningReticle: miningSurface.reticle.state,
+              miningPrompt: miningSurface.prompts.join(" | "),
+              fullReticle: fullSurface.reticle.state,
+              fullPrompt: fullSurface.prompts.join(" | "),
+              offscreenReticle: offscreenSurface.reticle.state,
+              offscreenRotate: offscreenSurface.reticle.edgeRotate,
+              threatState: threatSurface.labels.threat.state,
+              threatRadar: threatSurface.radar.blips.map((blip) => blip.kind),
+              dockableReticle: dockableSurface.reticle.state,
+              dockableLabel: dockableSurface.labels.station.state,
+              stationMode: stationSurface.mode,
+              stationOpen: stationSurface.stationMenu.open,
+              stationContract: stationSurface.stationMenu.contractText,
+              stationUpgradeCount: stationSurface.stationMenu.upgrades.length,
+              launchMode: launchedSurface.mode,
+            }));
+            """
+        )
+
+        self.assertEqual("mine-in-range", result["miningReticle"])
+        self.assertIn("Hold Space or M", result["miningPrompt"])
+        self.assertEqual("cargo-full-return", result["fullReticle"])
+        self.assertIn("Cargo full", result["fullPrompt"])
+        self.assertEqual("offscreen-direction", result["offscreenReticle"])
+        self.assertIn(result["offscreenRotate"], (0, 180))
+        self.assertEqual("threat", result["threatState"])
+        self.assertIn("threat", result["threatRadar"])
+        self.assertEqual("dockable-station", result["dockableReticle"])
+        self.assertEqual("dockable", result["dockableLabel"])
+        self.assertEqual("station", result["stationMode"])
+        self.assertTrue(result["stationOpen"])
+        self.assertIn("Spoke Charter", result["stationContract"])
+        self.assertGreaterEqual(result["stationUpgradeCount"], 1)
+        self.assertLessEqual(result["stationUpgradeCount"], 3)
+        self.assertEqual("flight", result["launchMode"])
 
     def test_cockpit_surface_models_route_objective_hazard_and_actions(self) -> None:
         result = self.run_node(

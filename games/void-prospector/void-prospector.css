@@ -81,22 +81,33 @@ input {
 .hud-grid,
 .target-panel,
 .survey-panel,
-.control-strip {
+.control-strip,
+.cockpit-objective,
+.resource-strip,
+.center-reticle,
+.world-label-layer,
+.radar-panel,
+.prompt-stack,
+.flight-widget-strip,
+.station-panel,
+.help-panel {
   position: relative;
   z-index: 2;
 }
 
 .topline {
   display: grid;
-  grid-template-columns: minmax(120px, auto) 1fr minmax(150px, auto);
+  grid-template-columns: minmax(120px, auto) 1fr minmax(220px, auto);
   gap: 16px;
   align-items: center;
   padding: 16px 18px 0;
+  z-index: 6;
 }
 
 .backlink,
 .eyebrow,
 .run-chip,
+.utility-action,
 .readout span,
 .panel-head span,
 .choice-row label,
@@ -106,7 +117,17 @@ input {
 .storm-target-data,
 .interdiction-target-data,
 .signal-target-data,
-.control-strip {
+.control-strip,
+.cockpit-objective span,
+.cockpit-objective small,
+.resource-cell span,
+.radar-caption span,
+.prompt-stack,
+.flight-widget-strip span,
+.world-label span,
+.world-label small,
+.station-summary-grid,
+.help-grid {
   color: var(--muted);
   font-size: 0.72rem;
   letter-spacing: 0;
@@ -133,8 +154,14 @@ input {
   line-height: 0.95;
 }
 
+.run-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+
 .run-chip {
-  justify-self: end;
   min-width: 150px;
   padding: 8px 10px;
   border: 1px solid var(--line);
@@ -142,6 +169,33 @@ input {
   color: var(--signal);
   text-align: center;
   box-shadow: 0 14px 34px var(--shadow);
+}
+
+.utility-action,
+.station-actions button,
+.help-panel button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: rgba(75, 214, 192, 0.07);
+  color: var(--text);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.utility-action {
+  padding: 8px 10px;
+}
+
+.utility-action:hover,
+.utility-action:focus-visible,
+.station-actions button:hover,
+.station-actions button:focus-visible,
+.help-panel button:hover,
+.help-panel button:focus-visible {
+  border-color: var(--signal);
+  color: var(--signal);
+  outline: none;
 }
 
 .hud-grid {
@@ -153,10 +207,21 @@ input {
   pointer-events: none;
 }
 
+.legacy-telemetry {
+  display: none;
+}
+
 .readout,
 .target-panel,
 .survey-panel,
-.control-strip {
+.control-strip,
+.cockpit-objective,
+.resource-strip,
+.radar-panel,
+.prompt-stack,
+.flight-widget-strip,
+.station-panel,
+.help-panel {
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: 0 16px 34px var(--shadow);
@@ -194,6 +259,354 @@ input {
   color: var(--signal);
 }
 
+.cockpit-objective {
+  position: fixed;
+  top: 92px;
+  left: 18px;
+  width: min(360px, calc(100vw - 36px));
+  padding: 12px 14px;
+}
+
+.cockpit-objective strong {
+  display: block;
+  margin: 5px 0 6px;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.cockpit-objective small {
+  color: var(--signal);
+}
+
+.resource-strip {
+  position: fixed;
+  top: 92px;
+  right: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(78px, 1fr));
+  gap: 1px;
+  width: min(430px, calc(100vw - 420px));
+  overflow: hidden;
+}
+
+.resource-cell {
+  min-width: 0;
+  padding: 10px 11px;
+  border-left: 1px solid var(--line-soft);
+}
+
+.resource-cell:first-child {
+  border-left: 0;
+}
+
+.resource-cell strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.center-reticle {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 116px;
+  height: 116px;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  pointer-events: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.reticle-core,
+.reticle-crosshair,
+.edge-arrow {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.reticle-core {
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--signal);
+  background:
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(75, 214, 192, 0.7) 50%, transparent calc(50% + 1px)),
+    linear-gradient(0deg, transparent calc(50% - 1px), rgba(75, 214, 192, 0.7) 50%, transparent calc(50% + 1px));
+  box-shadow: 0 0 24px rgba(75, 214, 192, 0.28);
+}
+
+.reticle-crosshair {
+  width: 84px;
+  height: 84px;
+  border: 1px solid rgba(223, 231, 226, 0.3);
+}
+
+.center-reticle[data-state="mine-in-range"] .reticle-core,
+.center-reticle[data-state="dockable-station"] .reticle-core,
+.center-reticle[data-state="target-locked"] .reticle-core {
+  border-color: var(--signal);
+  box-shadow: 0 0 30px rgba(75, 214, 192, 0.52);
+}
+
+.center-reticle[data-state="cargo-full-return"] .reticle-core,
+.center-reticle[data-state="station-out-of-range"] .reticle-core,
+.center-reticle[data-state="target-out-of-range"] .reticle-core {
+  border-color: var(--amber);
+  box-shadow: 0 0 24px rgba(208, 179, 106, 0.36);
+}
+
+.center-reticle[data-state="offscreen-direction"] .reticle-core {
+  border-color: var(--danger);
+  box-shadow: 0 0 24px rgba(212, 104, 87, 0.36);
+}
+
+.reticle-state,
+.reticle-range {
+  position: absolute;
+  left: 50%;
+  width: 190px;
+  transform: translateX(-50%);
+  color: var(--text);
+  font-size: 0.72rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.reticle-state {
+  top: calc(50% + 50px);
+}
+
+.reticle-range {
+  top: calc(50% + 68px);
+  color: var(--muted);
+}
+
+.edge-arrow {
+  display: none;
+  width: 0;
+  height: 0;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-left: 18px solid var(--danger);
+  transform: translate(-50%, -50%) rotate(var(--edge-rotate, 0deg)) translateX(74px);
+}
+
+.center-reticle[data-state="offscreen-direction"] .edge-arrow {
+  display: block;
+}
+
+.world-label-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.world-label {
+  position: absolute;
+  left: var(--label-x, 50%);
+  top: var(--label-y, 50%);
+  min-width: 150px;
+  max-width: 220px;
+  transform: translate(-50%, -50%);
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: rgba(5, 7, 6, 0.76);
+  box-shadow: 0 12px 28px var(--shadow);
+}
+
+.world-label::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -6px;
+  height: 1px;
+  background: var(--signal);
+}
+
+.world-label strong {
+  display: block;
+  margin: 2px 0;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.world-label[data-state="dockable"],
+.world-label[data-state="mine-in-range"],
+.world-label[data-state="target-locked"] {
+  border-color: rgba(75, 214, 192, 0.72);
+}
+
+.world-label[data-state="cargo-full-return"],
+.world-label[data-state="station-out-of-range"],
+.world-label[data-state="target-out-of-range"] {
+  border-color: rgba(208, 179, 106, 0.72);
+}
+
+.world-label[data-state="threat"] {
+  border-color: rgba(212, 104, 87, 0.82);
+}
+
+.world-label[data-state="hidden"] {
+  display: none;
+}
+
+.radar-panel {
+  position: fixed;
+  left: 18px;
+  bottom: 92px;
+  width: 172px;
+  padding: 10px;
+}
+
+.radar-face {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  margin: 0 auto 8px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(transparent calc(50% - 1px), rgba(132, 148, 140, 0.22) 50%, transparent calc(50% + 1px)),
+    linear-gradient(90deg, transparent calc(50% - 1px), rgba(132, 148, 140, 0.22) 50%, transparent calc(50% + 1px)),
+    rgba(75, 214, 192, 0.04);
+  overflow: hidden;
+}
+
+.radar-face::before,
+.radar-face::after {
+  content: "";
+  position: absolute;
+  inset: 22px;
+  border: 1px solid var(--line-soft);
+}
+
+.radar-face::after {
+  inset: 44px;
+}
+
+.radar-sweep {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: 58px;
+  transform-origin: bottom;
+  background: linear-gradient(transparent, var(--signal));
+  opacity: 0.6;
+}
+
+.radar-origin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--text);
+  transform: translate(-50%, -50%);
+}
+
+.radar-blip {
+  position: absolute;
+  left: var(--blip-x, 50%);
+  top: var(--blip-y, 50%);
+  width: 9px;
+  height: 9px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--signal);
+  background: rgba(75, 214, 192, 0.16);
+}
+
+.radar-blip[data-kind="station"] {
+  width: 12px;
+  height: 12px;
+  border-color: var(--text);
+}
+
+.radar-blip[data-kind="threat"] {
+  border-color: var(--danger);
+  background: rgba(212, 104, 87, 0.22);
+}
+
+.radar-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.radar-caption strong {
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.prompt-stack {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  display: grid;
+  gap: 6px;
+  width: min(460px, calc(100vw - 430px));
+  min-height: 56px;
+  padding: 9px 12px;
+  transform: translateX(-50%);
+}
+
+.prompt-stack p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+.prompt-stack p + p {
+  color: var(--muted);
+}
+
+.flight-widget-strip {
+  position: fixed;
+  left: 212px;
+  bottom: 92px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(92px, 1fr));
+  gap: 1px;
+  width: min(380px, calc(100vw - 600px));
+  overflow: hidden;
+}
+
+.flight-widget-strip div {
+  min-width: 0;
+  padding: 9px 10px;
+  border-left: 1px solid var(--line-soft);
+}
+
+.flight-widget-strip div:first-child {
+  border-left: 0;
+}
+
+.flight-widget-strip strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 .target-panel {
   position: fixed;
   right: 18px;
@@ -201,6 +614,114 @@ input {
   width: min(340px, calc(100vw - 36px));
   max-height: calc(100vh - 96px);
   overflow: auto;
+}
+
+.prospector-shell[data-surface="station"] .flight-only,
+.station-only,
+.prospector-shell[data-help="closed"] .help-panel,
+.advanced-target-data,
+.survey-panel,
+.control-strip {
+  display: none;
+}
+
+.prospector-shell[data-surface="station"] .station-only {
+  display: block;
+}
+
+.prospector-shell[data-advanced="open"] .survey-panel {
+  display: block;
+}
+
+.prospector-shell[data-advanced="open"] .advanced-target-data {
+  display: grid;
+}
+
+.prospector-shell[data-advanced="open"] .title-card-band.advanced-target-data {
+  display: block;
+}
+
+.prospector-shell[data-help="open"] .help-panel {
+  display: block;
+}
+
+.prospector-shell[data-help="open"] .control-strip {
+  display: flex;
+}
+
+.station-panel {
+  position: fixed;
+  left: 50%;
+  top: 52%;
+  width: min(560px, calc(100vw - 36px));
+  max-height: calc(100vh - 128px);
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
+.station-summary-grid,
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.station-summary-grid span,
+.help-grid span {
+  min-height: 42px;
+  padding: 9px;
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.station-upgrade-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.station-upgrade-list button {
+  min-height: 58px;
+  border: 1px solid var(--line-soft);
+  border-radius: 0;
+  background: rgba(75, 214, 192, 0.07);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.station-upgrade-list button:disabled {
+  cursor: not-allowed;
+  color: var(--dim);
+}
+
+.station-actions {
+  padding: 12px;
+}
+
+.station-actions button {
+  width: 100%;
+}
+
+.help-panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(520px, calc(100vw - 36px));
+  transform: translate(-50%, -50%);
+  z-index: 8;
+}
+
+.help-panel button {
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
 }
 
 .survey-panel {
@@ -491,6 +1012,11 @@ input {
   padding: 0 10px 10px;
 }
 
+.prospector-shell[data-advanced="locked"] .advanced-target-data,
+.prospector-shell[data-advanced="locked"] .title-card-band.advanced-target-data {
+  display: none;
+}
+
 .action-panel {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -519,6 +1045,7 @@ input {
 
 .action-panel button:disabled {
   cursor: not-allowed;
+  display: none;
   border-color: rgba(132, 148, 140, 0.14);
   background: rgba(132, 148, 140, 0.04);
   color: var(--dim);
@@ -543,13 +1070,21 @@ input {
   color: var(--text);
 }
 
-@media (max-height: 820px) and (min-width: 981px) {
+.prospector-shell[data-help="closed"] .control-strip {
+  display: none;
+}
+
+.prospector-shell[data-help="open"] .control-strip {
+  display: flex;
+}
+
+@media (max-height: 640px) and (min-width: 981px) {
   body {
-    overflow: auto;
+    overflow: hidden;
   }
 
   .prospector-shell {
-    min-height: 820px;
+    min-height: 100vh;
   }
 
   .control-strip,
@@ -574,26 +1109,19 @@ input {
 
 @media (max-height: 700px) and (min-width: 981px) {
   body {
-    overflow: auto;
+    overflow: hidden;
   }
 
   .prospector-shell {
-    min-height: 760px;
+    min-height: 100vh;
   }
 
-  .target-panel,
   .survey-panel,
   .control-strip {
     position: relative;
     left: auto;
     right: auto;
     bottom: auto;
-  }
-
-  .target-panel {
-    width: min(420px, calc(100vw - 36px));
-    max-height: none;
-    margin: 8px 18px 0 auto;
   }
 
   .survey-panel {
@@ -622,6 +1150,31 @@ input {
     width: min(1120px, calc(100vw - 36px));
   }
 
+  .cockpit-objective {
+    top: 92px;
+    width: min(340px, calc(100vw - 36px));
+  }
+
+  .resource-strip {
+    top: 92px;
+    width: min(380px, calc(100vw - 396px));
+  }
+
+  .radar-panel {
+    bottom: 112px;
+  }
+
+  .flight-widget-strip {
+    left: 206px;
+    bottom: 112px;
+    width: min(320px, calc(100vw - 562px));
+  }
+
+  .prompt-stack {
+    bottom: 24px;
+    width: min(420px, calc(100vw - 380px));
+  }
+
   .readout-wide {
     grid-column: span 3;
   }
@@ -647,7 +1200,7 @@ input {
 
 @media (max-width: 640px) {
   .prospector-shell {
-    min-height: 820px;
+    min-height: 900px;
   }
 
   .topline {
@@ -662,6 +1215,113 @@ input {
 
   .run-chip {
     justify-self: stretch;
+  }
+
+  .run-tools {
+    justify-content: stretch;
+  }
+
+  .run-tools > * {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .run-chip {
+    min-width: 0;
+    font-size: 0.68rem;
+  }
+
+  .cockpit-objective,
+  .resource-strip,
+  .radar-panel,
+  .prompt-stack,
+  .flight-widget-strip {
+    left: 12px;
+    right: 12px;
+    width: calc(100vw - 24px);
+  }
+
+  .cockpit-objective {
+    top: 142px;
+  }
+
+  .resource-strip {
+    top: 246px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .center-reticle {
+    top: 52%;
+    transform: translate(-50%, -50%) scale(0.86);
+  }
+
+  .world-label {
+    min-width: 118px;
+    max-width: 138px;
+    padding: 6px 7px;
+  }
+
+  .world-label strong {
+    font-size: 0.72rem;
+  }
+
+  .world-label span,
+  .world-label small {
+    font-size: 0.62rem;
+  }
+
+  .world-label small {
+    display: none;
+  }
+
+  #target-world-label.world-label {
+    left: 12px !important;
+    top: 366px;
+    width: calc(38% - 16px);
+    min-width: 0;
+    transform: none !important;
+  }
+
+  #station-world-label.world-label {
+    left: 58% !important;
+    right: auto !important;
+    top: 404px;
+    width: calc(42% - 24px);
+    min-width: 0;
+    transform: none !important;
+  }
+
+  .radar-panel {
+    bottom: 150px;
+    width: 132px;
+  }
+
+  .radar-face {
+    width: 96px;
+    height: 96px;
+  }
+
+  .flight-widget-strip {
+    display: none;
+  }
+
+  .prompt-stack {
+    bottom: 12px;
+    min-height: 74px;
+    transform: none;
+  }
+
+  .prompt-stack p {
+    font-size: 0.76rem;
+  }
+
+  .target-panel {
+    display: none;
+  }
+
+  .station-panel,
+  .help-panel {
+    width: calc(100vw - 24px);
   }
 
   .hud-grid {
@@ -689,6 +1349,12 @@ input {
   .survey-panel {
     width: calc(100vw - 24px);
     margin: 8px 12px 0;
+  }
+
+  .station-summary-grid,
+  .help-grid,
+  .station-upgrade-list {
+    grid-template-columns: 1fr;
   }
 
   .choice-row {

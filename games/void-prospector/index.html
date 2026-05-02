@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="void-prospector.css" />
 </head>
 <body>
-  <main class="prospector-shell" id="void-prospector" tabindex="-1">
+  <main class="prospector-shell" id="void-prospector" tabindex="-1" data-surface="flight" data-advanced="locked" data-help="closed">
     <canvas id="void-prospector-scene" class="scene-canvas" aria-label="Void Prospector 3D flight scene"></canvas>
     <div class="scene-vignette" aria-hidden="true"></div>
 
@@ -19,19 +19,135 @@
         <span class="eyebrow">v0.6.0 Signal Gate Expedition</span>
         <h1>Void Prospector</h1>
       </div>
-      <div class="run-chip" id="run-status">launch / stable</div>
+      <div class="run-tools" aria-label="Run tools">
+        <button type="button" id="help-action" class="utility-action" aria-controls="help-panel" aria-expanded="false">Help</button>
+        <div class="run-chip" id="run-status">launch / stable</div>
+      </div>
     </header>
 
-    <section class="hud-grid" id="prospector-hud" aria-label="Prospector telemetry">
+    <section class="cockpit-objective flight-only" aria-label="Current objective">
+      <span>Objective</span>
+      <strong id="cockpit-objective-text">Mine 3 ore from Cinder Node.</strong>
+      <small id="cockpit-objective-progress">0 / 3 ore</small>
+    </section>
+
+    <section class="resource-strip flight-only" aria-label="Flight resources">
+      <div class="resource-cell">
+        <span>Hull</span>
+        <strong id="cockpit-hull">100 / 100</strong>
+      </div>
+      <div class="resource-cell">
+        <span>Fuel</span>
+        <strong id="cockpit-fuel">100 / 100</strong>
+      </div>
+      <div class="resource-cell">
+        <span>Cargo</span>
+        <strong id="cockpit-cargo">0 / 6</strong>
+      </div>
+      <div class="resource-cell">
+        <span>Target</span>
+        <strong id="cockpit-distance">0m</strong>
+      </div>
+    </section>
+
+    <div class="center-reticle flight-only" id="center-reticle" data-state="target-out-of-range" aria-label="Target reticle">
+      <span class="reticle-core" aria-hidden="true"></span>
+      <span class="reticle-crosshair" aria-hidden="true"></span>
+      <span class="reticle-state" id="reticle-state">target out of range</span>
+      <span class="reticle-range" id="reticle-range">0m</span>
+      <span class="edge-arrow" id="edge-arrow" aria-hidden="true"></span>
+    </div>
+
+    <div class="world-label-layer flight-only" aria-label="World target labels">
+      <div class="world-label station-label" id="station-world-label" data-state="approach">
+        <span>Station</span>
+        <strong>Frontier Spoke</strong>
+        <small>0m / approach</small>
+      </div>
+      <div class="world-label target-label" id="target-world-label" data-state="target-out-of-range">
+        <span>Ore target</span>
+        <strong>Cinder Node</strong>
+        <small>0m / close distance</small>
+      </div>
+      <div class="world-label threat-label" id="threat-world-label" data-state="hidden">
+        <span>Threat</span>
+        <strong>Knife Wake</strong>
+        <small>dormant</small>
+      </div>
+    </div>
+
+    <aside class="radar-panel flight-only" id="radar-panel" aria-label="Radar">
+      <div class="radar-face">
+        <span class="radar-sweep" aria-hidden="true"></span>
+        <span class="radar-origin" aria-hidden="true"></span>
+        <div class="radar-blips" id="radar-blips"></div>
+      </div>
+      <div class="radar-caption">
+        <span>Radar</span>
+        <strong id="cockpit-bearing">000 center</strong>
+      </div>
+    </aside>
+
+    <section class="prompt-stack flight-only" aria-label="Context prompts">
+      <p id="prompt-primary">Align the reticle with Cinder Node.</p>
+      <p id="prompt-secondary">Use Q or Ctrl for vertical trim.</p>
+    </section>
+
+    <section class="flight-widget-strip flight-only" aria-label="Flight state">
+      <div>
+        <span>Speed</span>
+        <strong id="cockpit-speed">0.0</strong>
+      </div>
+      <div>
+        <span>Beam heat</span>
+        <strong id="cockpit-heat">0%</strong>
+      </div>
+      <div>
+        <span>Reticle</span>
+        <strong id="cockpit-reticle-summary">target-out-of-range</strong>
+      </div>
+    </section>
+
+    <aside class="station-panel station-only" id="station-panel" aria-label="Frontier Spoke station">
+      <div class="panel-head">
+        <span>Frontier Spoke</span>
+        <strong id="station-panel-title">Docked</strong>
+      </div>
+      <div class="station-summary-grid">
+        <span id="station-sale-summary">Cargo sale pending</span>
+        <span id="station-refuel-summary">Fuel full</span>
+        <span id="station-repair-summary">Hull repaired</span>
+        <span id="station-contract-summary">Contract 0/3 ore</span>
+      </div>
+      <div class="station-upgrade-list" id="station-upgrade-list" aria-label="Upgrade previews"></div>
+      <div class="station-actions">
+        <button type="button" id="station-launch-action">Launch</button>
+      </div>
+    </aside>
+
+    <aside class="help-panel" id="help-panel" aria-label="Pause and help" hidden>
+      <div class="panel-head">
+        <span>Help</span>
+        <strong>Current loop</strong>
+      </div>
+      <div class="help-grid">
+        <span id="help-objective">Mine 3 ore and dock at Frontier Spoke.</span>
+        <span id="help-target">Target Cinder Node.</span>
+        <span id="help-controls">W thrust / S brake / A-D turn / Q-Ctrl vertical / Space mine / F dock</span>
+      </div>
+      <button type="button" id="help-restart-action">Restart tutorial</button>
+    </aside>
+
+    <section class="hud-grid legacy-telemetry" id="prospector-hud" aria-label="Prospector telemetry">
       <article class="readout readout-wide">
         <span>Objective</span>
         <strong id="objective-readout">Mine charter ore and return to Frontier Spoke.</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Ladder</span>
         <strong id="ladder-readout">tier 1 / 0 charted</strong>
       </article>
-      <article class="readout readout-wide">
+      <article class="readout readout-wide advanced-readout">
         <span>Sector</span>
         <strong id="sector-readout">Spoke Approach / mapped harbor</strong>
       </article>
@@ -47,87 +163,87 @@
         <span>Cargo</span>
         <strong id="cargo-readout">0 / 6</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Credits</span>
         <strong id="credits-readout">0</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Pressure</span>
         <strong id="pressure-readout">0</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Hazard</span>
         <strong id="hazard-readout">clear / 0.0</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Contract</span>
         <strong id="contract-readout">active / 0 of 8</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Scan</span>
         <strong id="scan-readout">0 / 0</strong>
       </article>
-      <article class="readout readout-wide">
+      <article class="readout readout-wide advanced-readout">
         <span>Salvage</span>
         <strong id="salvage-readout">Derelict Salvage / hold 0cr / lock 0</strong>
       </article>
-      <article class="readout readout-wide">
+      <article class="readout readout-wide advanced-readout">
         <span>Convoy</span>
         <strong id="convoy-readout">Beacon Convoy / no route</strong>
       </article>
-      <article class="readout readout-wide">
+      <article class="readout readout-wide advanced-readout">
         <span>Storm</span>
         <strong id="storm-readout">Storm Cartography / no chart</strong>
       </article>
-      <article class="readout readout-wide">
+      <article class="readout readout-wide advanced-readout">
         <span>Interdiction</span>
         <strong id="interdiction-readout">Knife Wake Interdiction / no cell</strong>
       </article>
-      <article class="readout readout-wide">
+      <article class="readout readout-wide advanced-readout">
         <span>Signal Gate</span>
         <strong id="signal-gate-readout">Signal Gate Expedition / no gate</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Beacon</span>
         <strong id="beacon-readout">no beacon</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Ambush</span>
         <strong id="ambush-readout">risk 0 / 0cr</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Window</span>
         <strong id="storm-window-readout">window none</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Anchor</span>
         <strong id="storm-anchor-readout">anchor none</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Raid</span>
         <strong id="interdiction-raid-readout">raid none</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Lure</span>
         <strong id="interdiction-lure-readout">marker none</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Capacitor</span>
         <strong id="signal-capacitor-readout">charge 0/0</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Transit</span>
         <strong id="signal-transit-readout">window none</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Gate Jam</span>
         <strong id="signal-jam-readout">jam none</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Upgrade</span>
         <strong id="upgrade-readout">beam rig / 90cr</strong>
       </article>
-      <article class="readout">
+      <article class="readout advanced-readout">
         <span>Station Kit</span>
         <strong id="service-readout">no services</strong>
       </article>
@@ -154,10 +270,10 @@
       <span>R restart</span>
     </footer>
 
-    <aside class="target-panel" aria-label="Selected target">
-      <img class="title-card-band" src="assets/arcade-title-card.png" alt="" />
+    <aside class="target-panel flight-only" aria-label="Selected target">
+      <img class="title-card-band advanced-target-data" src="assets/arcade-title-card.png" alt="" />
       <div class="panel-head">
-        <span>Target seam</span>
+        <span>Selected target</span>
         <strong id="target-name">Cinder Node</strong>
       </div>
       <div class="target-data">
@@ -166,13 +282,13 @@
         <span id="target-range">0m</span>
         <span id="target-state">ready</span>
       </div>
-      <div class="salvage-target-data" aria-label="Selected salvage target state">
+      <div class="salvage-target-data advanced-target-data" aria-label="Selected salvage target state">
         <span id="salvage-target-family">site none</span>
         <span id="salvage-lock-state">lock 0%</span>
         <span id="salvage-extraction-state">extract 0%</span>
         <span id="salvage-risk-reward">risk 0 / reward 0cr</span>
       </div>
-      <div class="convoy-target-data" aria-label="Selected convoy route state">
+      <div class="convoy-target-data advanced-target-data" aria-label="Selected convoy route state">
         <span id="convoy-route-state">route none</span>
         <span id="convoy-beacon-state">beacon none</span>
         <span id="convoy-escort-state">escort 0/0</span>
@@ -180,7 +296,7 @@
         <span id="convoy-reward-state">reward 0cr</span>
         <span id="convoy-support-state">support none</span>
       </div>
-      <div class="storm-target-data" aria-label="Selected storm chart state">
+      <div class="storm-target-data advanced-target-data" aria-label="Selected storm chart state">
         <span id="storm-chart-state">chart none</span>
         <span id="storm-window-state">window none</span>
         <span id="storm-anchor-state">anchor none</span>
@@ -188,7 +304,7 @@
         <span id="storm-reward-state">reward 0cr</span>
         <span id="storm-support-state">support none</span>
       </div>
-      <div class="interdiction-target-data" aria-label="Selected interdiction cell state">
+      <div class="interdiction-target-data advanced-target-data" aria-label="Selected interdiction cell state">
         <span id="interdiction-cell-state">cell none</span>
         <span id="interdiction-marker-state">marker none / lure no</span>
         <span id="interdiction-window-state">window none</span>
@@ -196,7 +312,7 @@
         <span id="interdiction-reward-state">reward 0cr</span>
         <span id="interdiction-support-state">support none</span>
       </div>
-      <div class="signal-target-data" aria-label="Selected signal gate state">
+      <div class="signal-target-data advanced-target-data" aria-label="Selected signal gate state">
         <span id="signal-gate-state">gate none</span>
         <span id="signal-pylon-state">pylon none</span>
         <span id="signal-capacitor-state">charge 0/0</span>

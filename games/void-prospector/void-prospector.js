@@ -4957,6 +4957,21 @@ const VoidProspector = (() => {
     return syncDerivedState(next);
   }
 
+  function launchFromStation(state) {
+    const next = syncDerivedState(clone(state));
+    if (!next.station.docked) {
+      return next;
+    }
+    const forward = forwardVector(next.ship.heading || 0);
+    const launchOffset = next.station.dockingRadius + 4;
+    next.station.docked = false;
+    next.station.lastService = "launched";
+    next.ship.position = add(next.station.position, scale(forward, launchOffset));
+    next.ship.velocity = scale(forward, 1.2);
+    next.log.unshift({ tick: next.tick, message: "Launch clamps released from Frontier Spoke." });
+    return syncDerivedState(next);
+  }
+
   function purchaseUpgrade(state, upgradeId = "refined-beam") {
     const next = syncDerivedState(clone(state));
     const upgrade = upgradeById(upgradeId);
@@ -7831,6 +7846,7 @@ const VoidProspector = (() => {
         serviceNames.length > 0
           ? `${serviceNames.join(" + ")} / ${state.stationServices.countermeasureCharges} burst`
           : `${state.stationServices.lastService} / ${state.stationServices.countermeasureCharges} burst`,
+      cockpit: cockpitSurface(state, target),
       statusText: `${summary.sectorName}: ${state.run.objective}`,
       routeText: `${completedCount} charted / next ${sectorById(summary.recommendedSectorId).name}`,
       tutorial: state.tutorial,
@@ -8180,6 +8196,206 @@ const VoidProspector = (() => {
     return summary;
   }
 
+  function cockpitLabelPosition(state, position) {
+    const bearing = bearingDegrees(state.ship.position, state.ship.heading, position);
+    const verticalDelta = position.y - state.ship.position.y;
+    return {
+      bearing,
+      x: round(clamp(50 + bearing * 0.44, 8, 92), 1),
+      y: round(clamp(44 - verticalDelta * 1.55, 16, 74), 1),
+      offscreen: Math.abs(bearing) > 75,
+    };
+  }
+
+  function radarBlipForPosition(state, position, kind, label) {
+    const delta = subtract(position, state.ship.position);
+    const heading = -(state.ship.heading || 0);
+    const cos = Math.cos(heading);
+    const sin = Math.sin(heading);
+    const localX = delta.x * cos - delta.z * sin;
+    const localZ = delta.x * sin + delta.z * cos;
+    return {
+      kind,
+      label,
+      x: round(clamp(50 + (localX / 90) * 50, 6, 94), 1),
+      y: round(clamp(50 + (localZ / 90) * 50, 6, 94), 1),
+      distance: round(distance(state.ship.position, position), 1),
+    };
+  }
+
+  function targetTypeLabel(kind) {
+    const labels = {
+      asteroid: "Ore target",
+      anomaly: "Anomaly",
+      salvage: "Salvage",
+      convoy: "Convoy beacon",
+      storm: "Storm chart",
+      interdiction: "Interdiction",
+      "signal-gate": "Signal gate",
+      station: "Station",
+      pirate: "Threat",
+    };
+    return labels[kind] || "Target";
+  }
+
+  function cockpitSecondaryPrompt(state, reticleState) {
+    if (reticleState === "mine-in-range") {
+      return "Hold Space or M to mine.";
+    }
+    if (reticleState === "dockable-station") {
+      return "Press F or Enter to dock.";
+    }
+    if (reticleState === "cargo-full-return") {
+      return "Cargo full: return to Frontier Spoke.";
+    }
+    if (reticleState === "offscreen-direction") {
+      const side = (state.target.bearing || 0) < 0 ? "port" : "starboard";
+      return `Target off-screen ${side}: follow the edge arrow.`;
+    }
+    if (reticleState === "station-out-of-range") {
+      return "Close to the docking ring.";
+    }
+    if (reticleState === "target-out-of-range") {
+      return "Close distance until the reticle changes to ready.";
+    }
+    if (state.selectedTargetPrompt && state.selectedTargetPrompt.verticalAdjustmentRequired && !state.selectedTargetPrompt.verticalAdjustmentComplete) {
+      return "Use Q or Ctrl to trim vertical alignment.";
+    }
+    return "Tab or E cycles targets.";
+  }
+
+  function cockpitStationMenu(state) {
+    const upgrades = GAME_DATA.upgrades
+      .filter((upgrade) => !state.upgrades.purchased.includes(upgrade.id))
+      .slice(0, 3)
+      .map((upgrade) => ({
+        id: upgrade.id,
+        name: upgrade.name,
+        cost: upgrade.cost,
+        enabled: Boolean(state.station.docked && state.credits >= upgrade.cost),
+        status: state.credits >= upgrade.cost ? "ready" : `${upgrade.cost - state.credits}cr short`,
+        preview: `cargo +${upgrade.cargoCapacityBonus || 0} / beam +${upgrade.miningPowerBonus || 0}`,
+      }));
+    return {
+      open: Boolean(state.station.docked),
+      title: state.stationMenu ? state.stationMenu.launchPrompt : "Docked",
+      cargoSaleText:
+        state.station.lastSale > 0
+          ? `Sold cargo: ${state.station.lastSale}cr`
+          : state.cargo.ore > 0
+            ? `${state.cargo.ore} ore ready for sale`
+            : "No cargo in hold",
+      refuelText:
+        state.ship.fuel >= state.ship.maxFuel
+          ? "Fuel full"
+          : `Refuel ${Math.round(state.ship.maxFuel - state.ship.fuel)} units`,
+      repairText:
+        state.ship.hull >= state.ship.maxHull
+          ? "Hull repaired"
+          : `Repair ${Math.round(state.ship.maxHull - state.ship.hull)} hull`,
+      contractText: `${state.contract.title}: ${state.contract.deliveredOre}/${state.contract.requiredOre} ore / ${state.contract.status}`,
+      upgrades,
+      launchText: "Launch",
+    };
+  }
+
+  function cockpitSurface(state, selectedTarget = targetSummary(state)) {
+    const target = findTarget(state);
+    const station = dockingStatus(state);
+    const reticleState = selectedTarget.reticleState || (state.selectedTargetPrompt && state.selectedTargetPrompt.reticleState) || "no-target";
+    const targetPosition = target && target.position ? target.position : state.ship.position;
+    const targetLabel = cockpitLabelPosition(state, targetPosition);
+    const stationLabel = cockpitLabelPosition(state, state.station.position);
+    const threatActive = Boolean(state.systemAccess && state.systemAccess.pirate && state.pirate.state !== "dormant");
+    const threatLabel = cockpitLabelPosition(state, state.pirate.position);
+    const targetStatus =
+      state.target.kind === "asteroid" && target
+        ? `${target.oreRemaining} ore / ${selectedTarget.action || "approach"}`
+        : selectedTarget.status || "ready";
+    const primaryPrompt =
+      (state.selectedTargetPrompt && state.selectedTargetPrompt.prompt) ||
+      state.run.objective ||
+      "Follow the selected target.";
+    const prompts = uniqueList([primaryPrompt, cockpitSecondaryPrompt(state, reticleState)]).slice(0, 2);
+    const beamTarget =
+      state.target.kind === "asteroid" && target && target.mineState
+        ? target
+        : state.mining.targetId
+          ? state.asteroids.find((asteroid) => asteroid.id === state.mining.targetId)
+          : null;
+    const beamHeat = beamTarget && beamTarget.mineState ? Math.round(beamTarget.mineState.beamHeat || 0) : 0;
+    const radarBlips = [
+      radarBlipForPosition(state, state.station.position, "station", "Frontier Spoke"),
+      radarBlipForPosition(state, targetPosition, state.target.kind || "target", selectedTarget.name || "Target"),
+    ];
+    if (threatActive) {
+      radarBlips.push(radarBlipForPosition(state, state.pirate.position, "threat", state.pirate.name));
+    }
+
+    return {
+      mode: state.station.docked ? "station" : "flight",
+      advancedOpen: Boolean(state.disclosure && state.disclosure.rawTelemetry),
+      objectiveText: state.run.objective,
+      objectiveProgressText: `${state.contract.deliveredOre}/${state.contract.requiredOre} ore / ${state.contract.status}`,
+      resources: {
+        hull: `${Math.round(state.ship.hull)} / ${state.ship.maxHull}`,
+        fuel: `${Math.round(state.ship.fuel)} / ${state.ship.maxFuel}`,
+        cargo: `${state.cargo.ore} / ${state.cargo.capacity}`,
+        targetDistance: `${selectedTarget.distance || 0}m`,
+        speed: `${round(length(state.ship.velocity), 1)} m/s`,
+        beamHeat: `${beamHeat}%`,
+      },
+      reticle: {
+        state: reticleState,
+        rangeText: `${selectedTarget.distance || 0}m`,
+        stateText: reticleState.replace(/-/g, " "),
+        bearing: selectedTarget.bearing || 0,
+        edgeRotate: (selectedTarget.bearing || 0) < 0 ? 180 : 0,
+      },
+      labels: {
+        station: {
+          ...stationLabel,
+          state: station.dockable ? "dockable" : "station-out-of-range",
+          role: "Station",
+          name: state.station.name,
+          detail: `${station.distance}m / ${station.dockable ? "dockable" : "approach"}`,
+        },
+        target: {
+          ...targetLabel,
+          state: reticleState,
+          role: targetTypeLabel(state.target.kind),
+          name: selectedTarget.name || "No target",
+          detail: `${selectedTarget.distance || 0}m / ${targetStatus}`,
+        },
+        threat: {
+          ...threatLabel,
+          state: threatActive ? "threat" : "hidden",
+          role: "Threat",
+          name: state.pirate.name,
+          detail: `${Math.round(distance(state.ship.position, state.pirate.position))}m / ${state.pirate.encounterState}`,
+        },
+      },
+      radar: {
+        bearingText: formatBearing(selectedTarget.bearing || 0),
+        blips: radarBlips,
+      },
+      targetCard: {
+        name: selectedTarget.name || "No target",
+        kind: state.target.kind || "none",
+        bearingText: formatBearing(selectedTarget.bearing || 0),
+        rangeText: `${selectedTarget.distance || 0}m`,
+        status: targetStatus,
+      },
+      prompts,
+      stationMenu: cockpitStationMenu(state),
+      help: {
+        objective: state.run.objective,
+        target: `${selectedTarget.name || "No target"} / ${selectedTarget.distance || 0}m / ${selectedTarget.action || "approach"}`,
+        controls: "W thrust / S brake / A-D turn / Q-Ctrl vertical / Space mine / F dock / Tab target",
+      },
+    };
+  }
+
   function cssToneForPercent(value) {
     if (value <= 25) {
       return "danger";
@@ -8194,6 +8410,39 @@ const VoidProspector = (() => {
     dom.root = document.getElementById("void-prospector");
     dom.canvas = document.getElementById("void-prospector-scene");
     dom.runStatus = document.getElementById("run-status");
+    dom.helpAction = document.getElementById("help-action");
+    dom.cockpitObjective = document.getElementById("cockpit-objective-text");
+    dom.cockpitObjectiveProgress = document.getElementById("cockpit-objective-progress");
+    dom.cockpitHull = document.getElementById("cockpit-hull");
+    dom.cockpitFuel = document.getElementById("cockpit-fuel");
+    dom.cockpitCargo = document.getElementById("cockpit-cargo");
+    dom.cockpitDistance = document.getElementById("cockpit-distance");
+    dom.centerReticle = document.getElementById("center-reticle");
+    dom.reticleState = document.getElementById("reticle-state");
+    dom.reticleRange = document.getElementById("reticle-range");
+    dom.edgeArrow = document.getElementById("edge-arrow");
+    dom.stationWorldLabel = document.getElementById("station-world-label");
+    dom.targetWorldLabel = document.getElementById("target-world-label");
+    dom.threatWorldLabel = document.getElementById("threat-world-label");
+    dom.radarBlips = document.getElementById("radar-blips");
+    dom.cockpitBearing = document.getElementById("cockpit-bearing");
+    dom.promptPrimary = document.getElementById("prompt-primary");
+    dom.promptSecondary = document.getElementById("prompt-secondary");
+    dom.cockpitSpeed = document.getElementById("cockpit-speed");
+    dom.cockpitHeat = document.getElementById("cockpit-heat");
+    dom.cockpitReticleSummary = document.getElementById("cockpit-reticle-summary");
+    dom.stationPanelTitle = document.getElementById("station-panel-title");
+    dom.stationSaleSummary = document.getElementById("station-sale-summary");
+    dom.stationRefuelSummary = document.getElementById("station-refuel-summary");
+    dom.stationRepairSummary = document.getElementById("station-repair-summary");
+    dom.stationContractSummary = document.getElementById("station-contract-summary");
+    dom.stationUpgradeList = document.getElementById("station-upgrade-list");
+    dom.stationLaunchAction = document.getElementById("station-launch-action");
+    dom.helpPanel = document.getElementById("help-panel");
+    dom.helpObjective = document.getElementById("help-objective");
+    dom.helpTarget = document.getElementById("help-target");
+    dom.helpControls = document.getElementById("help-controls");
+    dom.helpRestartAction = document.getElementById("help-restart-action");
     dom.objective = document.getElementById("objective-readout");
     dom.ladder = document.getElementById("ladder-readout");
     dom.sector = document.getElementById("sector-readout");
@@ -8287,6 +8536,123 @@ const VoidProspector = (() => {
     dom.serviceGateTunersAction = document.getElementById("service-gate-tuners-action");
     dom.countermeasureAction = document.getElementById("countermeasure-action");
     dom.eventLog = document.getElementById("event-log");
+  }
+
+  function setText(node, text) {
+    if (node) {
+      node.textContent = text;
+    }
+  }
+
+  function renderWorldLabel(node, label) {
+    if (!node || !label) {
+      return;
+    }
+    node.dataset.state = label.state;
+    node.style.setProperty("--label-x", `${label.x}%`);
+    node.style.setProperty("--label-y", `${label.y}%`);
+    const role = node.querySelector("span");
+    const name = node.querySelector("strong");
+    const detail = node.querySelector("small");
+    setText(role, label.role);
+    setText(name, label.name);
+    setText(detail, label.detail);
+  }
+
+  function renderRadarBlips(cockpit) {
+    if (!dom.radarBlips) {
+      return;
+    }
+    const signature = cockpit.radar.blips.map((blip) => `${blip.kind}:${blip.label}:${blip.x}:${blip.y}`).join("|");
+    if (dom.radarBlips.dataset.signature === signature) {
+      return;
+    }
+    dom.radarBlips.dataset.signature = signature;
+    dom.radarBlips.replaceChildren();
+    cockpit.radar.blips.forEach((blip) => {
+      const marker = document.createElement("span");
+      marker.className = "radar-blip";
+      marker.dataset.kind = blip.kind;
+      marker.title = `${blip.label} / ${blip.distance}m`;
+      marker.style.setProperty("--blip-x", `${blip.x}%`);
+      marker.style.setProperty("--blip-y", `${blip.y}%`);
+      dom.radarBlips.append(marker);
+    });
+  }
+
+  function renderStationUpgradeChoices(cockpit) {
+    if (!dom.stationUpgradeList) {
+      return;
+    }
+    const signature = cockpit.stationMenu.upgrades
+      .map((upgrade) => `${upgrade.id}:${upgrade.status}:${upgrade.enabled}`)
+      .join("|");
+    if (dom.stationUpgradeList.dataset.signature === signature) {
+      return;
+    }
+    dom.stationUpgradeList.dataset.signature = signature;
+    dom.stationUpgradeList.replaceChildren();
+    cockpit.stationMenu.upgrades.forEach((upgrade) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.upgradeId = upgrade.id;
+      button.disabled = !upgrade.enabled;
+      button.textContent = `${upgrade.name} / ${upgrade.cost}cr / ${upgrade.status} / ${upgrade.preview}`;
+      dom.stationUpgradeList.append(button);
+    });
+    if (!cockpit.stationMenu.upgrades.length) {
+      const installed = document.createElement("span");
+      installed.textContent = "All upgrade previews installed.";
+      dom.stationUpgradeList.append(installed);
+    }
+  }
+
+  function renderCockpit(cockpit) {
+    if (!cockpit) {
+      return;
+    }
+    if (dom.root) {
+      dom.root.dataset.surface = cockpit.mode;
+      dom.root.dataset.advanced = cockpit.advancedOpen ? "open" : "locked";
+    }
+    if (dom.helpAction) {
+      dom.helpAction.setAttribute("aria-expanded", dom.root && dom.root.dataset.help === "open" ? "true" : "false");
+    }
+    setText(dom.cockpitObjective, cockpit.objectiveText);
+    setText(dom.cockpitObjectiveProgress, cockpit.objectiveProgressText);
+    setText(dom.cockpitHull, cockpit.resources.hull);
+    setText(dom.cockpitFuel, cockpit.resources.fuel);
+    setText(dom.cockpitCargo, cockpit.resources.cargo);
+    setText(dom.cockpitDistance, cockpit.resources.targetDistance);
+    setText(dom.cockpitSpeed, cockpit.resources.speed);
+    setText(dom.cockpitHeat, cockpit.resources.beamHeat);
+    setText(dom.cockpitReticleSummary, cockpit.reticle.state);
+    if (dom.centerReticle) {
+      dom.centerReticle.dataset.state = cockpit.reticle.state;
+      dom.centerReticle.style.setProperty("--edge-rotate", `${cockpit.reticle.edgeRotate}deg`);
+    }
+    setText(dom.reticleState, cockpit.reticle.stateText);
+    setText(dom.reticleRange, cockpit.reticle.rangeText);
+    renderWorldLabel(dom.stationWorldLabel, cockpit.labels.station);
+    renderWorldLabel(dom.targetWorldLabel, cockpit.labels.target);
+    renderWorldLabel(dom.threatWorldLabel, cockpit.labels.threat);
+    setText(dom.cockpitBearing, cockpit.radar.bearingText);
+    renderRadarBlips(cockpit);
+    setText(dom.promptPrimary, cockpit.prompts[0] || "");
+    setText(dom.promptSecondary, cockpit.prompts[1] || "");
+    setText(dom.stationPanelTitle, cockpit.stationMenu.title);
+    setText(dom.stationSaleSummary, cockpit.stationMenu.cargoSaleText);
+    setText(dom.stationRefuelSummary, cockpit.stationMenu.refuelText);
+    setText(dom.stationRepairSummary, cockpit.stationMenu.repairText);
+    setText(dom.stationContractSummary, cockpit.stationMenu.contractText);
+    if (dom.stationLaunchAction) {
+      dom.stationLaunchAction.textContent = cockpit.stationMenu.launchText;
+      dom.stationLaunchAction.disabled = !cockpit.stationMenu.open;
+    }
+    renderStationUpgradeChoices(cockpit);
+    setText(dom.helpObjective, cockpit.help.objective);
+    setText(dom.helpTarget, cockpit.help.target);
+    setText(dom.helpControls, cockpit.help.controls);
   }
 
   function renderSectorRows(surface) {
@@ -8538,6 +8904,7 @@ const VoidProspector = (() => {
     const upgrade = upgradeSummary(state);
     const surface = surveyCockpitSurface(state);
     dom.runStatus.textContent = `${state.run.status} / ${state.renderer.status}`;
+    renderCockpit(surface.cockpit);
     dom.objective.textContent = state.run.objective;
     dom.ladder.textContent = surface.ladderText;
     dom.sector.textContent = surface.sectorText;
@@ -8567,11 +8934,11 @@ const VoidProspector = (() => {
     dom.service.textContent = surface.serviceText;
     dom.target.textContent = `${target.kind} / ${target.name} / ${target.distance}m`;
     dom.station.textContent = `${formatBearing(station.bearing)} / ${station.distance}m / ${station.dockable ? "dock" : "approach"}`;
-    dom.targetName.textContent = target.name;
-    dom.targetKind.textContent = target.kind;
-    dom.targetBearing.textContent = `bearing ${formatBearing(target.bearing)}`;
-    dom.targetRange.textContent = `${target.distance}m`;
-    dom.targetState.textContent = target.status;
+    dom.targetName.textContent = surface.cockpit.targetCard.name;
+    dom.targetKind.textContent = surface.cockpit.targetCard.kind;
+    dom.targetBearing.textContent = `bearing ${surface.cockpit.targetCard.bearingText}`;
+    dom.targetRange.textContent = surface.cockpit.targetCard.rangeText;
+    dom.targetState.textContent = surface.cockpit.targetCard.status;
     dom.salvageTargetFamily.textContent = surface.salvageTarget.familyText;
     dom.salvageLockState.textContent = surface.salvageTarget.lockText;
     dom.salvageExtractionState.textContent = surface.salvageTarget.extractionText;
@@ -8719,9 +9086,10 @@ const VoidProspector = (() => {
       state.stationServices.countermeasureCharges > 0 || state.stationServices.purchased.length > 0 ? "signal" : "warn";
     if (dom.mineAction) {
       const cargoBlocked = target.kind === "asteroid" && state.cargo.ore >= state.cargo.capacity;
+      const asteroidOutOfRange = target.kind === "asteroid" && target.reticleState !== "mine-in-range";
       dom.mineAction.textContent = target.kind === "salvage" ? "Extract" : "Mine";
       dom.mineAction.disabled =
-        !["asteroid", "salvage"].includes(target.kind) || cargoBlocked || state.run.status === "failed";
+        !["asteroid", "salvage"].includes(target.kind) || cargoBlocked || asteroidOutOfRange || state.run.status === "failed";
     }
     if (dom.scanAction) {
       dom.scanAction.textContent =
@@ -8826,6 +9194,17 @@ const VoidProspector = (() => {
     return null;
   }
 
+  function setHelpOpen(open) {
+    if (!dom.root || !dom.helpPanel) {
+      return;
+    }
+    dom.root.dataset.help = open ? "open" : "closed";
+    dom.helpPanel.hidden = !open;
+    if (dom.helpAction) {
+      dom.helpAction.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+  }
+
   function performAction(action) {
     if (!currentState) {
       return;
@@ -8894,6 +9273,8 @@ const VoidProspector = (() => {
       }
     } else if (action === "interact") {
       currentState = dockAtStation(currentState);
+    } else if (action === "launch") {
+      currentState = launchFromStation(currentState);
     } else if (action === "upgrade") {
       const upgrade = nextAffordableUpgrade(currentState);
       currentState = purchaseUpgrade(currentState, upgrade ? upgrade.id : "refined-beam");
@@ -8936,6 +9317,10 @@ const VoidProspector = (() => {
 
   function bindControls() {
     window.addEventListener("keydown", (event) => {
+      if (event.code === "Escape") {
+        setHelpOpen(false);
+        return;
+      }
       const control = controlNameForCode(event.code);
       if (!control) {
         return;
@@ -8983,6 +9368,31 @@ const VoidProspector = (() => {
     }
     if (dom.restartAction) {
       dom.restartAction.addEventListener("click", () => performAction("reset"));
+    }
+    if (dom.helpAction) {
+      dom.helpAction.addEventListener("click", () => setHelpOpen(!(dom.root && dom.root.dataset.help === "open")));
+    }
+    if (dom.helpRestartAction) {
+      dom.helpRestartAction.addEventListener("click", () => {
+        performAction("reset");
+        setHelpOpen(false);
+      });
+    }
+    if (dom.stationLaunchAction) {
+      dom.stationLaunchAction.addEventListener("click", () => performAction("launch"));
+    }
+    if (dom.stationUpgradeList) {
+      dom.stationUpgradeList.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-upgrade-id]");
+        if (!button || button.disabled) {
+          return;
+        }
+        currentState = purchaseUpgrade(currentState, button.dataset.upgradeId);
+        renderHud(currentState);
+        if (sceneHandle) {
+          updateScene(sceneHandle, currentState, performance.now() / 1000);
+        }
+      });
     }
     if (dom.sectorAction) {
       dom.sectorAction.addEventListener("click", () => performAction("sector"));
@@ -10182,6 +10592,7 @@ const VoidProspector = (() => {
     abortSignalGateTransit,
     commitSignalGateTransit,
     dockAtStation,
+    launchFromStation,
     purchaseUpgrade,
     purchaseStationService,
     deployCountermeasure,
@@ -10204,6 +10615,7 @@ const VoidProspector = (() => {
     interdictionSummary,
     signalGateSummary,
     surveyCockpitSurface,
+    cockpitSurface,
     stationServiceSummary,
     targetSummary,
     bearingTo,
