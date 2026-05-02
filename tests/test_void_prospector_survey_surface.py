@@ -134,7 +134,7 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         ):
             self.assertIn(hook, html)
 
-        self.assertIn("v0.6.0 Signal Gate Expedition", html)
+        self.assertIn("v0.7.0 Flight Readability Repair", html)
         self.assertIn("C scan/transponder/harmonics", html)
         self.assertIn("B beacon/anchor/marker/pylon", html)
         self.assertIn("Space/M mine or extract", html)

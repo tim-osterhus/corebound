@@ -3,7 +3,7 @@
   "arcade": {
     "name": "Millrace Arcade",
     "status": "live",
-    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.7.0 Factory Floor Repair release, Void Prospector's v0.6.0 Signal Gate Expedition relay-gate release, and Iron Lantern Descent's v0.4.0 Echo Relay Network release."
+    "summary": "Playable browser games from Millrace, led by Corebound's v0.7.0 HUD Breakthrough release, Dark Factory Dispatch's v0.7.0 Factory Floor Repair release, Void Prospector's v0.7.0 Flight Readability Repair first-contract release, and Iron Lantern Descent's v0.4.0 Echo Relay Network release."
   },
   "games": [
     {
@@ -145,16 +145,23 @@
     {
       "slug": "void-prospector",
       "title": "Void Prospector",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "status": "playable",
-      "summary": "Pilot the Prospector Kite through a compact 3D asteroid field with Survey Ladder sectors, anomaly scans, hazard charting, salvage extraction, deployable route beacons, convoy contracts, storm-front charting, relay anchors, safe route windows, active Knife Wake pirate cells, distress and decoy markers, convoy and salvage raid responses, station patrol uplinks, Signal Gate Expedition relay gates, pylon alignment, capacitor charging, convoy transit seals, storm-window anchors, pirate gate-jam mitigation, docking, route payouts, and repeat-sortie upgrades.",
+      "summary": "Pilot the Prospector Kite through a readable first-contract 3D mining loop with labeled Cinder Node and Frontier Spoke markers, a center reticle, compact objective and resource HUD, keyboard-driven X/Y/Z flight, visible thrust, mining beam, ore sparks, depleted-node feedback, docking corridor, station sale, refuel, repair, and Refined Beam preview, post-tutorial Knife Wake pirate warnings, and the later Survey Ladder, salvage, convoy, storm, interdiction, and Signal Gate systems preserved behind progressive disclosure.",
       "path": "games/void-prospector/",
       "thumbnail": "games/void-prospector/assets/arcade-title-card.png",
       "release": {
-        "label": "v0.6.0 Signal Gate Expedition",
-        "copy": "Signal Gate Expedition extends Knife Wake Interdiction with selectable relay gates, harmonics scans, pylon alignment, capacitor charging, storm-window anchors, convoy transit commitments, station gate tuning, pirate gate-jam mitigation, forced or aborted openings, and full, partial, or failed transit outcomes that feed fuel, hull, cargo, credits, convoy integrity, salvage shielding, storm exposure, pirate pressure, and Survey Ladder score."
+        "label": "v0.7.0 Flight Readability Repair",
+        "copy": "Flight Readability Repair rebuilds the first Void Prospector session around the scene: Cinder Node and Frontier Spoke are labeled in-world, the compact cockpit shows only objective, resources, reticle, radar, prompts, and target card, mining uses a beam, ore glow, sparks, cargo feedback, and depleted-state cues, docking exposes a corridor plus sale/refuel/repair summary and Refined Beam preview, and Knife Wake pressure waits until the first contract is complete."
       },
       "versions": [
+        {
+          "version": "0.7.0",
+          "path": "games/void-prospector/versions/0.7.0/",
+          "releasedAt": "2026-05-02",
+          "label": "v0.7.0 Flight Readability Repair",
+          "summary": "Readable first-contract cockpit, labeled Cinder Node and Frontier Spoke, compact HUD, keyboard 3D flight with vertical trim, mining beam, ore glow, sparks, cargo and depleted-node feedback, dockable station corridor, sale/refuel/repair summary, Refined Beam preview, and post-contract Knife Wake warning visibility publish on top of Signal Gate Expedition."
+        },
         {
           "version": "0.6.0",
           "path": "games/void-prospector/versions/0.6.0/",
