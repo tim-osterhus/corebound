@@ -47,6 +47,14 @@ EXPECTED_ASSETS = {
     },
 }
 
+EXPECTED_PROCEDURAL_ASSETS = {
+    "ship-thruster-and-brake-glow": "games/void-prospector/void-prospector.js#createShipMesh",
+    "asteroid-hit-glow-and-ore-sparks": "games/void-prospector/void-prospector.js#createOreSparks",
+    "station-beacon-and-docking-corridor": "games/void-prospector/void-prospector.js#createStationMesh",
+    "hud-radar-and-station-icons": "games/void-prospector/void-prospector.css",
+    "pirate-warning-marker": "games/void-prospector/void-prospector.js#pirateWarningFeedback",
+}
+
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -105,6 +113,19 @@ class VoidProspectorAssetPackTests(unittest.TestCase):
         shipped_pngs = {path.relative_to(ROOT).as_posix() for path in ASSET_DIR.rglob("*.png")}
         self.assertEqual(set(seen_paths), shipped_pngs)
 
+    def test_shipping_manifest_declares_truthful_procedural_feedback_assets(self) -> None:
+        manifest = load_json(SHIPPING_MANIFEST_PATH)
+        procedural_assets = {asset.get("id"): asset for asset in manifest.get("procedural_assets", [])}
+
+        self.assertEqual(set(EXPECTED_PROCEDURAL_ASSETS), set(procedural_assets))
+        for asset_id, expected_path in EXPECTED_PROCEDURAL_ASSETS.items():
+            asset = procedural_assets[asset_id]
+            self.assertEqual(expected_path, asset.get("path"))
+            self.assertIn(asset.get("role"), {"procedural-mesh", "procedural-css", "procedural-state"})
+            self.assertTrue(asset.get("description"))
+            self.assertTrue(asset.get("intended_use"))
+            self.assertTrue((ROOT / expected_path.split("#", 1)[0]).is_file())
+
     def test_request_manifest_and_visual_pipeline_evidence_are_preserved(self) -> None:
         manifest = load_json(REQUEST_MANIFEST_PATH)
         meta = load_json(REQUEST_DIR / "request-meta.json")
@@ -159,6 +180,13 @@ class VoidProspectorAssetPackTests(unittest.TestCase):
         self.assertIn("station-dock-panel", ids)
         self.assertIn("pirate-marker", ids)
         self.assertIn("arcade-title-card", ids)
+
+        procedural_ids = {asset["id"] for asset in manifest.get("procedural_assets", [])}
+        self.assertIn("ship-thruster-and-brake-glow", procedural_ids)
+        self.assertIn("asteroid-hit-glow-and-ore-sparks", procedural_ids)
+        self.assertIn("station-beacon-and-docking-corridor", procedural_ids)
+        self.assertIn("hud-radar-and-station-icons", procedural_ids)
+        self.assertIn("pirate-warning-marker", procedural_ids)
 
 
 if __name__ == "__main__":

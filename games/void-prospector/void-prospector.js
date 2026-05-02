@@ -8239,6 +8239,10 @@ const VoidProspector = (() => {
   }
 
   function cockpitSecondaryPrompt(state, reticleState) {
+    const threatFeedback = pirateWarningFeedback(state);
+    if (threatFeedback.visible && threatFeedback.stage !== "locked") {
+      return threatFeedback.guidance;
+    }
     if (reticleState === "mine-in-range") {
       return "Hold Space or M to mine.";
     }
@@ -8264,6 +8268,56 @@ const VoidProspector = (() => {
     return "Tab or E cycles targets.";
   }
 
+  function pirateWarningFeedback(state) {
+    const pirate = state.pirate || {};
+    const unlocked =
+      pirate.unlockState === "unlocked" ||
+      pirate.state !== "dormant" ||
+      Boolean(state.systemAccess && state.systemAccess.pirate && !(state.tutorial && state.tutorial.status === "active"));
+    if (!unlocked) {
+      return {
+        stage: "locked",
+        markerState: "hidden",
+        visible: false,
+        countdown: null,
+        guidance: "Complete the first contract before pirate pressure unlocks.",
+      };
+    }
+
+    const spawnTick = pirate.spawnTick === undefined || pirate.spawnTick === null ? state.elapsed : pirate.spawnTick;
+    const countdown = Math.max(0, round(spawnTick - state.elapsed, 1));
+    if (pirate.state === "dormant") {
+      return {
+        stage: countdown > 3 ? "warning" : "imminent",
+        markerState: "warning",
+        visible: true,
+        countdown,
+        guidance:
+          countdown > 3
+            ? "Pirate signal unlocked: dock for decoy bursts or keep the station between you and Knife Wake."
+            : "Knife Wake closing: launch, dock, or save a decoy burst for contact.",
+      };
+    }
+
+    if (pirate.encounterState === "close") {
+      return {
+        stage: "close",
+        markerState: "threat",
+        visible: true,
+        countdown: 0,
+        guidance: "Knife Wake close: brake away, dock, or fire a decoy burst.",
+      };
+    }
+
+    return {
+      stage: pirate.encounterState === "shadow" ? "shadow" : "contact",
+      markerState: "threat",
+      visible: true,
+      countdown: 0,
+      guidance: "Pirate marker live: keep distance, dock for repairs, or spend a decoy burst.",
+    };
+  }
+
   function cockpitStationMenu(state) {
     const upgrades = GAME_DATA.upgrades
       .filter((upgrade) => !state.upgrades.purchased.includes(upgrade.id))
@@ -8274,6 +8328,8 @@ const VoidProspector = (() => {
         cost: upgrade.cost,
         enabled: Boolean(state.station.docked && state.credits >= upgrade.cost),
         status: state.credits >= upgrade.cost ? "ready" : `${upgrade.cost - state.credits}cr short`,
+        miningPowerBonus: upgrade.miningPowerBonus || 0,
+        cargoCapacityBonus: upgrade.cargoCapacityBonus || 0,
         preview: `cargo +${upgrade.cargoCapacityBonus || 0} / beam +${upgrade.miningPowerBonus || 0}`,
       }));
     return {
@@ -8296,6 +8352,59 @@ const VoidProspector = (() => {
       contractText: `${state.contract.title}: ${state.contract.deliveredOre}/${state.contract.requiredOre} ore / ${state.contract.status}`,
       upgrades,
       launchText: "Launch",
+    };
+  }
+
+  function cockpitFeedbackSurface(state, selectedTarget, reticleState, station, beamTarget, beamHeat, stationMenu) {
+    const engine = state.ship.engineState || createEngineState();
+    const miningActive = Boolean(state.mining.active && beamTarget);
+    const cargoDelta = state.mining.lastYield || 0;
+    const depleted = Boolean(beamTarget && beamTarget.mineState && beamTarget.mineState.depleted);
+    const heatState = beamHeat >= 80 ? "hot" : beamHeat > 0 ? "cooldown" : "ready";
+    const docked = Boolean(state.station.docked);
+    const threat = pirateWarningFeedback(state);
+    const upgradePreview = stationMenu.upgrades[0] || null;
+
+    return {
+      ship: {
+        thrustGlow: engine.thrusting ? "active" : "idle",
+        brakeGlow: engine.braking ? "active" : "idle",
+        verticalGlow: engine.verticalAxis > 0 ? "ascend" : engine.verticalAxis < 0 ? "descend" : "idle",
+        speed: round(length(state.ship.velocity), 2),
+      },
+      mining: {
+        beamActive: miningActive,
+        beamTargetId: beamTarget ? beamTarget.id : null,
+        hitGlow: miningActive ? "active" : beamHeat > 0 ? "cooldown" : depleted ? "depleted" : "idle",
+        sparkState: miningActive ? (cargoDelta > 0 ? "ore-yield" : "cutting") : beamHeat > 0 ? "cooldown" : "idle",
+        oreParticles: miningActive ? Math.max(1, cargoDelta * 3 || 2) : 0,
+        cargoDelta,
+        heat: beamHeat,
+        heatState,
+        cooldown: heatState === "cooldown" || heatState === "hot",
+        depleted,
+        targetName: beamTarget ? beamTarget.name : selectedTarget.name || "No target",
+        reticleState,
+      },
+      docking: {
+        state: docked ? "docked" : station.dockable ? "dockable" : "approach",
+        corridor: station.dockable ? "lit" : "approach",
+        dockable: Boolean(station.dockable),
+        successfulDock: docked,
+        cargoSaleCredits: state.station.lastSale || 0,
+        refuelSummary: stationMenu.refuelText,
+        repairSummary: stationMenu.repairText,
+        serviceSummary: state.station.lastService,
+        upgradePreview: upgradePreview
+          ? {
+              id: upgradePreview.id,
+              name: upgradePreview.name,
+              status: upgradePreview.status,
+              preview: upgradePreview.preview,
+            }
+          : null,
+      },
+      threat,
     };
   }
 
@@ -8331,6 +8440,11 @@ const VoidProspector = (() => {
     if (threatActive) {
       radarBlips.push(radarBlipForPosition(state, state.pirate.position, "threat", state.pirate.name));
     }
+    const threatFeedback = pirateWarningFeedback(state);
+    if (threatFeedback.visible && !threatActive) {
+      radarBlips.push(radarBlipForPosition(state, state.pirate.position, "threat", state.pirate.name));
+    }
+    const stationMenu = cockpitStationMenu(state);
 
     return {
       mode: state.station.docked ? "station" : "flight",
@@ -8369,10 +8483,13 @@ const VoidProspector = (() => {
         },
         threat: {
           ...threatLabel,
-          state: threatActive ? "threat" : "hidden",
+          state: threatFeedback.visible ? threatFeedback.markerState : "hidden",
           role: "Threat",
           name: state.pirate.name,
-          detail: `${Math.round(distance(state.ship.position, state.pirate.position))}m / ${state.pirate.encounterState}`,
+          detail:
+            threatFeedback.stage === "warning" || threatFeedback.stage === "imminent"
+              ? `${Math.round(distance(state.ship.position, state.pirate.position))}m / ${threatFeedback.stage} / ${threatFeedback.countdown}s`
+              : `${Math.round(distance(state.ship.position, state.pirate.position))}m / ${state.pirate.encounterState}`,
         },
       },
       radar: {
@@ -8387,7 +8504,8 @@ const VoidProspector = (() => {
         status: targetStatus,
       },
       prompts,
-      stationMenu: cockpitStationMenu(state),
+      stationMenu,
+      feedback: cockpitFeedbackSurface(state, selectedTarget, reticleState, station, beamTarget, beamHeat, stationMenu),
       help: {
         objective: state.run.objective,
         target: `${selectedTarget.name || "No target"} / ${selectedTarget.distance || 0}m / ${selectedTarget.action || "approach"}`,
@@ -8596,6 +8714,7 @@ const VoidProspector = (() => {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.upgradeId = upgrade.id;
+      button.dataset.kind = upgrade.miningPowerBonus > 0 ? "beam-upgrade" : upgrade.cargoCapacityBonus > 0 ? "cargo-upgrade" : "upgrade";
       button.disabled = !upgrade.enabled;
       button.textContent = `${upgrade.name} / ${upgrade.cost}cr / ${upgrade.status} / ${upgrade.preview}`;
       dom.stationUpgradeList.append(button);
@@ -8614,6 +8733,11 @@ const VoidProspector = (() => {
     if (dom.root) {
       dom.root.dataset.surface = cockpit.mode;
       dom.root.dataset.advanced = cockpit.advancedOpen ? "open" : "locked";
+      dom.root.dataset.thrust = cockpit.feedback.ship.thrustGlow;
+      dom.root.dataset.brake = cockpit.feedback.ship.brakeGlow;
+      dom.root.dataset.mining = cockpit.feedback.mining.hitGlow;
+      dom.root.dataset.docking = cockpit.feedback.docking.state;
+      dom.root.dataset.threat = cockpit.feedback.threat.markerState;
     }
     if (dom.helpAction) {
       dom.helpAction.setAttribute("aria-expanded", dom.root && dom.root.dataset.help === "open" ? "true" : "false");
@@ -9507,6 +9631,33 @@ const VoidProspector = (() => {
       decal.rotation.x = -Math.PI / 2;
       group.add(decal);
     }
+
+    const makeEngineCone = (x, y, z, color, lengthValue = 1.1) => {
+      const glow = new THREE.Mesh(
+        new THREE.ConeGeometry(0.2, lengthValue, 12),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.0, depthWrite: false })
+      );
+      glow.position.set(x, y, z);
+      glow.rotation.x = Math.PI / 2;
+      glow.visible = false;
+      group.add(glow);
+      return glow;
+    };
+    const makeBrakeGlow = (x) => {
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0xd0b36a, transparent: true, opacity: 0.0, depthWrite: false })
+      );
+      glow.position.set(x, 0.02, -1.42);
+      glow.visible = false;
+      group.add(glow);
+      return glow;
+    };
+    group.userData.thrusterGlows = [
+      makeEngineCone(-0.42, -0.02, 2.0, 0x4bd6c0, 1.25),
+      makeEngineCone(0.42, -0.02, 2.0, 0x4bd6c0, 1.25),
+    ];
+    group.userData.brakeGlows = [makeBrakeGlow(-0.46), makeBrakeGlow(0.46)];
     return group;
   }
 
@@ -9536,9 +9687,29 @@ const VoidProspector = (() => {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(6, 0.12, 8, 48), dockMaterial);
     ring.rotation.x = Math.PI / 2;
     group.add(ring);
+    const corridor = new THREE.Group();
+    for (let index = 0; index < 3; index += 1) {
+      const lane = new THREE.Mesh(
+        new THREE.TorusGeometry(3.2 + index * 0.58, 0.035, 6, 40),
+        new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.16, depthWrite: false })
+      );
+      lane.position.z = -4 - index * 2.1;
+      lane.rotation.x = Math.PI / 2;
+      corridor.add(lane);
+    }
+    group.add(corridor);
     const mast = new THREE.Mesh(new THREE.BoxGeometry(1.2, 7, 1.2), ringMaterial);
     mast.position.y = 1.8;
     group.add(mast);
+    const beacon = new THREE.Mesh(
+      new THREE.SphereGeometry(0.34, 12, 8),
+      new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.78 })
+    );
+    beacon.position.y = 5.65;
+    group.add(beacon);
+    group.userData.dockRing = ring;
+    group.userData.dockingCorridor = corridor;
+    group.userData.stationBeacon = beacon;
     return group;
   }
 
@@ -9565,6 +9736,12 @@ const VoidProspector = (() => {
       glint.position.set(Math.cos(angle) * asteroid.radius * 0.72, 0.25 * index, Math.sin(angle) * asteroid.radius * 0.72);
       group.add(glint);
     }
+    const oreHalo = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(asteroid.radius * 1.04, 1),
+      new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.08, wireframe: true, depthWrite: false })
+    );
+    group.add(oreHalo);
+    group.userData.oreHalo = oreHalo;
     return group;
   }
 
@@ -10260,6 +10437,21 @@ const VoidProspector = (() => {
     return beam;
   }
 
+  function createOreSparks(THREE) {
+    const group = new THREE.Group();
+    const materials = [
+      new THREE.MeshBasicMaterial({ color: 0x4bd6c0, transparent: true, opacity: 0.72, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ color: 0xd0b36a, transparent: true, opacity: 0.72, depthWrite: false }),
+    ];
+    for (let index = 0; index < 10; index += 1) {
+      const spark = new THREE.Mesh(new THREE.TetrahedronGeometry(0.12 + (index % 3) * 0.025, 0), materials[index % materials.length]);
+      spark.userData.phase = index * 0.73;
+      group.add(spark);
+    }
+    group.visible = false;
+    return group;
+  }
+
   function createStarField(THREE) {
     const geometry = new THREE.BufferGeometry();
     const points = [];
@@ -10370,6 +10562,9 @@ const VoidProspector = (() => {
     const miningBeam = createMiningBeam(THREE);
     scene.add(miningBeam);
 
+    const oreSparks = createOreSparks(THREE);
+    scene.add(oreSparks);
+
     return {
       THREE,
       scene,
@@ -10387,6 +10582,7 @@ const VoidProspector = (() => {
         pirate,
         targetRing,
         miningBeam,
+        oreSparks,
         sceneAssets,
       },
     };
@@ -10409,7 +10605,36 @@ const VoidProspector = (() => {
     handle.objects.ship.position.set(state.ship.position.x, state.ship.position.y, state.ship.position.z);
     const orientation = state.ship.orientation || createShipOrientation(state.ship.heading);
     handle.objects.ship.rotation.set(orientation.pitch || 0, orientation.yaw, orientation.roll || 0);
+    const engine = state.ship.engineState || createEngineState();
+    (handle.objects.ship.userData.thrusterGlows || []).forEach((glow, index) => {
+      glow.visible = Boolean(engine.thrusting || engine.verticalAxis !== 0);
+      glow.material.opacity = engine.thrusting ? 0.72 : engine.verticalAxis !== 0 ? 0.38 : 0;
+      glow.scale.set(1, 1 + Math.sin(timeSeconds * 18 + index) * 0.16, engine.thrusting ? 1.3 : 0.85);
+    });
+    (handle.objects.ship.userData.brakeGlows || []).forEach((glow, index) => {
+      glow.visible = Boolean(engine.braking);
+      glow.material.opacity = engine.braking ? 0.68 : 0;
+      glow.scale.setScalar(engine.braking ? 1.2 + Math.sin(timeSeconds * 16 + index) * 0.18 : 1);
+    });
     handle.objects.station.rotation.y = timeSeconds * 0.12;
+    const stationVisual = handle.objects.station.userData || {};
+    if (stationVisual.dockRing) {
+      const dockable = state.station.proximity.dockable || state.station.docked;
+      stationVisual.dockRing.material.color.setHex(dockable ? 0x4bd6c0 : 0xd0b36a);
+      stationVisual.dockRing.material.opacity = dockable ? 0.72 : 0.32;
+      stationVisual.dockRing.scale.setScalar(dockable ? 1 + Math.sin(timeSeconds * 5) * 0.025 : 1);
+    }
+    if (stationVisual.dockingCorridor) {
+      stationVisual.dockingCorridor.visible = !state.station.docked;
+      stationVisual.dockingCorridor.children.forEach((lane, index) => {
+        lane.material.opacity = state.station.proximity.dockable ? 0.26 + index * 0.04 : 0.1;
+        lane.scale.setScalar(1 + Math.sin(timeSeconds * 2.5 + index) * 0.018);
+      });
+    }
+    if (stationVisual.stationBeacon) {
+      stationVisual.stationBeacon.material.opacity = state.station.proximity.dockable ? 0.95 : 0.62 + Math.sin(timeSeconds * 3.2) * 0.12;
+      stationVisual.stationBeacon.scale.setScalar(state.station.proximity.dockable ? 1.28 : 1);
+    }
     handle.objects.pirate.position.set(state.pirate.position.x, state.pirate.position.y, state.pirate.position.z);
     handle.objects.pirate.rotation.y = timeSeconds * 0.85;
     handle.objects.pirate.visible = Boolean(state.systemAccess && state.systemAccess.pirate && state.pirate.state !== "dormant");
@@ -10417,9 +10642,19 @@ const VoidProspector = (() => {
     state.asteroids.forEach((asteroid) => {
       const mesh = handle.objects.asteroidMeshes.get(asteroid.id);
       if (mesh) {
+        const activeMining = state.mining.active && state.mining.targetId === asteroid.id;
+        const heatRatio = clamp((asteroid.mineState.beamHeat || 0) / 100, 0, 1);
         mesh.rotation.set(timeSeconds * 0.05 + asteroid.spin, timeSeconds * 0.07 + asteroid.spin, 0);
         mesh.scale.setScalar(asteroid.mineState.depleted ? 0.56 : 1);
+        if (mesh.userData.oreHalo) {
+          mesh.userData.oreHalo.visible = !asteroid.mineState.depleted;
+          mesh.userData.oreHalo.material.opacity = activeMining ? 0.42 : 0.08 + heatRatio * 0.18;
+          mesh.userData.oreHalo.scale.setScalar(1 + (activeMining ? 0.08 + Math.sin(timeSeconds * 12) * 0.025 : 0));
+        }
         mesh.traverse((child) => {
+          if (child === mesh.userData.oreHalo) {
+            return;
+          }
           if (child.material) {
             child.material.transparent = asteroid.mineState.depleted;
             child.material.opacity = asteroid.mineState.depleted ? 0.38 : 1;
@@ -10488,8 +10723,18 @@ const VoidProspector = (() => {
         new THREE.Vector3(beamTarget.position.x, beamTarget.position.y, beamTarget.position.z),
       ]);
       handle.objects.miningBeam.visible = true;
+      handle.objects.oreSparks.visible = state.mining.active || state.salvage.active;
+      handle.objects.oreSparks.position.set(beamTarget.position.x, beamTarget.position.y, beamTarget.position.z);
+      handle.objects.oreSparks.children.forEach((spark, index) => {
+        const phase = spark.userData.phase + timeSeconds * 4.2;
+        const radius = 0.45 + (index % 4) * 0.18 + (state.mining.lastYield || 0) * 0.08;
+        spark.position.set(Math.cos(phase) * radius, Math.sin(phase * 1.7) * 0.32, Math.sin(phase) * radius);
+        spark.rotation.set(phase, phase * 0.5, 0);
+        spark.material.opacity = state.mining.active || state.salvage.active ? 0.72 : 0;
+      });
     } else {
       handle.objects.miningBeam.visible = false;
+      handle.objects.oreSparks.visible = false;
     }
 
     handle.camera.position.copy(new THREE.Vector3(state.camera.position.x, state.camera.position.y, state.camera.position.z));

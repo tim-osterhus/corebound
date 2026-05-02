@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-05-02T17:16:58Z",
+  "game": "void-prospector",
+  "url": "http://127.0.0.1:8781/games/void-prospector/",
+  "browser": {
+    "binary": "/home/tim/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome",
+    "mode": "headless",
+    "flags": [
+      "--headless=new",
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--use-angle=swiftshader",
+      "--enable-unsafe-swiftshader",
+      "--hide-scrollbars"
+    ],
+    "environment_notes": [
+      "DBus warnings were emitted in WSL and did not block page load.",
+      "Initial --use-gl=swiftshader attempt showed the renderer-blocked fallback; ANGLE SwiftShader rendered the Three.js scene and loaded local assets."
+    ]
+  },
+  "screenshots": [
+    {
+      "path": "_visual-check/void-prospector-assets/browser-smoke-direct-feedback-desktop.png",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "observed": [
+        "local renderer status is visible as local renderer",
+        "player ship, station, asteroids, dock ring, station beacon, reticle, radar, objective, target label, and station label render in the first viewport",
+        "project-local ship, asteroid, station, and pirate texture requests were served by the local static server"
+      ]
+    },
+    {
+      "path": "_visual-check/void-prospector-assets/browser-smoke-direct-feedback-mobile.png",
+      "viewport": {
+        "width": 390,
+        "height": 740
+      },
+      "observed": [
+        "local renderer status is visible as local renderer",
+        "ship, reticle, objective, resources, radar, station label, and target label remain visible in the narrow first viewport",
+        "no horizontal page scroll was required for the core cockpit surface"
+      ]
+    }
+  ],
+  "result": "passed"
+}

@@ -370,6 +370,24 @@ input {
   box-shadow: 0 0 24px rgba(212, 104, 87, 0.36);
 }
 
+.prospector-shell[data-thrust="active"] .reticle-crosshair {
+  border-color: rgba(75, 214, 192, 0.55);
+  box-shadow: 0 0 26px rgba(75, 214, 192, 0.2);
+}
+
+.prospector-shell[data-brake="active"] .reticle-crosshair {
+  border-color: rgba(208, 179, 106, 0.66);
+}
+
+.prospector-shell[data-mining="active"] #target-world-label,
+.prospector-shell[data-mining="cooldown"] #target-world-label {
+  box-shadow: 0 0 32px rgba(75, 214, 192, 0.24), 0 12px 28px var(--shadow);
+}
+
+.prospector-shell[data-docking="dockable"] #station-world-label {
+  box-shadow: 0 0 32px rgba(75, 214, 192, 0.22), 0 12px 28px var(--shadow);
+}
+
 .reticle-state,
 .reticle-range {
   position: absolute;
@@ -461,6 +479,11 @@ input {
   border-color: rgba(212, 104, 87, 0.82);
 }
 
+.world-label[data-state="warning"] {
+  border-color: rgba(212, 104, 87, 0.68);
+  background: rgba(36, 11, 9, 0.76);
+}
+
 .world-label[data-state="hidden"] {
   display: none;
 }
@@ -534,6 +557,11 @@ input {
   width: 12px;
   height: 12px;
   border-color: var(--text);
+}
+
+.radar-blip[data-kind="asteroid"] {
+  border-color: var(--amber);
+  background: rgba(208, 179, 106, 0.18);
 }
 
 .radar-blip[data-kind="threat"] {
@@ -671,12 +699,50 @@ input {
 
 .station-summary-grid span,
 .help-grid span {
+  position: relative;
   min-height: 42px;
-  padding: 9px;
+  padding: 9px 9px 9px 32px;
   border: 1px solid var(--line-soft);
   color: var(--text);
   line-height: 1.3;
   overflow-wrap: anywhere;
+}
+
+.station-summary-grid span::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 11px;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--signal);
+  background: rgba(75, 214, 192, 0.12);
+}
+
+.station-summary-grid span[data-kind="cargo"]::before {
+  border-color: var(--amber);
+  background:
+    linear-gradient(90deg, transparent 42%, rgba(208, 179, 106, 0.9) 42%, rgba(208, 179, 106, 0.9) 58%, transparent 58%),
+    rgba(208, 179, 106, 0.12);
+}
+
+.station-summary-grid span[data-kind="fuel"]::before {
+  border-color: var(--signal);
+  background: linear-gradient(0deg, rgba(75, 214, 192, 0.55) 0 62%, transparent 62%);
+}
+
+.station-summary-grid span[data-kind="repair"]::before {
+  border-color: var(--text);
+  background:
+    linear-gradient(90deg, transparent 38%, rgba(223, 231, 226, 0.86) 38% 62%, transparent 62%),
+    linear-gradient(0deg, transparent 38%, rgba(223, 231, 226, 0.86) 38% 62%, transparent 62%);
+}
+
+.station-summary-grid span[data-kind="contract"]::before {
+  border-color: var(--signal);
+  background:
+    linear-gradient(0deg, transparent 70%, rgba(75, 214, 192, 0.8) 70%),
+    rgba(75, 214, 192, 0.08);
 }
 
 .station-upgrade-list {
@@ -688,13 +754,36 @@ input {
 }
 
 .station-upgrade-list button {
+  position: relative;
   min-height: 58px;
+  padding-left: 32px;
   border: 1px solid var(--line-soft);
   border-radius: 0;
   background: rgba(75, 214, 192, 0.07);
   color: var(--text);
   cursor: pointer;
   text-align: left;
+}
+
+.station-upgrade-list button::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--signal);
+  background: rgba(75, 214, 192, 0.16);
+}
+
+.station-upgrade-list button[data-kind="beam-upgrade"]::before {
+  border-color: var(--signal);
+  transform: skewX(-18deg);
+}
+
+.station-upgrade-list button[data-kind="cargo-upgrade"]::before {
+  border-color: var(--amber);
+  background: rgba(208, 179, 106, 0.14);
 }
 
 .station-upgrade-list button:disabled {

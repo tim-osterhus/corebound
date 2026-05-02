@@ -56,5 +56,42 @@
       "notes": "Generated with Codex built-in image generation and resized/cropped to exact 16:9 dimensions."
     }
   ],
+  "procedural_assets": [
+    {
+      "id": "ship-thruster-and-brake-glow",
+      "path": "games/void-prospector/void-prospector.js#createShipMesh",
+      "role": "procedural-mesh",
+      "description": "Teal rear engine cones and amber forward brake glows attached to the player ship.",
+      "intended_use": "Visible ship thrust, vertical trim, and brake feedback in the Three.js flight scene."
+    },
+    {
+      "id": "asteroid-hit-glow-and-ore-sparks",
+      "path": "games/void-prospector/void-prospector.js#createOreSparks",
+      "role": "procedural-mesh",
+      "description": "Wireframe ore halo and small teal/amber tetrahedron sparks around an actively mined asteroid.",
+      "intended_use": "Mining beam impact, ore-particle yield, heat, cooldown, and depleted-node readability."
+    },
+    {
+      "id": "station-beacon-and-docking-corridor",
+      "path": "games/void-prospector/void-prospector.js#createStationMesh",
+      "role": "procedural-mesh",
+      "description": "Pulsing station beacon, dock ring, and three-ring docking corridor using local Three.js geometry.",
+      "intended_use": "Frontier Spoke approach, dockable, and docked-state feedback."
+    },
+    {
+      "id": "hud-radar-and-station-icons",
+      "path": "games/void-prospector/void-prospector.css",
+      "role": "procedural-css",
+      "description": "CSS-drawn radar, cargo, fuel, repair, contract, and upgrade icons using local DOM hooks.",
+      "intended_use": "Non-raster cockpit, station summary, cargo sale, service, and first-upgrade preview iconography."
+    },
+    {
+      "id": "pirate-warning-marker",
+      "path": "games/void-prospector/void-prospector.js#pirateWarningFeedback",
+      "role": "procedural-state",
+      "description": "Post-tutorial warning, imminent, shadow, and close states that drive the red in-world threat marker and guidance prompt.",
+      "intended_use": "Pirate pressure remains hidden during the tutorial, then unlocks with staged warning feedback and countermeasure guidance."
+    }
+  ],
   "notes": "Original Void Prospector asset pack generated through the visual-asset-pipeline Codex bridge; final project-consumed PNGs are local under games/void-prospector/assets."
 }

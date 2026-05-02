@@ -58,11 +58,140 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
             "emissiveMap: assets.asteroidOreGlow",
             "map: assets.stationDockPanel",
             "map: assets.pirateMarker",
+            "createOreSparks",
+            "thrusterGlows",
+            "brakeGlows",
+            "dockingCorridor",
+            "stationBeacon",
+            "oreHalo",
+            "pirateWarningFeedback",
+            "cockpitFeedbackSurface",
         ):
             self.assertIn(token, script)
 
-        for token in (".title-card-band", "object-fit: cover"):
+        html = source_text("index.html")
+        for token in (
+            ".title-card-band",
+            "object-fit: cover",
+            'data-kind="cargo"',
+            'data-kind="fuel"',
+            'data-kind="repair"',
+            'data-kind="contract"',
+        ):
+            source = {
+                "css": css,
+                "html": html,
+            }
+            self.assertTrue(any(token in text for text in source.values()), token)
+
+        for token in (
+            ".station-summary-grid span::before",
+            '.station-summary-grid span[data-kind="cargo"]::before',
+            '.station-upgrade-list button[data-kind="beam-upgrade"]::before',
+            '.world-label[data-state="warning"]',
+            '.prospector-shell[data-thrust="active"]',
+            '.prospector-shell[data-mining="active"]',
+            '.prospector-shell[data-docking="dockable"]',
+            '.radar-blip[data-kind="asteroid"]',
+        ):
             self.assertIn(token, css)
+
+    def test_asset_manifest_declares_procedural_feedback_roles_truthfully(self) -> None:
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        procedural = {asset["id"]: asset for asset in manifest["procedural_assets"]}
+
+        expected = {
+            "ship-thruster-and-brake-glow": "games/void-prospector/void-prospector.js#createShipMesh",
+            "asteroid-hit-glow-and-ore-sparks": "games/void-prospector/void-prospector.js#createOreSparks",
+            "station-beacon-and-docking-corridor": "games/void-prospector/void-prospector.js#createStationMesh",
+            "hud-radar-and-station-icons": "games/void-prospector/void-prospector.css",
+            "pirate-warning-marker": "games/void-prospector/void-prospector.js#pirateWarningFeedback",
+        }
+        self.assertEqual(set(expected), set(procedural))
+        for asset_id, path in expected.items():
+            self.assertEqual(path, procedural[asset_id]["path"])
+            self.assertTrue(procedural[asset_id]["description"])
+            self.assertTrue(procedural[asset_id]["intended_use"])
+            self.assertTrue((ROOT / path.split("#", 1)[0]).is_file())
+
+    def test_cockpit_feedback_surface_exposes_mining_docking_ship_and_pirate_hooks(self) -> None:
+        result = json.loads(
+            self.run_node_script(
+                """
+                const state0 = game.createInitialState({ seed: 33 });
+                const node = state0.asteroids[0];
+
+                let thrustState = game.stepSpaceflight(state0, { thrust: true }, 1);
+                let brakeState = game.stepSpaceflight(thrustState, { brake: true }, 1);
+
+                let miningState = game.createInitialState({ seed: 33 });
+                miningState.ship.position = { x: node.position.x + 2, y: node.position.y, z: node.position.z + 1 };
+                miningState.ship.velocity = { x: 0, y: 0, z: 0 };
+                miningState = game.setTarget(miningState, "asteroid", node.id);
+                miningState = game.stepSpaceflight(miningState, { mine: true }, 1);
+                const miningSurface = game.surveyCockpitSurface(miningState).cockpit.feedback;
+                const cooldownSurface = game.surveyCockpitSurface(game.stepSpaceflight(miningState, {}, 1)).cockpit.feedback;
+                let depletedState = miningState;
+                for (let index = 0; index < 4; index += 1) {
+                  depletedState = game.stepSpaceflight(depletedState, { mine: true }, 1);
+                }
+                const depletedSurface = game.surveyCockpitSurface(depletedState).cockpit.feedback;
+
+                let dockState = depletedState;
+                dockState.ship.position = { ...dockState.station.position };
+                dockState.ship.hull = 61;
+                dockState.ship.fuel = 24;
+                dockState.ship.velocity = { x: 0, y: 0, z: 0 };
+                dockState = game.stepSpaceflight(dockState, { interact: true }, 1);
+                const dockSurface = game.surveyCockpitSurface(dockState).cockpit.feedback;
+                const warningSurface = game.surveyCockpitSurface(dockState).cockpit;
+                let threatState = dockState;
+                for (let index = 0; index < 7; index += 1) {
+                  threatState = game.stepSpaceflight(threatState, {}, 1);
+                }
+                const threatSurface = game.surveyCockpitSurface(threatState).cockpit;
+
+                console.log(JSON.stringify({
+                  thrustGlow: game.surveyCockpitSurface(thrustState).cockpit.feedback.ship.thrustGlow,
+                  brakeGlow: game.surveyCockpitSurface(brakeState).cockpit.feedback.ship.brakeGlow,
+                  mining: miningSurface.mining,
+                  cooldown: cooldownSurface.mining,
+                  depleted: depletedSurface.mining,
+                  docking: dockSurface.docking,
+                  warningThreat: warningSurface.feedback.threat,
+                  warningLabel: warningSurface.labels.threat,
+                  warningRadar: warningSurface.radar.blips.map((blip) => blip.kind),
+                  warningPrompts: warningSurface.prompts,
+                  liveThreat: threatSurface.feedback.threat,
+                  liveLabel: threatSurface.labels.threat,
+                }));
+                """
+            )
+        )
+
+        self.assertEqual("active", result["thrustGlow"])
+        self.assertEqual("active", result["brakeGlow"])
+        self.assertTrue(result["mining"]["beamActive"])
+        self.assertEqual("active", result["mining"]["hitGlow"])
+        self.assertEqual("ore-yield", result["mining"]["sparkState"])
+        self.assertGreater(result["mining"]["oreParticles"], 0)
+        self.assertGreaterEqual(result["mining"]["cargoDelta"], 1)
+        self.assertGreater(result["mining"]["heat"], 0)
+        self.assertEqual("cooldown", result["cooldown"]["hitGlow"])
+        self.assertTrue(result["cooldown"]["cooldown"])
+        self.assertTrue(result["depleted"]["depleted"])
+        self.assertEqual("docked", result["docking"]["state"])
+        self.assertTrue(result["docking"]["successfulDock"])
+        self.assertGreater(result["docking"]["cargoSaleCredits"], 0)
+        self.assertIn("Fuel", result["docking"]["refuelSummary"])
+        self.assertIn("repaired", result["docking"]["repairSummary"])
+        self.assertEqual("refined-beam", result["docking"]["upgradePreview"]["id"])
+        self.assertIn(result["warningThreat"]["stage"], ("warning", "imminent"))
+        self.assertEqual("warning", result["warningLabel"]["state"])
+        self.assertIn("threat", result["warningRadar"])
+        self.assertTrue(any("decoy" in prompt.lower() for prompt in result["warningPrompts"]))
+        self.assertIn(result["liveThreat"]["stage"], ("shadow", "contact", "close"))
+        self.assertEqual("threat", result["liveLabel"]["state"])
 
     def test_derelict_salvage_visuals_are_procedural_and_keep_raster_manifest_local(self) -> None:
         script = source_text("void-prospector.js")
@@ -202,6 +331,21 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
                     console.log(JSON.stringify({expression}));
                     """
                 ),
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout
+
+    def run_node_script(self, script: str) -> str:
+        result = subprocess.run(
+            [
+                "node",
+                "-e",
+                "const game = require('./games/void-prospector/void-prospector.js');\n"
+                + textwrap.dedent(script),
             ],
             cwd=ROOT,
             check=True,
