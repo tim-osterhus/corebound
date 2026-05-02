@@ -69,6 +69,12 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             "renderTopStats",
             "renderSelectedDetail",
             "renderContextActions",
+            "factoryFeedbackState",
+            "laneFeedbackState",
+            "resourceFeedbackState",
+            "jobFeedbackState",
+            "upgradeFeedbackState",
+            "shiftSummaryFeedbackState",
             "pauseLane",
             'data-surface="campaign"',
             'data-surface="emergency"',
@@ -104,6 +110,7 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             'data-action="freight-launch"',
             'data-rail-sabotage="summary"',
             'data-rail-sabotage="incidents"',
+            'data-visual-hook="sabotage-incident"',
             'data-action="sabotage-scan"',
             'data-action="sabotage-drones"',
             'data-action="sabotage-defenses"',
@@ -115,6 +122,7 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             'data-action="sabotage-repair"',
             'data-crisis="summary"',
             'data-crisis="docket"',
+            'data-visual-hook="crisis-summary"',
             'data-action="crisis-evidence"',
             'data-action="crisis-override"',
             'data-action="crisis-defer"',
@@ -217,9 +225,22 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             ".breach-actions",
             ".breach-readout",
             '.lane-card[data-status="running"] .belt',
+            '.lane-card[data-feedback="production"] .job-token',
+            '.lane-card[data-feedback="overdrive"] .job-token',
+            '.lane-card[data-feedback="jam"] .belt',
+            '.lane-card[data-feedback="recovery"] .lane-machine',
             '.lane-card[data-status="blocked"]',
             '.lane-card[data-status="recovering"]',
             '.lane-card[data-overdrive="true"]',
+            '.output-token[data-active="true"]',
+            '.resource-pulse[data-active="true"]',
+            '.readout[data-feedback="produced"]',
+            '.readout[data-signal="shortage"]',
+            '.queue-item[data-shortage="true"]',
+            '.job-card[data-shortage="true"]',
+            '.incident-marker[data-active="true"]',
+            '.upgrade-card[data-feedback="available"] .upgrade-icon',
+            '.shift-summary-card[data-feedback="summary-open"]',
             '.lane-card[data-breach-quarantine="true"]',
             '.grid-sector-card[data-isolated="true"]',
             '.grid-sector-card[data-breach="contaminated"]',
@@ -333,6 +354,75 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
         self.assertEqual(["overdrive", "pause"], [action["id"] for action in result["runningActions"]])
         self.assertEqual("assigned", result["pausedStatus"])
         self.assertEqual("forge-line", result["selectedLaneId"])
+
+    def test_feedback_surface_tracks_assignment_production_jam_overdrive_output_and_summary(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
+            let state = game.createInitialState({ seed: 1972, faultGraceTicks: 0 });
+            const smeltEntry = state.queue.find((entry) => entry.jobTypeId === "smelt-circuits");
+            state = game.selectJobCard(state, smeltEntry.id);
+            state = game.selectLane(state, "forge-line");
+            state = game.performContextAction(state, "assign");
+            const assignedFeedback = game.laneFeedbackState(state, state.lanes.find((lane) => lane.id === "forge-line"));
+
+            state = game.performContextAction(state, "start");
+            const runningFeedback = game.laneFeedbackState(state, state.lanes.find((lane) => lane.id === "forge-line"));
+            state = game.toggleLaneOverdrive(state, "forge-line", true);
+            const overdriveFeedback = game.laneFeedbackState(state, state.lanes.find((lane) => lane.id === "forge-line"));
+            state = game.stepFactory(state, 1);
+            const jamFeedback = game.laneFeedbackState(state, state.lanes.find((lane) => lane.id === "forge-line"));
+            state = game.performContextAction(state, "recover");
+            const recoveryFeedback = game.laneFeedbackState(state, state.lanes.find((lane) => lane.id === "forge-line"));
+            state = game.stepFactory(state, state.lanes.find((lane) => lane.id === "forge-line").recoveryRemaining);
+            state = game.performContextAction(state, "start");
+            state = game.stepFactory(state, state.lanes.find((lane) => lane.id === "forge-line").currentJob.remaining);
+
+            const factoryFeedback = game.factoryFeedbackState(state);
+            const resourceFeedback = game.resourceFeedbackState(state, "circuits");
+            const upgradeFeedback = game.upgradeFeedbackState(state, game.GAME_DATA.upgrades[0], 0);
+            const summaryFeedback = game.shiftSummaryFeedbackState(state);
+            const queueFeedback = game.jobFeedbackState(state, game.GAME_DATA.jobTypes.find((job) => job.id === "weave-defenses"));
+
+            console.log(JSON.stringify({
+              proceduralAssets: game.GAME_DATA.assets.procedural,
+              assignedFeedback,
+              runningFeedback,
+              overdriveFeedback,
+              jamFeedback,
+              recoveryFeedback,
+              resourceFeedback,
+              upgradeFeedback,
+              summaryFeedback,
+              queueFeedback,
+              visualFeedbackSummary: state.visualFeedback.shiftSummary,
+              factoryProducedCircuits: factoryFeedback.resources.circuits.produced,
+            }));
+            """
+        )
+
+        self.assertEqual("css:factory-floor-board", result["proceduralAssets"]["floorBoard"])
+        self.assertEqual("assignment", result["assignedFeedback"]["feedback"])
+        self.assertEqual("circuits", result["assignedFeedback"]["outputResource"])
+        self.assertEqual("production", result["runningFeedback"]["feedback"])
+        self.assertEqual("belt", result["runningFeedback"]["motion"])
+        self.assertEqual("overdrive", result["overdriveFeedback"]["feedback"])
+        self.assertEqual("fast", result["overdriveFeedback"]["motion"])
+        self.assertEqual("hot", result["overdriveFeedback"]["heat"])
+        self.assertEqual("jam", result["jamFeedback"]["feedback"])
+        self.assertEqual("assets/fault-material-jam.png", result["jamFeedback"]["rasterAssets"]["fault"])
+        self.assertEqual("recovery", result["recoveryFeedback"]["feedback"])
+        self.assertEqual("diagnostic", result["recoveryFeedback"]["motion"])
+        self.assertEqual("produced", result["resourceFeedback"]["feedback"])
+        self.assertTrue(result["resourceFeedback"]["produced"])
+        self.assertIn(result["upgradeFeedback"]["feedback"], {"available", "shortage", "installed"})
+        self.assertEqual("overdrive", result["upgradeFeedback"]["family"])
+        self.assertEqual("summary-open", result["summaryFeedback"]["feedback"])
+        self.assertEqual("available", result["summaryFeedback"]["upgradeChoice"])
+        self.assertEqual("summary-open", result["visualFeedbackSummary"]["feedback"])
+        self.assertEqual("shortage", result["queueFeedback"]["feedback"])
+        self.assertTrue(result["queueFeedback"]["shortage"])
+        self.assertTrue(result["factoryProducedCircuits"])
 
     def test_signal_breach_surface_model_exposes_operator_visible_decisions(self) -> None:
         result = self.run_node(

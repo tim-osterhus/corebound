@@ -105,5 +105,70 @@
       "notes": "Generated with Codex built-in image generation, center-cropped to 16:9, contrast/sharpness adjusted, and resized to 800x450 opaque PNG."
     }
   ],
+  "procedural_fallbacks": [
+    {
+      "id": "factory-floor-board",
+      "role": "factory-floor-board",
+      "hook": ".lane-board::before",
+      "implementation": "css:factory-floor-board",
+      "reason": "Live floor rails remain procedural so lane cards, output tokens, and incident states can change without a stale raster board."
+    },
+    {
+      "id": "resource-signal-glyphs",
+      "role": "core-resource-icons",
+      "hook": ".resource-glyph[data-resource-icon]",
+      "implementation": "css:resource-signal-glyphs",
+      "reason": "Core resource icons, shortage states, and output pulses are deterministic CSS hooks tied to current resource values."
+    },
+    {
+      "id": "output-delivery-token",
+      "role": "output-delivery-feedback",
+      "hook": ".output-token[data-resource]",
+      "implementation": "css:output-delivery-token",
+      "reason": "Output delivery uses a CSS token keyed to the current job's output resource."
+    },
+    {
+      "id": "shortage-marker",
+      "role": "shortage-feedback",
+      "hook": "[data-shortage=\"true\"]",
+      "implementation": "css:shortage-marker",
+      "reason": "Shortage markers are deterministic data attributes on jobs, queues, lanes, and resources."
+    },
+    {
+      "id": "overdrive-heat-glow",
+      "role": "overdrive-feedback",
+      "hook": ".overdrive-glow[data-active=\"true\"]",
+      "implementation": "css:overdrive-heat-glow",
+      "reason": "Overdrive glow and faster conveyor motion come from lane overdrive state."
+    },
+    {
+      "id": "jam-sparks",
+      "role": "jam-and-sparks-feedback",
+      "hook": ".feedback-sparks[data-active=\"true\"]",
+      "implementation": "css:jam-sparks",
+      "reason": "Jam sparks supplement the local fault icon and blocked lane state."
+    },
+    {
+      "id": "sabotage-incident-marker",
+      "role": "incident-marker",
+      "hook": ".incident-marker[data-marker=\"sabotage\"]",
+      "implementation": "css:sabotage-incident-marker",
+      "reason": "Incident badges are procedural and tied to freight, rail sabotage, and crisis card data attributes."
+    },
+    {
+      "id": "shift-summary-header",
+      "role": "shift-summary-header",
+      "hook": ".shift-summary-card[data-feedback=\"summary-open\"]",
+      "implementation": "css:shift-summary-header",
+      "reason": "Shift summary treatment uses live summary data and upgrade-choice state."
+    },
+    {
+      "id": "upgrade-family-icons",
+      "role": "first-upgrade-family-icons",
+      "hook": ".upgrade-icon[data-upgrade-family]",
+      "implementation": "css:upgrade-family-icons",
+      "reason": "Upgrade family icons are CSS glyphs keyed by upgrade ids and affordability."
+    }
+  ],
   "notes": "Created an original mono-first dark factory raster asset pack using Codex built-in image generation only; no OpenAI SDK, Images API, API key, logos, or readable UI labels were used. Transparent icons were produced through chroma-key removal and validated for alpha corners."
 }

@@ -36,7 +36,7 @@ class DarkFactoryDispatchAssetIntegrationTests(unittest.TestCase):
                 self.assertNotIn("://", reference)
                 self.assertFalse(Path(reference).is_absolute())
 
-        self.assertIn('src="assets/arcade-title-card.png"', files["index.html"])
+        self.assertIn("assets/arcade-title-card.png", paths)
         self.assertIn('sourceManifest: "assets/asset-manifest.json"', files["dark-factory-dispatch.js"])
         self.assertIn('data-breach-countermeasure="${jobType.breachCountermeasure ? "true" : "false"}"', files["dark-factory-dispatch.js"])
         self.assertIn('data-freight-inspection="${jobType.freightInspection ? "true" : "false"}"', files["dark-factory-dispatch.js"])
@@ -58,9 +58,17 @@ class DarkFactoryDispatchAssetIntegrationTests(unittest.TestCase):
     def test_lane_job_and_fault_renderers_use_generated_icon_paths(self) -> None:
         script = source_text("dark-factory-dispatch.js")
         css = source_text("dark-factory-dispatch.css")
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
         for token in (
             "ASSET_PATHS",
+            "PROCEDURAL_FEEDBACK_ASSETS",
+            "factoryFeedbackState",
+            "laneFeedbackState",
+            "resourceFeedbackState",
+            "jobFeedbackState",
+            "upgradeFeedbackState",
+            "shiftSummaryFeedbackState",
             "iconMarkup",
             '"forge-line": "assets/lane-forge-line.png"',
             '"assembler-bay": "assets/lane-assembler-bay.png"',
@@ -72,17 +80,52 @@ class DarkFactoryDispatchAssetIntegrationTests(unittest.TestCase):
             '"material-jam": "assets/fault-material-jam.png"',
             '"logic-drift": "assets/fault-logic-drift.png"',
             "fault-readout",
+            'data-visual-hook="lane-feedback"',
+            'data-feedback="${feedback.feedback}"',
+            'data-output="${feedback.outputResource || "none"}"',
+            'data-shortage="${feedback.shortage ? "true" : "false"}"',
+            'data-procedural-asset="${summaryFeedback.proceduralAsset}"',
         ):
             self.assertIn(token, script)
 
         for token in (
-            ".title-card-band",
             ".asset-icon",
             ".lane-icon",
             ".fault-icon",
             '.fault-readout[data-active="true"]',
+            ".lane-board::before",
+            ".resource-glyph[data-resource-icon",
+            '.lane-card[data-feedback="production"]',
+            '.lane-card[data-feedback="jam"]',
+            '.lane-card[data-feedback="recovery"]',
+            ".output-token[data-active=\"true\"]",
+            ".overdrive-glow[data-active=\"true\"]",
+            ".feedback-sparks[data-active=\"true\"]",
+            ".incident-marker[data-active=\"true\"]",
+            ".upgrade-icon[data-upgrade-family",
+            '.shift-summary-card[data-feedback="summary-open"]',
         ):
             self.assertIn(token, css)
+
+        fallback_ids = {fallback["id"] for fallback in manifest["procedural_fallbacks"]}
+        self.assertEqual(
+            {
+                "factory-floor-board",
+                "resource-signal-glyphs",
+                "output-delivery-token",
+                "shortage-marker",
+                "overdrive-heat-glow",
+                "jam-sparks",
+                "sabotage-incident-marker",
+                "shift-summary-header",
+                "upgrade-family-icons",
+            },
+            fallback_ids,
+        )
+        for fallback in manifest["procedural_fallbacks"]:
+            self.assertTrue(fallback["hook"])
+            self.assertTrue(fallback["reason"])
+            self.assertTrue(fallback["implementation"].startswith("css:"))
 
 
 if __name__ == "__main__":

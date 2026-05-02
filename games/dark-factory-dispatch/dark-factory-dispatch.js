@@ -31,6 +31,36 @@ const DarkFactoryDispatch = (() => {
       "logic-drift": "assets/fault-logic-drift.png",
     },
   };
+  const PROCEDURAL_FEEDBACK_ASSETS = {
+    floorBoard: "css:factory-floor-board",
+    resourceIcons: "css:resource-signal-glyphs",
+    outputDelivery: "css:output-delivery-token",
+    shortageMarker: "css:shortage-marker",
+    overdriveGlow: "css:overdrive-heat-glow",
+    jamSparks: "css:jam-sparks",
+    recoverySweep: "css:recovery-diagnostic-sweep",
+    sabotageMarker: "css:sabotage-incident-marker",
+    shiftSummaryHeader: "css:shift-summary-header",
+    upgradeFamilies: "css:upgrade-family-icons",
+  };
+  ASSET_PATHS.procedural = PROCEDURAL_FEEDBACK_ASSETS;
+
+  const RESOURCE_VISUAL_TOKENS = {
+    scrap: { icon: "scrap-stack", lowAt: 3 },
+    circuits: { icon: "circuit-trace", lowAt: 1 },
+    modules: { icon: "module-block", lowAt: 1 },
+    drones: { icon: "drone-pair", lowAt: 1 },
+    defenses: { icon: "defense-weave", lowAt: 1 },
+    reputation: { icon: "signal-seal", lowAt: 0 },
+    power: { icon: "power-bus", lowAt: 3 },
+    stability: { icon: "stability-core", lowAt: 45 },
+  };
+
+  const UPGRADE_VISUAL_FAMILIES = {
+    "lane-overclock": "overdrive",
+    "fault-guards": "recovery",
+    "buffer-cache": "stockpile",
+  };
 
   const GAME_DATA = {
     assets: ASSET_PATHS,
@@ -1090,6 +1120,154 @@ const DarkFactoryDispatch = (() => {
     };
   }
 
+  function primaryOutputResource(jobType) {
+    if (!jobType || !jobType.outputs) {
+      return null;
+    }
+    return RESOURCE_ORDER.find((resource) => jobType.outputs[resource] > 0) || null;
+  }
+
+  function resourceFeedbackState(state, resourceId) {
+    const current = state.resources[resourceId] || 0;
+    const produced = state.produced && (state.produced[resourceId] || 0) > 0;
+    const token = RESOURCE_VISUAL_TOKENS[resourceId] || { icon: "resource-node", lowAt: 0 };
+    let signal = "nominal";
+    if (resourceId === "stability" && current <= token.lowAt) {
+      signal = "warning";
+    } else if (current <= token.lowAt) {
+      signal = "shortage";
+    }
+    return {
+      id: resourceId,
+      icon: token.icon,
+      signal,
+      produced,
+      feedback: produced ? "produced" : signal,
+      proceduralAsset: PROCEDURAL_FEEDBACK_ASSETS.resourceIcons,
+    };
+  }
+
+  function jobFeedbackState(state, jobType, entry = null) {
+    const assetPath = jobType ? ASSET_PATHS.jobs[jobType.id] || null : null;
+    const shortage = Boolean(jobType && !canPay(state.resources, jobType.inputs));
+    const family = (jobType && jobType.family) || "standard";
+    let feedback = entry && entry.status === "assigned" ? "assigned" : "queued";
+    if (entry && entry.status === "held") {
+      feedback = "held";
+    }
+    if (entry && entry.compromised && entry.compromised.status === "compromised") {
+      feedback = "compromised";
+    } else if (entry && entry.breachDirective) {
+      feedback = "countermeasure";
+    } else if (entry && entry.freightDirective) {
+      feedback = "inspection";
+    } else if (entry && entry.sabotageDirective) {
+      feedback = "sabotage-sweep";
+    } else if (shortage) {
+      feedback = "shortage";
+    }
+    return {
+      jobTypeId: jobType ? jobType.id : null,
+      family,
+      feedback,
+      shortage,
+      assetPath,
+      assetMode: assetPath ? "raster" : "procedural",
+      outputResource: primaryOutputResource(jobType),
+      proceduralAsset: assetPath ? null : PROCEDURAL_FEEDBACK_ASSETS.shortageMarker,
+    };
+  }
+
+  function laneFeedbackState(state, lane) {
+    const jobType = lane.currentJob ? byId(GAME_DATA.jobTypes, lane.currentJob.jobTypeId) : null;
+    const outputResource = primaryOutputResource(jobType);
+    const overdriveActive = Boolean(lane.overdrive && lane.overdrive.active);
+    const sector = gridSectorForLane(state.grid, lane.id);
+    const breachState = sector && sector.breach ? sector.breach.status : "clean";
+    const shortage = Boolean(jobType && !canPay(state.resources, jobType.inputs));
+    const faultAsset = lane.fault ? ASSET_PATHS.faults[lane.fault.id] || null : null;
+    let feedback = "idle";
+    if (lane.fault) {
+      feedback = lane.status === "recovering" ? "recovery" : "jam";
+    } else if (lane.status === "running" && overdriveActive) {
+      feedback = "overdrive";
+    } else if (lane.status === "running") {
+      feedback = "production";
+    } else if (lane.status === "assigned") {
+      feedback = "assignment";
+    } else if (lane.status === "locked") {
+      feedback = "sabotage";
+    } else if (lane.status === "blocked") {
+      feedback = "blocked";
+    }
+    return {
+      laneId: lane.id,
+      feedback,
+      motion: lane.status === "running" ? (overdriveActive ? "fast" : "belt") : lane.status === "recovering" ? "diagnostic" : "still",
+      machineState: lane.status,
+      shortage,
+      overdriveActive,
+      heat: overdriveActive ? "hot" : lane.status === "running" ? "warm" : "cold",
+      breachState,
+      quarantineActive: Boolean(lane.breachQuarantine),
+      outputResource,
+      outputBundle: jobType ? clone(jobType.outputs) : {},
+      progress: lane.progress || 0,
+      rasterAssets: {
+        lane: ASSET_PATHS.lanes[lane.id] || null,
+        job: jobType ? ASSET_PATHS.jobs[jobType.id] || null : null,
+        fault: faultAsset,
+      },
+      proceduralAssets: {
+        floor: PROCEDURAL_FEEDBACK_ASSETS.floorBoard,
+        output: PROCEDURAL_FEEDBACK_ASSETS.outputDelivery,
+        overdrive: PROCEDURAL_FEEDBACK_ASSETS.overdriveGlow,
+        jam: PROCEDURAL_FEEDBACK_ASSETS.jamSparks,
+        recovery: PROCEDURAL_FEEDBACK_ASSETS.recoverySweep,
+        shortage: PROCEDURAL_FEEDBACK_ASSETS.shortageMarker,
+        sabotage: PROCEDURAL_FEEDBACK_ASSETS.sabotageMarker,
+      },
+    };
+  }
+
+  function upgradeFeedbackState(state, upgrade, index = 0) {
+    const installed = state.upgrades.purchased.includes(upgrade.id);
+    const affordable = canPay(state.resources, upgrade.cost);
+    return {
+      id: upgrade.id,
+      family: UPGRADE_VISUAL_FAMILIES[upgrade.id] || `upgrade-${index + 1}`,
+      feedback: installed ? "installed" : affordable ? "available" : "shortage",
+      affordable,
+      installed,
+      proceduralAsset: PROCEDURAL_FEEDBACK_ASSETS.upgradeFamilies,
+    };
+  }
+
+  function shiftSummaryFeedbackState(state) {
+    const summary = state.shift && state.shift.summary ? state.shift.summary : null;
+    return {
+      feedback: summary ? "summary-open" : "closed",
+      status: summary ? summary.status : state.run.status,
+      produced: summary ? clone(summary.produced) : clone(state.produced || {}),
+      upgradeChoice: state.shift && state.shift.upgradeChoice ? state.shift.upgradeChoice.status : "locked",
+      proceduralAsset: PROCEDURAL_FEEDBACK_ASSETS.shiftSummaryHeader,
+    };
+  }
+
+  function factoryFeedbackState(state) {
+    return {
+      proceduralAssets: clone(PROCEDURAL_FEEDBACK_ASSETS),
+      lanes: state.lanes.map((lane) => laneFeedbackState(state, lane)),
+      resources: RESOURCE_ORDER.reduce((feedback, resourceId) => {
+        feedback[resourceId] = resourceFeedbackState(state, resourceId);
+        return feedback;
+      }, {}),
+      queue: state.queue.map((entry) => jobFeedbackState(state, byId(GAME_DATA.jobTypes, entry.jobTypeId), entry)),
+      upgrades: GAME_DATA.upgrades.map((upgrade, index) => upgradeFeedbackState(state, upgrade, index)),
+      shiftSummary: shiftSummaryFeedbackState(state),
+    };
+  }
+
   function tutorialActive(state) {
     return Boolean(
       state.tutorial
@@ -1217,6 +1395,7 @@ const DarkFactoryDispatch = (() => {
     state.contextualActions = contextualActionsForState(state);
     state.disclosure = createDisclosureState(state);
     state.shift = createShiftState(state);
+    state.visualFeedback = factoryFeedbackState(state);
     return state;
   }
 
@@ -6756,7 +6935,14 @@ const DarkFactoryDispatch = (() => {
     const resourceIds = baseResourceIds.concat(objectiveResourceIds).slice(0, 5);
     dom.resources.innerHTML = resourceIds.map((id) => {
       const label = GAME_DATA.resources[id].label;
-      return `<div class="readout" data-resource="${id}"><span>${label}</span><strong>${state.resources[id] || 0}</strong></div>`;
+      const feedback = resourceFeedbackState(state, id);
+      return `
+        <div class="readout" data-resource="${id}" data-signal="${feedback.signal}" data-feedback="${feedback.feedback}" data-procedural-asset="${feedback.proceduralAsset}">
+          <span class="resource-head"><span class="resource-glyph" data-resource-icon="${feedback.icon}" aria-hidden="true"></span><span>${label}</span></span>
+          <strong>${state.resources[id] || 0}</strong>
+          <span class="resource-pulse" data-active="${feedback.produced ? "true" : "false"}">output ${state.produced[id] || 0}</span>
+        </div>
+      `;
     }).join("");
   }
 
@@ -6799,6 +6985,25 @@ const DarkFactoryDispatch = (() => {
           <span>Disclosure</span>
           <strong>${state.disclosure.mode}</strong>
           <p>advanced systems unlock after the training shift</p>
+        </article>
+      `;
+      return;
+    }
+    if (state.disclosure && state.disclosure.flags.shiftSummary && state.shift && state.shift.summary) {
+      const summaryFeedback = shiftSummaryFeedbackState(state);
+      const producedText = formatBundle(summaryFeedback.produced);
+      dom.queuePolicySelect.value = surface.queuePolicy.id;
+      dom.escalation.innerHTML = `
+        <article class="escalation-card shift-summary-card" data-surface="shift-summary" data-feedback="${summaryFeedback.feedback}" data-procedural-asset="${summaryFeedback.proceduralAsset}">
+          <span>Shift summary</span>
+          <strong>${state.shift.summary.trainingContract ? state.shift.summary.trainingContract.name : surface.phase}</strong>
+          <p>status ${summaryFeedback.status} / produced ${producedText}</p>
+          <p>upgrade choice ${summaryFeedback.upgradeChoice} / next ${state.shift.summary.nextUnlocks.join(" / ")}</p>
+        </article>
+        <article class="escalation-card" data-surface="choices">
+          <span>Improvement rack</span>
+          <strong>${state.shift.upgradeChoice.status}</strong>
+          <p>${state.shift.upgradeChoice.options.map((option) => `${option.name}: ${option.affordable ? "ready" : "short"}`).join(" / ")}</p>
         </article>
       `;
       return;
@@ -6923,7 +7128,7 @@ const DarkFactoryDispatch = (() => {
             ? "breach clean"
             : `breach ${breachState}${sector.breach.sourceId ? ` / ${sector.breach.sourceId}` : ""}${shielded ? ` / shield t${sector.breach.shieldedUntil}` : ""}`;
           return `
-            <article class="grid-sector-card" data-sector="${sector.id}" data-powered="${sector.powered ? "true" : "false"}" data-isolated="${sector.isolated ? "true" : "false"}" data-blackout="${locked ? "true" : "false"}" data-breach="${breachState}">
+            <article class="grid-sector-card" data-sector="${sector.id}" data-powered="${sector.powered ? "true" : "false"}" data-isolated="${sector.isolated ? "true" : "false"}" data-blackout="${locked ? "true" : "false"}" data-breach="${breachState}" data-feedback="${locked || !sector.powered ? "power-shortage" : breachState === "clean" ? "powered" : `breach-${breachState}`}" data-visual-hook="grid-power-state">
               <div class="grid-sector-title">
                 <strong>${sector.name}</strong>
                 <span class="status-pill">${sectorStatus}</span>
@@ -7041,11 +7246,12 @@ const DarkFactoryDispatch = (() => {
             ? `arrival t${manifest.arrivalTick}`
             : manifest.launchedAtTick !== null ? `launched t${manifest.launchedAtTick}` : `window t${manifest.window.opensAtTick}-${manifest.window.closesAtTick}`;
           return `
-            <article class="freight-manifest-card" data-manifest="${manifest.id}" data-status="${manifest.status}" data-risk="${riskLevel}" data-route-alert="${manifest.route.contaminatedExposure ? "true" : "false"}" data-dock-ready="${manifest.dockReady ? "true" : "false"}">
+            <article class="freight-manifest-card" data-manifest="${manifest.id}" data-status="${manifest.status}" data-risk="${riskLevel}" data-route-alert="${manifest.route.contaminatedExposure ? "true" : "false"}" data-dock-ready="${manifest.dockReady ? "true" : "false"}" data-feedback="${manifest.route.contaminatedExposure ? "route-alert" : manifest.status}" data-visual-hook="freight-incident">
               <div class="freight-title">
                 <strong>${manifest.name}</strong>
                 <span class="status-pill">${manifest.status}</span>
               </div>
+              <span class="incident-marker freight-marker" data-marker="freight" data-active="${actionable ? "true" : "false"}" aria-hidden="true"></span>
               <div class="freight-route">
                 <span>${manifest.dockName} / ${manifest.laneName}</span>
                 <span>${manifest.sectorId} / ${dockText}</span>
@@ -7161,11 +7367,12 @@ const DarkFactoryDispatch = (() => {
             ? `${incident.sectorStatus.route} / ${incident.sectorStatus.powered ? "powered" : "dark"}${incident.sectorStatus.isolated ? " / isolated" : ""}`
             : "sector missing";
           return `
-            <article class="rail-incident-card" data-incident="${incident.id}" data-status="${incident.status}" data-actionable="${actionable ? "true" : "false"}" data-dock-ready="${incident.dockReady ? "true" : "false"}" data-decoy="${incident.decoy.deployed ? "true" : "false"}" data-patrol-ready="${patrolReady ? "true" : "false"}" data-lane-damage="${incident.laneDamage.status}">
+            <article class="rail-incident-card" data-incident="${incident.id}" data-status="${incident.status}" data-actionable="${actionable ? "true" : "false"}" data-dock-ready="${incident.dockReady ? "true" : "false"}" data-decoy="${incident.decoy.deployed ? "true" : "false"}" data-patrol-ready="${patrolReady ? "true" : "false"}" data-lane-damage="${incident.laneDamage.status}" data-feedback="sabotage-${incident.status}" data-visual-hook="sabotage-incident">
               <div class="rail-incident-title">
                 <strong>${incident.name}</strong>
                 <span class="status-pill">${incident.status}</span>
               </div>
+              <span class="incident-marker sabotage-marker" data-marker="sabotage" data-active="${actionable ? "true" : "false"}" aria-hidden="true"></span>
               <div class="rail-incident-meta">
                 <span>${incident.dockName} / ${incident.laneName}</span>
                 <span>window t${incident.window.opensAtTick}-${incident.window.closesAtTick} / shift ${formatShiftNumber(incident.availableShift)}</span>
@@ -7273,11 +7480,12 @@ const DarkFactoryDispatch = (() => {
             return `<button type="button" data-action="crisis-rule" data-case="${caseState.id}" data-priority="${option.id}" ${disabled ? "disabled" : ""}>${option.name} ${option.score}</button>`;
           }).join("");
           return `
-            <article class="crisis-case-card" data-case="${caseState.id}" data-status="${caseState.status}" data-actionable="${actionable ? "true" : "false"}" data-protected="${caseState.protection.laneGuarded ? "true" : "false"}" data-outcome="${caseState.outcome || "pending"}">
+            <article class="crisis-case-card" data-case="${caseState.id}" data-status="${caseState.status}" data-actionable="${actionable ? "true" : "false"}" data-protected="${caseState.protection.laneGuarded ? "true" : "false"}" data-outcome="${caseState.outcome || "pending"}" data-feedback="crisis-${caseState.status}" data-visual-hook="crisis-summary">
               <div class="crisis-case-title">
                 <strong>${caseState.name}</strong>
                 <span class="status-pill">${caseState.status}</span>
               </div>
+              <span class="incident-marker crisis-marker" data-marker="crisis" data-active="${actionable ? "true" : "false"}" aria-hidden="true"></span>
               <div class="crisis-case-meta">
                 <span>${timerText}</span>
                 <span>lane ${caseState.linked.laneId} / ${laneBlocked}</span>
@@ -7317,6 +7525,7 @@ const DarkFactoryDispatch = (() => {
     dom.lanes.innerHTML = state.lanes.map((lane) => {
       const jobType = lane.currentJob ? byId(GAME_DATA.jobTypes, lane.currentJob.jobTypeId) : null;
       const jobText = jobType ? jobType.name : "empty belt";
+      const feedback = laneFeedbackState(state, lane);
       const laneIcon = iconMarkup(ASSET_PATHS.lanes[lane.id], "asset-icon lane-icon");
       const jobIcon = jobType ? iconMarkup(ASSET_PATHS.jobs[jobType.id], "asset-icon job-icon") : "";
       const faultIcon = lane.fault ? iconMarkup(ASSET_PATHS.faults[lane.fault.id], "asset-icon fault-icon") : "";
@@ -7354,16 +7563,19 @@ const DarkFactoryDispatch = (() => {
         : lane.status === "running" && overdriveActive ? "overdrive"
           : statusText;
       return `
-        <article class="lane-card" data-lane="${lane.id}" data-selected="${selected ? "true" : "false"}" data-status="${lane.status}" data-overdrive="${overdriveActive ? "true" : "false"}" data-breach-quarantine="${quarantineActive ? "true" : "false"}" data-breach="${breachState}" tabindex="0" role="button" aria-label="${lane.name} ${statusText}">
+        <article class="lane-card" data-lane="${lane.id}" data-selected="${selected ? "true" : "false"}" data-status="${lane.status}" data-feedback="${feedback.feedback}" data-motion="${feedback.motion}" data-output="${feedback.outputResource || "none"}" data-shortage="${feedback.shortage ? "true" : "false"}" data-overdrive="${overdriveActive ? "true" : "false"}" data-breach-quarantine="${quarantineActive ? "true" : "false"}" data-breach="${breachState}" data-visual-hook="lane-feedback" tabindex="0" role="button" aria-label="${lane.name} ${statusText}">
           <div class="lane-title">
             <span class="asset-title"><strong>${lane.name}</strong></span>
             <span class="status-pill">${statusText}</span>
           </div>
-          <div class="lane-machine" aria-hidden="true">
+          <div class="lane-machine" data-machine-state="${feedback.machineState}" data-heat="${feedback.heat}" aria-hidden="true">
+            <span class="overdrive-glow" data-active="${feedback.overdriveActive ? "true" : "false"}"></span>
             <div class="machine-image">${laneIcon}</div>
             <div class="conveyor">
               <span class="belt"></span>
-              <div class="job-token">${jobIcon}<span>current job</span><strong>${jobText}</strong></div>
+              <span class="output-token" data-resource="${feedback.outputResource || "none"}" data-active="${feedback.outputResource && (lane.status === "running" || lane.progress > 0) ? "true" : "false"}"></span>
+              <div class="job-token" data-feedback="${feedback.feedback}" data-output="${feedback.outputResource || "none"}">${jobIcon}<span>current job</span><strong>${jobText}</strong></div>
+              <span class="feedback-sparks" data-active="${lane.fault ? "true" : "false"}"></span>
             </div>
             <div class="state-marker">${stateLabel}</div>
           </div>
@@ -7391,6 +7603,7 @@ const DarkFactoryDispatch = (() => {
     const compactQueue = state.disclosure && state.disclosure.beginnerVisible;
     dom.queue.innerHTML = state.queue.slice(0, 5).map((entry) => {
       const jobType = byId(GAME_DATA.jobTypes, entry.jobTypeId);
+      const feedback = jobFeedbackState(state, jobType, entry);
       const compromised = entry.compromised && entry.compromised.status === "compromised";
       const statusText = compromised
         ? "compromised"
@@ -7401,11 +7614,12 @@ const DarkFactoryDispatch = (() => {
       const cleanseDisabled = !compromised || !canPay(state.resources, GAME_DATA.signalBreach.cleanse.cost);
       const selected = state.selection && state.selection.selectedJobId === entry.id;
       return `
-        <li class="queue-item" data-entry="${entry.id}" data-selected="${selected ? "true" : "false"}" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}" data-freight-directive="${entry.freightDirective ? "true" : "false"}" data-sabotage-directive="${entry.sabotageDirective ? "true" : "false"}" tabindex="0" role="button" aria-label="${jobType.name} ${statusText}">
+        <li class="queue-item" data-entry="${entry.id}" data-selected="${selected ? "true" : "false"}" data-feedback="${feedback.feedback}" data-output="${feedback.outputResource || "none"}" data-shortage="${feedback.shortage ? "true" : "false"}" data-asset-mode="${feedback.assetMode}" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}" data-freight-directive="${entry.freightDirective ? "true" : "false"}" data-sabotage-directive="${entry.sabotageDirective ? "true" : "false"}" tabindex="0" role="button" aria-label="${jobType.name} ${statusText}">
           <div class="queue-title">
             <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[entry.jobTypeId], "asset-icon queue-icon")}<strong>${jobType.name}</strong></span>
             <span class="status-pill">${statusText}</span>
           </div>
+          <span class="job-feedback-marker" data-feedback="${feedback.feedback}" data-active="${feedback.feedback !== "queued" ? "true" : "false"}" aria-hidden="true"></span>
           <div class="queue-meta">
             <span>in ${formatBundle(jobType.inputs)}</span>
             <span>out ${formatBundle(jobType.outputs)}</span>
@@ -7485,13 +7699,14 @@ const DarkFactoryDispatch = (() => {
       dom.upgrades.innerHTML = lockedSystemMarkup("Improvement rack", disclosureSystem(state, "upgrades"));
       return;
     }
-    dom.upgrades.innerHTML = GAME_DATA.upgrades.map((upgrade) => {
+    dom.upgrades.innerHTML = GAME_DATA.upgrades.map((upgrade, index) => {
       const installed = state.upgrades.purchased.includes(upgrade.id);
       const affordable = canPay(state.resources, upgrade.cost);
+      const feedback = upgradeFeedbackState(state, upgrade, index);
       return `
-        <article class="upgrade-card" data-installed="${installed ? "true" : "false"}">
+        <article class="upgrade-card" data-installed="${installed ? "true" : "false"}" data-feedback="${feedback.feedback}" data-upgrade-family="${feedback.family}" data-procedural-asset="${feedback.proceduralAsset}">
           <div class="upgrade-title">
-            <strong>${upgrade.name}</strong>
+            <span class="asset-title"><span class="upgrade-icon" data-upgrade-family="${feedback.family}" aria-hidden="true"></span><strong>${upgrade.name}</strong></span>
             <span class="status-pill">${installed ? "installed" : formatBundle(upgrade.cost)}</span>
           </div>
           <p>${upgrade.description}</p>
@@ -7506,22 +7721,26 @@ const DarkFactoryDispatch = (() => {
       dom.jobs.innerHTML = lockedSystemMarkup("Job catalog", disclosureSystem(state, "jobCatalog"));
       return;
     }
-    dom.jobs.innerHTML = GAME_DATA.jobTypes.map((jobType) => `
-      <article class="job-card" data-family="${jobType.family || "standard"}" data-breach-countermeasure="${jobType.breachCountermeasure ? "true" : "false"}" data-freight-inspection="${jobType.freightInspection ? "true" : "false"}" data-sabotage-sweep="${jobType.sabotageSweep ? "true" : "false"}">
-        <div class="job-title">
-          <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[jobType.id], "asset-icon job-icon")}<strong>${jobType.name}</strong></span>
-          <span class="status-pill">${jobType.duration} ticks</span>
-        </div>
-        <div class="job-io">
-          <span>in ${formatBundle(jobType.inputs)}</span>
-          <span>out ${formatBundle(jobType.outputs)}</span>
-          ${jobType.breachCountermeasure ? `<span>breach countermeasure</span>` : ""}
-          ${jobType.freightInspection ? `<span>freight inspection</span>` : ""}
-          ${jobType.sabotageSweep ? `<span>sabotage sweep</span>` : ""}
-        </div>
-        <button type="button" data-job="${jobType.id}">enqueue</button>
-      </article>
-    `).join("");
+    dom.jobs.innerHTML = GAME_DATA.jobTypes.map((jobType) => {
+      const feedback = jobFeedbackState(state, jobType);
+      return `
+        <article class="job-card" data-family="${jobType.family || "standard"}" data-feedback="${feedback.feedback}" data-output="${feedback.outputResource || "none"}" data-shortage="${feedback.shortage ? "true" : "false"}" data-asset-mode="${feedback.assetMode}" data-breach-countermeasure="${jobType.breachCountermeasure ? "true" : "false"}" data-freight-inspection="${jobType.freightInspection ? "true" : "false"}" data-sabotage-sweep="${jobType.sabotageSweep ? "true" : "false"}">
+          <div class="job-title">
+            <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[jobType.id], "asset-icon job-icon")}<strong>${jobType.name}</strong></span>
+            <span class="status-pill">${jobType.duration} ticks</span>
+          </div>
+          <span class="job-feedback-marker" data-feedback="${feedback.feedback}" data-active="${feedback.shortage ? "true" : "false"}" aria-hidden="true"></span>
+          <div class="job-io">
+            <span>in ${formatBundle(jobType.inputs)}</span>
+            <span>out ${formatBundle(jobType.outputs)}</span>
+            ${jobType.breachCountermeasure ? `<span>breach countermeasure</span>` : ""}
+            ${jobType.freightInspection ? `<span>freight inspection</span>` : ""}
+            ${jobType.sabotageSweep ? `<span>sabotage sweep</span>` : ""}
+          </div>
+          <button type="button" data-job="${jobType.id}">enqueue</button>
+        </article>
+      `;
+    }).join("");
   }
 
   function renderSelectedDetail(state) {
@@ -7695,6 +7914,12 @@ const DarkFactoryDispatch = (() => {
     railSabotageSurfaceState,
     crisisArbitrationSurfaceState,
     campaignSurfaceState,
+    factoryFeedbackState,
+    laneFeedbackState,
+    resourceFeedbackState,
+    jobFeedbackState,
+    upgradeFeedbackState,
+    shiftSummaryFeedbackState,
   };
 
   if (typeof window !== "undefined") {

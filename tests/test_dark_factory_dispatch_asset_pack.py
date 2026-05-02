@@ -12,6 +12,7 @@ REQUEST_MANIFEST_PATH = ROOT / "_visual-check" / "dark-factory-dispatch-assets" 
 EVIDENCE_DIR = ROOT / "_visual-check" / "dark-factory-dispatch-assets"
 REQUEST_DIR = EVIDENCE_DIR / "asset-request"
 DRY_RUN_REQUEST_DIR = EVIDENCE_DIR / "asset-request-dry-run"
+PROCEDURAL_FEEDBACK_REPORT_PATH = EVIDENCE_DIR / "procedural-feedback-report.json"
 
 
 EXPECTED_ASSETS = {
@@ -176,11 +177,43 @@ class DarkFactoryDispatchAssetPackTests(unittest.TestCase):
     def test_asset_roles_cover_dark_factory_dispatch_required_surfaces(self) -> None:
         manifest = load_json(SHIPPING_MANIFEST_PATH)
         ids = {asset["id"] for asset in manifest["assets"]}
+        procedural_ids = {fallback["id"] for fallback in manifest["procedural_fallbacks"]}
 
         self.assertTrue({"lane-forge-line", "lane-assembler-bay", "lane-clean-room"}.issubset(ids))
         self.assertGreaterEqual(len([asset_id for asset_id in ids if asset_id.startswith("job-")]), 4)
         self.assertTrue({"fault-material-jam", "fault-logic-drift"}.issubset(ids))
         self.assertIn("arcade-title-card", ids)
+
+        self.assertTrue({
+            "factory-floor-board",
+            "resource-signal-glyphs",
+            "output-delivery-token",
+            "shortage-marker",
+            "overdrive-heat-glow",
+            "jam-sparks",
+            "sabotage-incident-marker",
+            "shift-summary-header",
+            "upgrade-family-icons",
+        }.issubset(procedural_ids))
+        for forbidden in ("resource-", "output-", "shortage-", "overdrive-", "sabotage-", "shift-summary-", "upgrade-"):
+            self.assertFalse(any(asset_id.startswith(forbidden) for asset_id in ids), forbidden)
+
+    def test_procedural_feedback_evidence_matches_manifest_hooks(self) -> None:
+        manifest = load_json(SHIPPING_MANIFEST_PATH)
+        request_manifest = load_json(REQUEST_MANIFEST_PATH)
+        report = load_json(PROCEDURAL_FEEDBACK_REPORT_PATH)
+
+        manifest_ids = {fallback["id"] for fallback in manifest["procedural_fallbacks"]}
+        request_ids = {fallback["id"] for fallback in request_manifest["procedural_fallbacks"]}
+        report_ids = {hook["id"] for hook in report["procedural_hooks"]}
+
+        self.assertEqual("complete", report["status"])
+        self.assertEqual("reuse-local-pack-plus-procedural-feedback", report["raster_policy"])
+        self.assertEqual(manifest_ids, request_ids)
+        self.assertEqual(manifest_ids, report_ids)
+        for hook in report["procedural_hooks"]:
+            self.assertTrue(hook["hook"])
+            self.assertTrue(hook["verified_by"].startswith("tests.test_dark_factory_dispatch_"))
 
 
 if __name__ == "__main__":

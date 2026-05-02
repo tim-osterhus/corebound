@@ -362,6 +362,7 @@ select {
 }
 
 .queue-item {
+  position: relative;
   display: grid;
   gap: 8px;
   min-height: 96px;
@@ -380,6 +381,35 @@ select {
 .contract-card[data-emergency="true"] {
   border-color: rgba(215, 184, 103, 0.68);
   background: rgba(215, 184, 103, 0.055);
+}
+
+.queue-item[data-shortage="true"],
+.job-card[data-shortage="true"] {
+  border-color: rgba(215, 184, 103, 0.66);
+}
+
+.job-feedback-marker {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+}
+
+.job-feedback-marker[data-active="true"] {
+  opacity: 1;
+}
+
+.job-feedback-marker[data-feedback="shortage"]::before,
+.job-feedback-marker[data-feedback="held"]::before {
+  color: var(--warn);
+  transform: rotate(45deg);
+}
+
+.job-feedback-marker[data-feedback="compromised"]::before,
+.job-feedback-marker[data-feedback="sabotage-sweep"]::before {
+  color: var(--danger);
 }
 
 .queue-title,
@@ -447,6 +477,82 @@ select {
   height: 28px;
 }
 
+.resource-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.resource-glyph,
+.upgrade-icon,
+.incident-marker,
+.job-feedback-marker {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line-soft);
+  background: rgba(8, 12, 10, 0.82);
+}
+
+.resource-glyph {
+  width: 21px;
+  height: 21px;
+}
+
+.resource-glyph::before,
+.upgrade-icon::before,
+.incident-marker::before,
+.job-feedback-marker::before {
+  content: "";
+  width: 48%;
+  height: 48%;
+  border: 1px solid currentColor;
+  color: var(--line-hot);
+}
+
+.resource-glyph[data-resource-icon="scrap-stack"]::before {
+  width: 58%;
+  height: 34%;
+  border-top: 0;
+}
+
+.resource-glyph[data-resource-icon="circuit-trace"]::before {
+  border-width: 0 1px 1px 0;
+  transform: rotate(45deg);
+}
+
+.resource-glyph[data-resource-icon="module-block"]::before {
+  width: 50%;
+  height: 50%;
+  background: rgba(215, 184, 103, 0.18);
+}
+
+.resource-glyph[data-resource-icon="drone-pair"]::before {
+  width: 62%;
+  height: 22%;
+  border-left: 0;
+  border-right: 0;
+}
+
+.resource-glyph[data-resource-icon="defense-weave"]::before {
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px rgba(75, 214, 192, 0.16);
+}
+
+.resource-glyph[data-resource-icon="power-bus"]::before {
+  width: 26%;
+  height: 62%;
+  transform: skewX(-16deg);
+}
+
+.resource-glyph[data-resource-icon="stability-core"]::before {
+  width: 52%;
+  height: 52%;
+  transform: rotate(45deg);
+}
+
 .status-pill {
   flex: 0 0 auto;
   padding: 3px 7px;
@@ -472,6 +578,18 @@ select {
     rgba(16, 20, 18, 0.92);
 }
 
+.readout[data-signal="shortage"],
+.readout[data-signal="warning"] {
+  border-color: rgba(215, 184, 103, 0.72);
+  background:
+    linear-gradient(135deg, rgba(215, 184, 103, 0.11), transparent 58%),
+    rgba(16, 20, 18, 0.95);
+}
+
+.readout[data-feedback="produced"] {
+  border-color: rgba(75, 214, 192, 0.72);
+}
+
 .readout strong {
   display: block;
   margin-top: 4px;
@@ -489,7 +607,21 @@ select {
   color: var(--line-hot);
 }
 
+.resource-pulse {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.resource-pulse[data-active="true"] {
+  color: var(--line-hot);
+  animation: resourcePulse 1300ms ease-out infinite;
+}
+
 .lane-board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
@@ -502,8 +634,31 @@ select {
     #080c0a;
 }
 
+.lane-board::before,
+.lane-board::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.lane-board::before {
+  inset: 10px;
+  border: 1px solid rgba(75, 214, 192, 0.1);
+  background:
+    linear-gradient(90deg, transparent 32%, rgba(75, 214, 192, 0.08) 32%, rgba(75, 214, 192, 0.08) 34%, transparent 34%, transparent 66%, rgba(75, 214, 192, 0.08) 66%, rgba(75, 214, 192, 0.08) 68%, transparent 68%);
+}
+
+.lane-board::after {
+  left: 22px;
+  right: 22px;
+  bottom: 18px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(75, 214, 192, 0.36), transparent);
+}
+
 .lane-card {
   position: relative;
+  z-index: 1;
   display: grid;
   grid-template-rows: auto minmax(250px, 1fr) auto auto;
   gap: 10px;
@@ -608,6 +763,88 @@ select {
   margin-top: 4px;
   font-size: 0.82rem;
   font-weight: 600;
+}
+
+.overdrive-glow,
+.output-token,
+.feedback-sparks {
+  position: absolute;
+  pointer-events: none;
+}
+
+.overdrive-glow {
+  inset: 0;
+  opacity: 0;
+  background:
+    linear-gradient(90deg, transparent, rgba(75, 214, 192, 0.18), transparent),
+    linear-gradient(180deg, rgba(215, 184, 103, 0.1), transparent 42%);
+}
+
+.overdrive-glow[data-active="true"] {
+  opacity: 1;
+  animation: overdriveHeat 800ms ease-in-out infinite alternate;
+}
+
+.output-token {
+  right: 24px;
+  bottom: 26px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(75, 214, 192, 0.76);
+  background: rgba(75, 214, 192, 0.16);
+  opacity: 0;
+}
+
+.output-token[data-active="true"] {
+  opacity: 1;
+  animation: outputTravel 1100ms ease-in-out infinite;
+}
+
+.output-token[data-resource="stability"] {
+  border-color: rgba(215, 184, 103, 0.76);
+  background: rgba(215, 184, 103, 0.16);
+}
+
+.feedback-sparks {
+  top: 20px;
+  right: 30px;
+  z-index: 3;
+  width: 44px;
+  height: 34px;
+  opacity: 0;
+  background:
+    linear-gradient(35deg, transparent 44%, rgba(214, 96, 77, 0.9) 45%, transparent 51%),
+    linear-gradient(-22deg, transparent 40%, rgba(215, 184, 103, 0.9) 42%, transparent 50%);
+}
+
+.feedback-sparks[data-active="true"] {
+  opacity: 1;
+  animation: jamSparks 500ms steps(2, end) infinite;
+}
+
+.lane-card[data-feedback="assignment"] .job-token {
+  animation: jobArrive 520ms ease-out 1;
+}
+
+.lane-card[data-feedback="production"] .job-token,
+.lane-card[data-feedback="overdrive"] .job-token {
+  box-shadow: inset 0 0 0 1px rgba(75, 214, 192, 0.16), 0 0 20px rgba(75, 214, 192, 0.12);
+}
+
+.lane-card[data-feedback="jam"] .belt,
+.lane-card[data-feedback="blocked"] .belt {
+  animation: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(214, 96, 77, 0.2), rgba(214, 96, 77, 0.2) 10px, transparent 10px, transparent 24px),
+    rgba(0, 0, 0, 0.3);
+}
+
+.lane-card[data-feedback="recovery"] .lane-machine {
+  background:
+    repeating-linear-gradient(120deg, rgba(215, 184, 103, 0.09), rgba(215, 184, 103, 0.09) 1px, transparent 1px, transparent 18px),
+    #090d0b;
+  animation: recoverySweep 1300ms linear infinite;
 }
 
 .state-marker {
@@ -798,6 +1035,7 @@ select {
 .crisis-case-card,
 .freight-manifest-card,
 .escalation-card {
+  position: relative;
   display: grid;
   gap: 8px;
   padding: 10px;
@@ -1007,6 +1245,66 @@ select {
   background: rgba(16, 20, 18, 0.92);
 }
 
+.incident-marker {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  opacity: 0.42;
+}
+
+.incident-marker[data-active="true"] {
+  opacity: 1;
+  animation: incidentBlink 900ms ease-in-out infinite alternate;
+}
+
+.sabotage-marker::before,
+.crisis-marker::before {
+  color: var(--danger);
+  transform: rotate(45deg);
+}
+
+.freight-marker::before {
+  color: var(--warn);
+}
+
+.upgrade-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.upgrade-icon[data-upgrade-family="overdrive"]::before {
+  color: var(--line-hot);
+  transform: skewX(-16deg);
+}
+
+.upgrade-icon[data-upgrade-family="recovery"]::before {
+  color: var(--warn);
+  border-radius: 50%;
+}
+
+.upgrade-icon[data-upgrade-family="stockpile"]::before {
+  color: var(--text);
+  height: 34%;
+}
+
+.upgrade-card[data-feedback="available"] .upgrade-icon,
+.upgrade-card[data-feedback="installed"] .upgrade-icon {
+  border-color: rgba(75, 214, 192, 0.5);
+}
+
+.upgrade-card[data-feedback="shortage"] .upgrade-icon {
+  border-color: rgba(215, 184, 103, 0.58);
+}
+
+.shift-summary-card[data-feedback="summary-open"] {
+  border-color: rgba(75, 214, 192, 0.76);
+  background:
+    linear-gradient(90deg, rgba(75, 214, 192, 0.11), transparent 54%),
+    var(--panel-strong);
+}
+
 .freight-rail span[data-filled="true"],
 .sabotage-rail span[data-state="sealed"],
 .crisis-evidence-seals span[data-assigned="true"],
@@ -1115,6 +1413,74 @@ select {
   }
   to {
     background-position: 0 46px;
+  }
+}
+
+@keyframes jobArrive {
+  from {
+    transform: translateX(-18px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes outputTravel {
+  from {
+    transform: translateX(-72px) scale(0.82);
+  }
+  55% {
+    transform: translateX(-22px) scale(1);
+  }
+  to {
+    transform: translateX(0) scale(0.9);
+  }
+}
+
+@keyframes overdriveHeat {
+  from {
+    opacity: 0.54;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes jamSparks {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(3px, -2px);
+  }
+}
+
+@keyframes recoverySweep {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 36px 0;
+  }
+}
+
+@keyframes resourcePulse {
+  from {
+    opacity: 0.52;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes incidentBlink {
+  from {
+    filter: none;
+  }
+  to {
+    filter: drop-shadow(0 0 10px currentColor);
   }
 }
 

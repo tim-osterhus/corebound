@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "game": "dark-factory-dispatch",
+  "raster_policy": "reuse-local-pack-plus-procedural-feedback",
+  "procedural_hooks": [
+    {
+      "id": "factory-floor-board",
+      "source": "asset-manifest.json",
+      "hook": ".lane-board::before",
+      "verified_by": "tests.test_dark_factory_dispatch_asset_integration"
+    },
+    {
+      "id": "resource-signal-glyphs",
+      "source": "asset-manifest.json",
+      "hook": ".resource-glyph[data-resource-icon]",
+      "verified_by": "tests.test_dark_factory_dispatch_operator_surface"
+    },
+    {
+      "id": "output-delivery-token",
+      "source": "factoryFeedbackState.lanes[].outputResource",
+      "hook": ".output-token[data-resource]",
+      "verified_by": "tests.test_dark_factory_dispatch_operator_surface"
+    },
+    {
+      "id": "shortage-marker",
+      "source": "jobFeedbackState.shortage",
+      "hook": "[data-shortage=\"true\"]",
+      "verified_by": "tests.test_dark_factory_dispatch_operator_surface"
+    },
+    {
+      "id": "overdrive-heat-glow",
+      "source": "laneFeedbackState.overdriveActive",
+      "hook": ".overdrive-glow[data-active=\"true\"]",
+      "verified_by": "tests.test_dark_factory_dispatch_operator_surface"
+    },
+    {
+      "id": "jam-sparks",
+      "source": "laneFeedbackState.feedback",
+      "hook": ".feedback-sparks[data-active=\"true\"]",
+      "verified_by": "tests.test_dark_factory_dispatch_operator_surface"
+    },
+    {
+      "id": "sabotage-incident-marker",
+      "source": "railSabotageSurfaceState.incidents",
+      "hook": ".incident-marker[data-marker=\"sabotage\"]",
+      "verified_by": "tests.test_dark_factory_dispatch_asset_integration"
+    },
+    {
+      "id": "shift-summary-header",
+      "source": "shiftSummaryFeedbackState",
+      "hook": ".shift-summary-card[data-feedback=\"summary-open\"]",
+      "verified_by": "tests.test_dark_factory_dispatch_operator_surface"
+    },
+    {
+      "id": "upgrade-family-icons",
+      "source": "upgradeFeedbackState",
+      "hook": ".upgrade-icon[data-upgrade-family]",
+      "verified_by": "tests.test_dark_factory_dispatch_operator_surface"
+    }
+  ],
+  "notes": "No new raster files were generated for this pass. The existing local lane, job, fault, and title assets remain the truthful PNG pack; dynamic floor, resource, output, incident, overdrive, summary, and upgrade visuals are procedural CSS hooks tied to deterministic game state."
+}
