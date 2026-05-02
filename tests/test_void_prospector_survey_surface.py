@@ -98,6 +98,9 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "data-surface=\"flight\"",
             "data-advanced=\"locked\"",
             "data-help=\"closed\"",
+            "data-motion=\"system\"",
+            "motion-action",
+            "Toggle reduced motion",
             "cockpit-objective-text",
             "cockpit-objective-progress",
             "cockpit-hull",
@@ -185,8 +188,11 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             ".station-summary-grid",
             ".station-upgrade-list",
             ".help-panel",
+            ".motion-action",
             ".legacy-telemetry",
             ".advanced-target-data",
+            ".prospector-shell[data-motion=\"reduced\"] .radar-sweep",
+            "@media (prefers-reduced-motion: reduce)",
             ".prospector-shell[data-surface=\"station\"] .flight-only",
             ".prospector-shell[data-help=\"closed\"] .control-strip",
             "max-height: calc(100vh - 96px)",
@@ -261,6 +267,79 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         self.assertFalse(result["stationOpen"])
         self.assertGreaterEqual(result["upgradePreviewCount"], 1)
         self.assertLessEqual(result["upgradePreviewCount"], 3)
+
+    def test_reduced_motion_preference_control_and_feedback_are_deterministic(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/void-prospector/void-prospector.js");
+            const systemPref = game.resolveReducedMotionPreference({}, { prefersReducedMotion: true });
+            const localOverride = game.resolveReducedMotionPreference(
+              { reducedMotion: false },
+              { prefersReducedMotion: true, storedPreference: "reduced" }
+            );
+
+            let miningState = game.createInitialState({ seed: 33, reducedMotion: false });
+            const node = miningState.asteroids[0];
+            miningState.ship.position = { x: node.position.x + 2, y: node.position.y, z: node.position.z + 1 };
+            miningState.ship.velocity = { x: 0, y: 0, z: 0 };
+            miningState = game.setTarget(miningState, "asteroid", node.id);
+            miningState = game.stepSpaceflight(miningState, { mine: true }, 1);
+            const fullSurface = game.surveyCockpitSurface(miningState).cockpit;
+            const reducedSurface = game.surveyCockpitSurface(game.setReducedMotion(miningState, true)).cockpit;
+
+            let dockState = game.createInitialState({ seed: 33, reducedMotion: true });
+            dockState.ship.position = {
+              x: dockState.station.position.x,
+              y: dockState.station.position.y,
+              z: dockState.station.position.z + 2,
+            };
+            dockState.ship.velocity = { x: 0, y: 0, z: 0 };
+            dockState = game.setTarget(dockState, "station", dockState.station.id);
+            dockState = game.stepSpaceflight(dockState, {}, 0);
+            const dockSurface = game.surveyCockpitSurface(dockState).cockpit;
+
+            let threatState = game.createInitialState({ seed: 33, reducedMotion: true });
+            threatState.systemAccess.pirate = true;
+            threatState.disclosure.pirate = true;
+            threatState.pirate.state = "shadowing";
+            threatState.pirate.encounterState = "shadow";
+            threatState = game.stepSpaceflight(threatState, {}, 0);
+            const threatSurface = game.surveyCockpitSurface(threatState).cockpit;
+
+            console.log(JSON.stringify({
+              systemPref,
+              localOverride,
+              fullMotion: fullSurface.motion,
+              reducedMotion: reducedSurface.motion,
+              fullMining: fullSurface.feedback.mining,
+              reducedMining: reducedSurface.feedback.mining,
+              reducedPrompt: reducedSurface.prompts.join(" | "),
+              reducedTargetLabel: reducedSurface.labels.target,
+              dockReticle: dockSurface.reticle.state,
+              dockLabel: dockSurface.labels.station.state,
+              threatLabel: threatSurface.labels.threat.state,
+              threatRadar: threatSurface.radar.blips.map((blip) => blip.kind),
+            }));
+            """
+        )
+
+        self.assertTrue(result["systemPref"]["reducedMotion"])
+        self.assertEqual("system", result["systemPref"]["motionSource"])
+        self.assertFalse(result["localOverride"]["reducedMotion"])
+        self.assertEqual("override", result["localOverride"]["motionSource"])
+        self.assertEqual("full", result["fullMotion"]["mode"])
+        self.assertEqual("reduced", result["reducedMotion"]["mode"])
+        self.assertLess(result["reducedMotion"]["nonessentialMotionScale"], result["fullMotion"]["nonessentialMotionScale"])
+        self.assertTrue(result["reducedMining"]["beamActive"])
+        self.assertEqual("active", result["reducedMining"]["hitGlow"])
+        self.assertLess(result["reducedMining"]["oreParticles"], result["fullMining"]["oreParticles"])
+        self.assertEqual("mine-in-range", result["reducedMining"]["reticleState"])
+        self.assertIn("Hold Space or M", result["reducedPrompt"])
+        self.assertEqual("Cinder Node", result["reducedTargetLabel"]["name"])
+        self.assertEqual("dockable-station", result["dockReticle"])
+        self.assertEqual("dockable", result["dockLabel"])
+        self.assertEqual("threat", result["threatLabel"])
+        self.assertIn("threat", result["threatRadar"])
 
     def test_cockpit_surface_syncs_range_return_station_threat_and_offscreen_states(self) -> None:
         result = self.run_node(

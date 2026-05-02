@@ -38,6 +38,7 @@ class VoidProspectorFoundationTests(unittest.TestCase):
             "station-launch-action",
             "help-panel",
             "help-action",
+            "motion-action",
             "objective-readout",
             "hull-readout",
             "fuel-readout",
@@ -102,6 +103,8 @@ class VoidProspectorFoundationTests(unittest.TestCase):
               targetKind: state.target.kind,
               pirateState: state.pirate.state,
               pirateUnlockState: state.pirate.unlockState,
+              accessibility: state.accessibility,
+              motionSurface: game.surveyCockpitSurface(state).cockpit.motion,
               cameraMode: state.camera.mode,
               hasCameraVectors: Boolean(state.camera.position && state.camera.target),
               hasOrientation: Boolean(state.ship.orientation && state.ship.orientation.forward),
@@ -157,6 +160,10 @@ class VoidProspectorFoundationTests(unittest.TestCase):
         self.assertEqual("asteroid", result["targetKind"])
         self.assertEqual("dormant", result["pirateState"])
         self.assertEqual("locked", result["pirateUnlockState"])
+        self.assertFalse(result["accessibility"]["reducedMotion"])
+        self.assertEqual("full", result["accessibility"]["motionMode"])
+        self.assertEqual("full", result["motionSurface"]["mode"])
+        self.assertEqual("animated", result["motionSurface"]["radarSweep"])
         self.assertEqual("chase", result["cameraMode"])
         self.assertTrue(result["hasCameraVectors"])
         self.assertTrue(result["hasOrientation"])

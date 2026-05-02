@@ -66,6 +66,9 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
             "oreHalo",
             "pirateWarningFeedback",
             "cockpitFeedbackSurface",
+            "resolveReducedMotionPreference",
+            "motionSurfaceForState",
+            "setReducedMotion",
         ):
             self.assertIn(token, script)
 
@@ -92,6 +95,7 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
             '.prospector-shell[data-thrust="active"]',
             '.prospector-shell[data-mining="active"]',
             '.prospector-shell[data-docking="dockable"]',
+            '.prospector-shell[data-motion="reduced"] .radar-sweep',
             '.radar-blip[data-kind="asteroid"]',
         ):
             self.assertIn(token, css)
@@ -130,6 +134,7 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
                 miningState = game.setTarget(miningState, "asteroid", node.id);
                 miningState = game.stepSpaceflight(miningState, { mine: true }, 1);
                 const miningSurface = game.surveyCockpitSurface(miningState).cockpit.feedback;
+                const reducedMiningSurface = game.surveyCockpitSurface(game.setReducedMotion(miningState, true)).cockpit;
                 const cooldownSurface = game.surveyCockpitSurface(game.stepSpaceflight(miningState, {}, 1)).cockpit.feedback;
                 let depletedState = miningState;
                 for (let index = 0; index < 4; index += 1) {
@@ -155,6 +160,8 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
                   thrustGlow: game.surveyCockpitSurface(thrustState).cockpit.feedback.ship.thrustGlow,
                   brakeGlow: game.surveyCockpitSurface(brakeState).cockpit.feedback.ship.brakeGlow,
                   mining: miningSurface.mining,
+                  reducedMotion: reducedMiningSurface.motion,
+                  reducedMining: reducedMiningSurface.feedback.mining,
                   cooldown: cooldownSurface.mining,
                   depleted: depletedSurface.mining,
                   docking: dockSurface.docking,
@@ -177,6 +184,11 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
         self.assertGreater(result["mining"]["oreParticles"], 0)
         self.assertGreaterEqual(result["mining"]["cargoDelta"], 1)
         self.assertGreater(result["mining"]["heat"], 0)
+        self.assertTrue(result["reducedMotion"]["reduced"])
+        self.assertEqual("static", result["reducedMotion"]["radarSweep"])
+        self.assertTrue(result["reducedMining"]["beamActive"])
+        self.assertEqual("mine-in-range", result["reducedMining"]["reticleState"])
+        self.assertLess(result["reducedMining"]["oreParticles"], result["mining"]["oreParticles"])
         self.assertEqual("cooldown", result["cooldown"]["hitGlow"])
         self.assertTrue(result["cooldown"]["cooldown"])
         self.assertTrue(result["depleted"]["depleted"])
