@@ -57,6 +57,16 @@ class IronLanternDescentFoundationTests(unittest.TestCase):
             "lift-action",
             "upgrade-action",
             "restart-action",
+            "pause-help-overlay",
+            "pause-objective-readout",
+            "pause-context-readout",
+            "pause-control-list",
+            "reduced-motion-toggle",
+            "restart-confirmation",
+            "pause-restart-action",
+            "pause-return-action",
+            "cancel-restart-action",
+            "confirm-restart-action",
             "control-strip",
             "advanced-ledger",
         ):
@@ -104,6 +114,57 @@ class IronLanternDescentFoundationTests(unittest.TestCase):
         self.assertIn("overflow: hidden", css)
         self.assertIn('data-tone="danger"', css)
         self.assertIn("outline: 2px solid var(--signal)", css)
+
+    def test_pause_help_reduced_motion_and_restart_safeguard_dom_contract(self) -> None:
+        html = (GAME_DIR / "index.html").read_text(encoding="utf-8")
+        css = (GAME_DIR / "iron-lantern-descent.css").read_text(encoding="utf-8")
+        script = (GAME_DIR / "iron-lantern-descent.js").read_text(encoding="utf-8")
+
+        self.assertIn('data-motion="full" data-reduced-motion="false"', html)
+        self.assertIn('id="pause-help-overlay" role="dialog" aria-modal="true"', html)
+        self.assertIn('aria-label="Pause and help"', html)
+        self.assertIn('data-restart-confirmation="closed"', html)
+        for token in (
+            "pause-objective-readout",
+            "pause-context-readout",
+            "pause-context-detail",
+            "pause-control-list",
+            "reduced-motion-toggle",
+            "reduced-motion-status",
+            "resume-action",
+            "pause-restart-action",
+            "pause-return-action",
+            "restart-confirmation",
+            "cancel-restart-action",
+            "confirm-restart-action",
+        ):
+            self.assertIn(token, html)
+
+        for token in (
+            ".pause-help-overlay",
+            ".restart-confirmation",
+            ".pause-help-overlay[hidden]",
+            '.lantern-shell[data-motion="reduced"]',
+            "@media (prefers-reduced-motion: reduce)",
+        ):
+            self.assertIn(token, css)
+
+        for token in (
+            'event.code === "Escape"',
+            "openPauseHelp",
+            "closePauseHelp",
+            "renderPauseHelp",
+            'requestRestartConfirmation("keyboard")',
+            'requestRestartConfirmation("restart")',
+            'requestRestartConfirmation("return")',
+            "confirmPendingRestart",
+            "cancelPendingRestart",
+            "resolveReducedMotionPreference",
+            "motionSettingsForPreference",
+            "setReducedMotionEnabled",
+        ):
+            self.assertIn(token, script)
+        self.assertNotIn('event.code === "Escape" && toggleAdvancedLedger', script)
 
     def test_state_data_exposes_cave_run_and_upgrade_seams(self) -> None:
         result = self.run_node(

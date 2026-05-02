@@ -299,6 +299,80 @@ class IronLanternDescentSurvivalLoopTests(unittest.TestCase):
         self.assertEqual(32, result["cargoValue"])
         self.assertEqual("active", result["runStatus"])
 
+    def test_reduced_motion_settings_and_restart_confirmation_are_deterministic(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+            const systemPreference = game.resolveReducedMotionPreference({ prefersReducedMotion: true });
+            const localFullPreference = game.resolveReducedMotionPreference({
+              prefersReducedMotion: true,
+              storedPreference: "full",
+            });
+            const fullMotion = game.motionSettingsForPreference({ enabled: false });
+            const reducedMotion = game.motionSettingsForPreference(systemPreference);
+            const fullPulse = game.motionPulse(fullMotion, 1.25, 6.2, 0.4);
+            const reducedPulse = game.motionPulse(reducedMotion, 1.25, 6.2, 0.4);
+
+            let state = game.createInitialState({ seed: 47, credits: 70 });
+            state = game.purchaseUpgrade(state, "tank-weave");
+            state.player.position = { x: 12, y: 1.6, z: -31 };
+            state.oxygen.current = 0.18;
+            state = game.stepRun(game.syncDerivedState(state), { forward: true }, 1);
+            const before = JSON.parse(JSON.stringify(state));
+            const intent = game.restartConfirmationIntent("keyboard");
+            const cancelled = game.cancelRestartConfirmation(state);
+            const confirmed = game.confirmRestart(state);
+
+            console.log(JSON.stringify({
+              systemEnabled: systemPreference.enabled,
+              systemSource: systemPreference.source,
+              localFullEnabled: localFullPreference.enabled,
+              localFullSource: localFullPreference.source,
+              fullPulseAmount: fullMotion.pulseAmount,
+              reducedPulseAmount: reducedMotion.pulseAmount,
+              fullScannerExpandRate: fullMotion.scannerExpandRate,
+              reducedScannerExpandRate: reducedMotion.scannerExpandRate,
+              fullPulse,
+              reducedPulse,
+              intentAction: intent.action,
+              intentRequiresConfirmation: intent.requiresConfirmation,
+              cancelledRunCount: cancelled.run.count,
+              cancelledStatus: cancelled.run.status,
+              cancelledOxygen: cancelled.oxygen.current,
+              beforeRunCount: before.run.count,
+              beforeStatus: before.run.status,
+              beforeOxygen: before.oxygen.current,
+              confirmedRunCount: confirmed.run.count,
+              confirmedStatus: confirmed.run.status,
+              confirmedFailureReason: confirmed.run.failureReason,
+              confirmedOxygen: confirmed.oxygen.current,
+              confirmedOxygenMax: confirmed.oxygen.max,
+              confirmedPurchased: confirmed.upgrades.purchased,
+            }));
+            """
+        )
+
+        self.assertTrue(result["systemEnabled"])
+        self.assertEqual("system", result["systemSource"])
+        self.assertFalse(result["localFullEnabled"])
+        self.assertEqual("local", result["localFullSource"])
+        self.assertEqual(1, result["fullPulseAmount"])
+        self.assertEqual(0, result["reducedPulseAmount"])
+        self.assertGreater(result["fullScannerExpandRate"], result["reducedScannerExpandRate"])
+        self.assertNotEqual(result["fullPulse"], result["reducedPulse"])
+        self.assertEqual(0.5, result["reducedPulse"])
+        self.assertEqual("reset-run", result["intentAction"])
+        self.assertTrue(result["intentRequiresConfirmation"])
+        self.assertEqual(result["beforeRunCount"], result["cancelledRunCount"])
+        self.assertEqual(result["beforeStatus"], result["cancelledStatus"])
+        self.assertEqual(result["beforeOxygen"], result["cancelledOxygen"])
+        self.assertEqual(result["beforeRunCount"] + 1, result["confirmedRunCount"])
+        self.assertEqual("active", result["confirmedStatus"])
+        self.assertIsNone(result["confirmedFailureReason"])
+        self.assertEqual(120, result["confirmedOxygen"])
+        self.assertEqual(120, result["confirmedOxygenMax"])
+        self.assertEqual(["tank-weave"], result["confirmedPurchased"])
+
     def test_failure_restart_clears_run_state_and_keeps_upgrades(self) -> None:
         result = self.run_node(
             """

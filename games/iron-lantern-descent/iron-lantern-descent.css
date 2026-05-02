@@ -783,8 +783,171 @@ button {
 }
 
 .advanced-ledger[hidden],
-.target-panel[hidden] {
+.target-panel[hidden],
+.pause-help-overlay[hidden],
+.restart-confirmation[hidden] {
   display: none;
+}
+
+.pause-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 3vw, 32px);
+  overflow: auto;
+  background:
+    linear-gradient(180deg, rgba(5, 7, 6, 0.62), rgba(5, 7, 6, 0.84)),
+    rgba(5, 7, 6, 0.72);
+}
+
+.pause-help-panel {
+  display: grid;
+  gap: 12px;
+  width: min(760px, 100%);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100svh - 32px);
+  overflow: auto;
+  border: 1px solid rgba(201, 166, 83, 0.58);
+  background:
+    linear-gradient(180deg, rgba(16, 20, 18, 0.96), rgba(6, 10, 9, 0.98)),
+    var(--panel-strong);
+  box-shadow:
+    inset 0 0 0 1px rgba(75, 214, 192, 0.13),
+    0 26px 72px rgba(0, 0, 0, 0.56);
+}
+
+.pause-help-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  background: rgba(5, 7, 6, 0.58);
+}
+
+.pause-help-head span,
+.pause-help-readout span,
+.pause-help-readout small,
+.restart-confirmation p {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.pause-help-head strong {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pause-help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.pause-help-readout {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  min-height: 92px;
+  padding: 10px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.pause-help-readout[data-pause-card="objective"],
+.pause-help-readout[data-pause-card="controls"] {
+  grid-column: 1 / -1;
+}
+
+.pause-help-readout strong {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.pause-help-readout small {
+  line-height: 1.25;
+}
+
+.pause-control-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pause-control-list span {
+  min-height: 28px;
+  padding: 5px 7px;
+  border: 1px solid var(--line-soft);
+  background: rgba(75, 214, 192, 0.055);
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.pause-actions,
+.restart-confirmation-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pause-actions {
+  padding: 0 12px 12px;
+}
+
+.restart-confirmation {
+  display: grid;
+  gap: 8px;
+  margin: 0 12px 12px;
+  padding: 12px;
+  border: 1px solid rgba(212, 104, 87, 0.52);
+  border-left: 4px solid var(--danger);
+  background: rgba(55, 25, 22, 0.42);
+}
+
+.restart-confirmation strong {
+  color: var(--danger);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.restart-confirmation p {
+  margin: 0;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.restart-confirmation-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lantern-shell[data-motion="reduced"] {
+  --signal-dim: rgba(75, 214, 192, 0.12);
+}
+
+.lantern-shell[data-motion="reduced"] .lantern-glow {
+  opacity: 0.64;
+  filter: none;
+}
+
+.lantern-shell[data-motion="reduced"] .feedback-meter i {
+  opacity: 0.72;
+}
+
+.lantern-shell[data-motion="reduced"] .readout[data-tone="danger"],
+.lantern-shell[data-motion="reduced"] .readout[data-tone="warn"],
+.lantern-shell[data-motion="reduced"] .feedback-meter[data-tone="danger"],
+.lantern-shell[data-motion="reduced"] .feedback-meter[data-tone="warm"] {
+  box-shadow: none;
 }
 
 .panel-head {
@@ -1100,6 +1263,19 @@ button:focus-visible {
   background: var(--danger);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .lantern-shell {
+    scroll-behavior: auto;
+  }
+
+  .lantern-glow,
+  .feedback-meter,
+  .readout,
+  .world-label {
+    transition: none;
+  }
+}
+
 @media (max-width: 920px) {
   .world-label {
     min-width: 86px;
@@ -1200,6 +1376,21 @@ button:focus-visible {
   .run-chip {
     min-width: 116px;
     padding: 6px 8px;
+  }
+
+  .pause-help-overlay {
+    align-items: start;
+    padding: 10px;
+  }
+
+  .pause-help-panel {
+    max-height: calc(100vh - 20px);
+    max-height: calc(100svh - 20px);
+  }
+
+  .pause-help-grid,
+  .pause-actions {
+    grid-template-columns: 1fr;
   }
 
   .hud-grid {

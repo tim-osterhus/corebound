@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="iron-lantern-descent.css" />
 </head>
 <body>
-  <main class="lantern-shell" id="iron-lantern-descent" tabindex="-1">
+  <main class="lantern-shell" id="iron-lantern-descent" tabindex="-1" data-motion="full" data-reduced-motion="false">
     <canvas id="iron-lantern-scene" class="scene-canvas" aria-label="Iron Lantern Descent 3D cave scene"></canvas>
     <div class="scene-vignette" aria-hidden="true"></div>
     <div class="world-label-layer" id="world-label-layer" aria-hidden="true"></div>
@@ -285,6 +285,53 @@
         <button type="button" id="lift-action">Lift</button>
         <button type="button" id="upgrade-action">Upgrade</button>
         <button type="button" id="restart-action">Restart</button>
+      </div>
+    </aside>
+
+    <aside class="pause-help-overlay" id="pause-help-overlay" role="dialog" aria-modal="true" aria-label="Pause and help" tabindex="-1" hidden data-restart-confirmation="closed">
+      <div class="pause-help-panel">
+        <div class="pause-help-head">
+          <span>Pause</span>
+          <strong>Descent Controls</strong>
+        </div>
+        <div class="pause-help-grid" aria-label="Current run help">
+          <article class="pause-help-readout" data-pause-card="objective">
+            <span>Objective</span>
+            <strong id="pause-objective-readout">Descend, mark the route, sample ore, return to the lift.</strong>
+          </article>
+          <article class="pause-help-readout" data-pause-card="context">
+            <span>Context</span>
+            <strong id="pause-context-readout">Move Toward Copper Iris</strong>
+            <small id="pause-context-detail">F or Enter</small>
+          </article>
+          <article class="pause-help-readout" data-pause-card="controls">
+            <span>Active Controls</span>
+            <div class="pause-control-list" id="pause-control-list" aria-label="Active control hints">
+              <span>W/S move</span>
+              <span>A/D look</span>
+              <span>F context</span>
+              <span>L lantern</span>
+            </div>
+          </article>
+          <article class="pause-help-readout" data-pause-card="motion">
+            <span>Motion</span>
+            <button type="button" id="reduced-motion-toggle" aria-pressed="false">Reduced Motion Off</button>
+            <small id="reduced-motion-status">default full motion</small>
+          </article>
+        </div>
+        <div class="pause-actions" aria-label="Pause actions">
+          <button type="button" id="resume-action">Resume</button>
+          <button type="button" id="pause-restart-action">Restart Run</button>
+          <button type="button" id="pause-return-action">Return To Lift</button>
+        </div>
+        <div class="restart-confirmation" id="restart-confirmation" hidden data-confirmation-state="closed">
+          <strong id="restart-confirmation-title">Confirm restart</strong>
+          <p id="restart-confirmation-copy">Restarting clears this descent but keeps accepted carryover.</p>
+          <div class="restart-confirmation-actions">
+            <button type="button" id="cancel-restart-action">Cancel</button>
+            <button type="button" id="confirm-restart-action">Confirm Restart</button>
+          </div>
+        </div>
       </div>
     </aside>
 

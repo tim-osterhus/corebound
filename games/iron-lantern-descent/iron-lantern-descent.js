@@ -13,6 +13,31 @@ const IronLanternDescent = (() => {
   const DEFAULT_SEED = 37193;
   const TWO_PI = Math.PI * 2;
   const FIRST_EXPEDITION_SAMPLE_ID = "sample-copper-iris";
+  const MOTION_STORAGE_KEY = "iron-lantern-descent-motion";
+  const MOTION_SETTINGS = Object.freeze({
+    full: Object.freeze({
+      mode: "full",
+      pulseAmount: 1,
+      rangeScaleMultiplier: 1,
+      rotationMultiplier: 1,
+      sampleRotationRate: 0.2,
+      hazardRotationRate: 0.08,
+      scannerExpandRate: 3.8,
+      scannerOpacityBase: 0.42,
+      scannerOpacityFade: 0.16,
+    }),
+    reduced: Object.freeze({
+      mode: "reduced",
+      pulseAmount: 0,
+      rangeScaleMultiplier: 0.35,
+      rotationMultiplier: 0,
+      sampleRotationRate: 0,
+      hazardRotationRate: 0,
+      scannerExpandRate: 0.75,
+      scannerOpacityBase: 0.24,
+      scannerOpacityFade: 0.05,
+    }),
+  });
 
   const GAME_DATA = {
     release: {
@@ -996,10 +1021,60 @@ const IronLanternDescent = (() => {
   let sceneHandle = null;
   let lastFrameTime = 0;
   let mouseDrag = false;
+  let currentMotionPreference = null;
+  let pendingRestartIntent = null;
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
   }
+
+  function normalizeMotionSetting(value) {
+    if (value === true || value === "true" || value === "reduce" || value === "reduced") {
+      return "reduced";
+    }
+    if (value === false || value === "false" || value === "no-preference" || value === "full") {
+      return "full";
+    }
+    return null;
+  }
+
+  function resolveReducedMotionPreference(options = {}) {
+    const storedMode = normalizeMotionSetting(options.storedPreference);
+    if (storedMode) {
+      return {
+        enabled: storedMode === "reduced",
+        mode: storedMode,
+        source: "local",
+      };
+    }
+    const systemReduced = Boolean(options.prefersReducedMotion);
+    return {
+      enabled: systemReduced,
+      mode: systemReduced ? "reduced" : "full",
+      source: systemReduced ? "system" : "default",
+    };
+  }
+
+  function motionSettingsForPreference(preference = {}) {
+    const normalizedPreference = preference || {};
+    const mode = normalizedPreference === true || normalizedPreference.enabled || normalizedPreference.mode === "reduced" ? "reduced" : "full";
+    return { ...MOTION_SETTINGS[mode] };
+  }
+
+  function motionPulse(settings, timeSeconds, rate, phase = 0) {
+    const amount = settings && settings.pulseAmount !== undefined ? settings.pulseAmount : 1;
+    return 0.5 + Math.sin(timeSeconds * rate + phase) * 0.5 * amount;
+  }
+
+  function motionRangeScale(active, boost, settings) {
+    if (!active) {
+      return 1;
+    }
+    const multiplier = settings && settings.rangeScaleMultiplier !== undefined ? settings.rangeScaleMultiplier : 1;
+    return 1 + boost * multiplier;
+  }
+
+  currentMotionPreference = resolveReducedMotionPreference();
 
   function vector(x = 0, y = 0, z = 0) {
     return { x, y, z };
@@ -5727,6 +5802,21 @@ const IronLanternDescent = (() => {
       "lift-action",
       "upgrade-action",
       "restart-action",
+      "pause-help-overlay",
+      "pause-objective-readout",
+      "pause-context-readout",
+      "pause-context-detail",
+      "pause-control-list",
+      "reduced-motion-toggle",
+      "reduced-motion-status",
+      "resume-action",
+      "pause-restart-action",
+      "pause-return-action",
+      "restart-confirmation",
+      "restart-confirmation-title",
+      "restart-confirmation-copy",
+      "cancel-restart-action",
+      "confirm-restart-action",
     ];
     ids.forEach((id) => {
       dom[id] = document.getElementById(id);
@@ -6131,6 +6221,247 @@ const IronLanternDescent = (() => {
     }
   }
 
+  function pauseHelpOpen() {
+    return Boolean(dom["pause-help-overlay"] && !dom["pause-help-overlay"].hidden);
+  }
+
+  function restartConfirmationOpen() {
+    return Boolean(dom["restart-confirmation"] && !dom["restart-confirmation"].hidden);
+  }
+
+  function restartConfirmationIntent(source = "restart") {
+    const kind = source === "return" ? "return" : "restart";
+    return {
+      source,
+      kind,
+      action: "reset-run",
+      requiresConfirmation: true,
+      title: kind === "return" ? "Confirm return to lift" : "Confirm restart",
+      copy: kind === "return"
+        ? "Returning to the lift aborts this descent and restarts from accepted carryover."
+        : "Restarting clears this descent but keeps accepted carryover.",
+      confirmLabel: kind === "return" ? "Confirm Return" : "Confirm Restart",
+    };
+  }
+
+  function confirmRestart(state) {
+    return resetRun(state);
+  }
+
+  function cancelRestartConfirmation(state) {
+    return state;
+  }
+
+  function storedMotionPreference() {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return null;
+    }
+    try {
+      return window.localStorage.getItem(MOTION_STORAGE_KEY);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function systemPrefersReducedMotion() {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return false;
+    }
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function renderMotionControls() {
+    if (!dom.root) {
+      return;
+    }
+    const preference = currentMotionPreference || resolveReducedMotionPreference();
+    dom.root.dataset.motion = preference.mode;
+    dom.root.dataset.reducedMotion = String(preference.enabled);
+    if (dom["reduced-motion-toggle"]) {
+      dom["reduced-motion-toggle"].setAttribute("aria-pressed", String(preference.enabled));
+      dom["reduced-motion-toggle"].textContent = preference.enabled ? "Reduced Motion On" : "Reduced Motion Off";
+    }
+    if (dom["reduced-motion-status"]) {
+      dom["reduced-motion-status"].textContent = `${preference.source} ${preference.mode} motion`;
+    }
+  }
+
+  function applyMotionPreference(preference, options = {}) {
+    const selectedPreference = preference || resolveReducedMotionPreference();
+    currentMotionPreference = {
+      enabled: Boolean(selectedPreference.enabled),
+      mode: selectedPreference.mode === "reduced" ? "reduced" : "full",
+      source: selectedPreference.source || "local",
+    };
+    if (options.persist && typeof window !== "undefined" && window.localStorage) {
+      try {
+        window.localStorage.setItem(MOTION_STORAGE_KEY, currentMotionPreference.mode);
+      } catch (error) {
+        currentMotionPreference.source = "local";
+      }
+    }
+    renderMotionControls();
+    if (sceneHandle && currentState) {
+      updateScene(sceneHandle, currentState, performance.now() / 1000);
+    }
+  }
+
+  function setReducedMotionEnabled(enabled, options = {}) {
+    applyMotionPreference({
+      enabled: Boolean(enabled),
+      mode: enabled ? "reduced" : "full",
+      source: options.source || "local",
+    }, options);
+  }
+
+  function initializeMotionPreference() {
+    applyMotionPreference(resolveReducedMotionPreference({
+      storedPreference: storedMotionPreference(),
+      prefersReducedMotion: systemPrefersReducedMotion(),
+    }), { persist: false });
+
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return;
+    }
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = () => {
+      if (storedMotionPreference() === null) {
+        applyMotionPreference(resolveReducedMotionPreference({
+          prefersReducedMotion: media.matches,
+        }), { persist: false });
+      }
+    };
+    if (media.addEventListener) {
+      media.addEventListener("change", onChange);
+    } else if (media.addListener) {
+      media.addListener(onChange);
+    }
+  }
+
+  function renderPauseHelp(state) {
+    if (!dom["pause-help-overlay"] || !state) {
+      return;
+    }
+    const context = state.contextAction || resolveContextAction(state);
+    const contextDistance = context.distance === null ? "" : ` / ${Math.round(context.distance)}m`;
+    const contextDetail = context.targetName
+      ? `${context.targetName}${contextDistance}`
+      : context.hold
+        ? "hold F or Enter"
+        : "F or Enter";
+    if (dom["pause-objective-readout"]) {
+      dom["pause-objective-readout"].textContent = state.run.objective;
+    }
+    if (dom["pause-context-readout"]) {
+      dom["pause-context-readout"].textContent = context.label;
+    }
+    if (dom["pause-context-detail"]) {
+      dom["pause-context-detail"].textContent = contextDetail;
+    }
+    if (dom["pause-control-list"]) {
+      const hints = ((state.hud && state.hud.controlHints) || []).slice(0, 4);
+      const overlayHints = [...hints, "Esc pause", "R restart"];
+      dom["pause-control-list"].replaceChildren(
+        ...overlayHints.map((hint) => {
+          const item = document.createElement("span");
+          item.textContent = hint;
+          return item;
+        })
+      );
+    }
+    renderMotionControls();
+  }
+
+  function openPauseHelp(options = {}) {
+    if (!dom["pause-help-overlay"] || startSurfaceOpen()) {
+      return;
+    }
+    if (typeof document !== "undefined" && document.pointerLockElement && document.exitPointerLock) {
+      document.exitPointerLock();
+    }
+    dom["pause-help-overlay"].hidden = false;
+    renderPauseHelp(currentState);
+    if (options.focus !== false) {
+      dom["pause-help-overlay"].focus({ preventScroll: true });
+    }
+  }
+
+  function closeRestartConfirmation(options = {}) {
+    pendingRestartIntent = null;
+    if (dom["restart-confirmation"]) {
+      dom["restart-confirmation"].hidden = true;
+      dom["restart-confirmation"].dataset.confirmationState = "closed";
+    }
+    if (dom["pause-help-overlay"]) {
+      dom["pause-help-overlay"].dataset.restartConfirmation = "closed";
+    }
+    if (options.focus && pauseHelpOpen()) {
+      dom["pause-help-overlay"].focus({ preventScroll: true });
+    }
+  }
+
+  function closePauseHelp(options = {}) {
+    if (!dom["pause-help-overlay"]) {
+      return;
+    }
+    closeRestartConfirmation({ focus: false });
+    dom["pause-help-overlay"].hidden = true;
+    if (options.focus !== false && dom.root) {
+      dom.root.focus({ preventScroll: true });
+    }
+  }
+
+  function renderRestartConfirmation() {
+    if (!dom["restart-confirmation"] || !pendingRestartIntent) {
+      return;
+    }
+    dom["restart-confirmation"].hidden = false;
+    dom["restart-confirmation"].dataset.confirmationState = "open";
+    if (dom["pause-help-overlay"]) {
+      dom["pause-help-overlay"].dataset.restartConfirmation = "open";
+    }
+    if (dom["restart-confirmation-title"]) {
+      dom["restart-confirmation-title"].textContent = pendingRestartIntent.title;
+    }
+    if (dom["restart-confirmation-copy"]) {
+      dom["restart-confirmation-copy"].textContent = pendingRestartIntent.copy;
+    }
+    if (dom["confirm-restart-action"]) {
+      dom["confirm-restart-action"].textContent = pendingRestartIntent.confirmLabel;
+    }
+  }
+
+  function requestRestartConfirmation(source = "restart", options = {}) {
+    pendingRestartIntent = restartConfirmationIntent(source);
+    openPauseHelp({ focus: false });
+    renderRestartConfirmation();
+    if (options.focus !== false && dom["cancel-restart-action"]) {
+      dom["cancel-restart-action"].focus({ preventScroll: true });
+    }
+  }
+
+  function cancelPendingRestart() {
+    currentState = cancelRestartConfirmation(currentState);
+    closeRestartConfirmation({ focus: true });
+    renderPauseHelp(currentState);
+  }
+
+  function confirmPendingRestart() {
+    if (!currentState) {
+      return;
+    }
+    currentState = confirmRestart(currentState);
+    pressedControls.reset = false;
+    closePauseHelp({ focus: false });
+    renderHud(currentState);
+    if (sceneHandle) {
+      updateScene(sceneHandle, currentState, performance.now() / 1000);
+    }
+    if (dom.root) {
+      dom.root.focus({ preventScroll: true });
+    }
+  }
+
   function stageEvidenceState(state, options = {}) {
     currentState = syncDerivedState(clone(state || currentState || createInitialState()));
     const showStart = Boolean(options.startSurfaceOpen);
@@ -6148,7 +6479,20 @@ const IronLanternDescent = (() => {
     } else if (dom["advanced-ledger"]) {
       dom["advanced-ledger"].hidden = true;
     }
+    if (options.reducedMotion !== undefined) {
+      setReducedMotionEnabled(Boolean(options.reducedMotion), { persist: false, source: "stage" });
+    } else {
+      renderMotionControls();
+    }
     renderHud(currentState);
+    if (options.pauseHelp) {
+      openPauseHelp({ focus: false });
+    } else if (dom["pause-help-overlay"]) {
+      closePauseHelp({ focus: false });
+    }
+    if (options.restartConfirmation) {
+      requestRestartConfirmation(options.restartConfirmation, { focus: false });
+    }
     if (sceneHandle) {
       updateScene(sceneHandle, currentState, performance.now() / 1000);
     }
@@ -6167,6 +6511,9 @@ const IronLanternDescent = (() => {
         charges: currentState.lanterns.charges,
         anchors: currentState.lanterns.anchors.length,
       },
+      reducedMotion: currentMotionPreference ? currentMotionPreference.enabled : false,
+      pauseHelpOpen: pauseHelpOpen(),
+      restartConfirmationOpen: restartConfirmationOpen(),
     };
   }
 
@@ -6439,6 +6786,9 @@ const IronLanternDescent = (() => {
     );
     renderControlHints(state);
     renderFeedback(state);
+    if (pauseHelpOpen()) {
+      renderPauseHelp(state);
+    }
   }
 
   function controlForCode(code) {
@@ -6447,6 +6797,31 @@ const IronLanternDescent = (() => {
 
   function bindControls() {
     window.addEventListener("keydown", (event) => {
+      if (event.code === "Escape" && !startSurfaceOpen()) {
+        event.preventDefault();
+        if (restartConfirmationOpen()) {
+          closeRestartConfirmation({ focus: true });
+        } else if (pauseHelpOpen()) {
+          closePauseHelp();
+        } else {
+          openPauseHelp();
+        }
+        return;
+      }
+      if (pauseHelpOpen()) {
+        const target = event.target;
+        if (target && target.closest && target.closest(".pause-help-overlay") && event.code !== "KeyR") {
+          return;
+        }
+        const overlayControl = controlForCode(event.code);
+        if (overlayControl || event.code === "Enter" || event.code === "Space") {
+          event.preventDefault();
+        }
+        if (event.code === "KeyR" || overlayControl === "reset") {
+          requestRestartConfirmation("keyboard");
+        }
+        return;
+      }
       if (startSurfaceOpen()) {
         const target = event.target;
         if (target && target.closest && target.closest(".expedition-start")) {
@@ -6578,8 +6953,7 @@ const IronLanternDescent = (() => {
         return;
       }
       if (control === "reset") {
-        currentState = resetRun(currentState);
-        renderHud(currentState);
+        requestRestartConfirmation("keyboard");
         return;
       }
       pressedControls[control] = true;
@@ -6694,9 +7068,35 @@ const IronLanternDescent = (() => {
       renderHud(currentState);
     });
     dom["restart-action"].addEventListener("click", () => {
-      currentState = resetRun(currentState);
-      renderHud(currentState);
+      requestRestartConfirmation("restart");
     });
+    if (dom["resume-action"]) {
+      dom["resume-action"].addEventListener("click", () => {
+        closePauseHelp();
+      });
+    }
+    if (dom["pause-restart-action"]) {
+      dom["pause-restart-action"].addEventListener("click", () => {
+        requestRestartConfirmation("restart");
+      });
+    }
+    if (dom["pause-return-action"]) {
+      dom["pause-return-action"].addEventListener("click", () => {
+        requestRestartConfirmation("return");
+      });
+    }
+    if (dom["cancel-restart-action"]) {
+      dom["cancel-restart-action"].addEventListener("click", cancelPendingRestart);
+    }
+    if (dom["confirm-restart-action"]) {
+      dom["confirm-restart-action"].addEventListener("click", confirmPendingRestart);
+    }
+    if (dom["reduced-motion-toggle"]) {
+      dom["reduced-motion-toggle"].addEventListener("click", () => {
+        setReducedMotionEnabled(!(currentMotionPreference && currentMotionPreference.enabled), { persist: true, source: "local" });
+        renderPauseHelp(currentState);
+      });
+    }
 
     dom.canvas.addEventListener("click", () => {
       dom.root.focus();
@@ -7441,7 +7841,7 @@ const IronLanternDescent = (() => {
     });
   }
 
-  function updateSurveyMeshes(handle, state, timeSeconds) {
+  function updateSurveyMeshes(handle, state, timeSeconds, motionSettings) {
     state.surveySites.forEach((site) => {
       const mesh = handle.objects.surveyMeshes.get(site.id);
       if (!mesh) {
@@ -7455,9 +7855,9 @@ const IronLanternDescent = (() => {
       const mapPlate = mesh.children.find((child) => child.userData.role === "map-plate");
       const urgent = site.windowState === "tremor" || site.windowState === "collapsed" || site.chartState === "failed";
       const complete = site.chartState === "success" || site.chartState === "partial";
-      const pulse = 0.5 + Math.sin(timeSeconds * (urgent ? 6.2 : 2.4) + site.position.x) * 0.5;
+      const pulse = motionPulse(motionSettings, timeSeconds, urgent ? 6.2 : 2.4, site.position.x);
 
-      mesh.scale.setScalar(site.inRange ? 1.14 : 1);
+      mesh.scale.setScalar(motionRangeScale(site.inRange, 0.14, motionSettings));
       if (seam && seam.material) {
         seam.material.color.setHex(urgent ? 0xd46857 : complete ? 0xc9a653 : 0x4bd6c0);
         seam.material.opacity = urgent ? 0.58 + pulse * 0.28 : complete ? 0.5 : 0.42 + pulse * 0.18;
@@ -7489,7 +7889,7 @@ const IronLanternDescent = (() => {
     });
   }
 
-  function updatePumpworksMeshes(handle, state, timeSeconds) {
+  function updatePumpworksMeshes(handle, state, timeSeconds, motionSettings) {
     state.pumpworksSites.forEach((site) => {
       const mesh = handle.objects.pumpworksMeshes.get(site.id);
       if (!mesh) {
@@ -7507,9 +7907,9 @@ const IronLanternDescent = (() => {
       const urgent = site.windowState === "surge" || site.windowState === "flood" || site.windowState === "overrun" || site.drainageState === "failed";
       const drained = site.drainageState === "success" || site.drainageState === "partial";
       const active = site.inRange || site.pumpPrimed || site.leakSealed || site.siphonDeployed || drained;
-      const pulse = 0.5 + Math.sin(timeSeconds * (urgent ? 5.6 : 2.0) + site.position.z) * 0.5;
+      const pulse = motionPulse(motionSettings, timeSeconds, urgent ? 5.6 : 2.0, site.position.z);
 
-      mesh.scale.setScalar(site.inRange ? 1.12 : 1);
+      mesh.scale.setScalar(motionRangeScale(site.inRange, 0.12, motionSettings));
       if (flood && flood.material) {
         flood.material.color.setHex(urgent ? 0xd46857 : drained ? 0x4bd6c0 : 0x4bd6c0);
         flood.material.opacity = drained
@@ -7523,7 +7923,7 @@ const IronLanternDescent = (() => {
       if (valve && valve.material) {
         valve.material.color.setHex(site.valveState === "overrun" ? 0xd46857 : site.valveState === "regulated" ? 0x4bd6c0 : 0xc9a653);
         valve.material.opacity = site.valveState === "closed" ? 0.62 : 0.88;
-        valve.rotation.z = site.valveState === "closed" ? 0 : timeSeconds * 0.7;
+        valve.rotation.z = site.valveState === "closed" ? 0 : timeSeconds * 0.7 * motionSettings.rotationMultiplier;
       }
       if (gauge && gauge.material) {
         gauge.material.color.setHex(urgent ? 0xd46857 : active ? 0x4bd6c0 : 0x87938d);
@@ -7555,7 +7955,7 @@ const IronLanternDescent = (() => {
     });
   }
 
-  function updateVentMeshes(handle, state, timeSeconds) {
+  function updateVentMeshes(handle, state, timeSeconds, motionSettings) {
     state.ventSites.forEach((site) => {
       const mesh = handle.objects.ventMeshes.get(site.id);
       if (!mesh) {
@@ -7578,9 +7978,9 @@ const IronLanternDescent = (() => {
         site.filterDeployed ||
         site.fanState !== "idle" ||
         complete;
-      const pulse = 0.5 + Math.sin(timeSeconds * (urgent ? 5.8 : 2.2) + site.position.x) * 0.5;
+      const pulse = motionPulse(motionSettings, timeSeconds, urgent ? 5.8 : 2.2, site.position.x);
 
-      mesh.scale.setScalar(site.inRange ? 1.12 : 1);
+      mesh.scale.setScalar(motionRangeScale(site.inRange, 0.12, motionSettings));
       if (haze && haze.material) {
         haze.material.color.setHex(urgent ? 0xd46857 : complete ? 0x4bd6c0 : 0xc9a653);
         haze.material.opacity = complete
@@ -7596,7 +7996,7 @@ const IronLanternDescent = (() => {
       if (gate && gate.material) {
         gate.material.color.setHex(site.gateState === "jammed" ? 0xd46857 : site.gateState === "open" ? 0x4bd6c0 : 0xc9a653);
         gate.material.opacity = site.gateState === "sealed" ? 0.52 : 0.84;
-        gate.rotation.z = site.gateState === "open" ? timeSeconds * 0.65 : site.gateState === "cracked" ? 0.45 : 0;
+        gate.rotation.z = site.gateState === "open" ? timeSeconds * 0.65 * motionSettings.rotationMultiplier : site.gateState === "cracked" ? 0.45 : 0;
       }
       if (fanHousing && fanHousing.material) {
         fanHousing.material.color.setHex(urgent ? 0xd46857 : site.fanState === "running" ? 0x4bd6c0 : 0x87938d);
@@ -7605,9 +8005,9 @@ const IronLanternDescent = (() => {
       if (fanBlades) {
         fanBlades.visible = site.fanState !== "idle";
         fanBlades.rotation.y = site.fanState === "running"
-          ? timeSeconds * 5.2
+          ? timeSeconds * 5.2 * motionSettings.rotationMultiplier
           : site.fanState === "surging"
-            ? timeSeconds * 2.4
+            ? timeSeconds * 2.4 * motionSettings.rotationMultiplier
             : 0;
         fanBlades.children.forEach((blade) => {
           if (blade.material) {
@@ -7639,7 +8039,7 @@ const IronLanternDescent = (() => {
     });
   }
 
-  function updateRelayMeshes(handle, state, timeSeconds) {
+  function updateRelayMeshes(handle, state, timeSeconds, motionSettings) {
     state.relaySites.forEach((site) => {
       const mesh = handle.objects.relayMeshes.get(site.id);
       if (!mesh) {
@@ -7667,9 +8067,9 @@ const IronLanternDescent = (() => {
         complete ||
         site.cacheState.status === "claimed" ||
         site.beaconState !== "armed";
-      const pulse = 0.5 + Math.sin(timeSeconds * (urgent ? 6.4 : 2.8) + site.position.z) * 0.5;
+      const pulse = motionPulse(motionSettings, timeSeconds, urgent ? 6.4 : 2.8, site.position.z);
 
-      mesh.scale.setScalar(site.inRange ? 1.14 : 1);
+      mesh.scale.setScalar(motionRangeScale(site.inRange, 0.14, motionSettings));
       if (pylon && pylon.material) {
         pylon.material.color.setHex(urgent ? 0x3a201d : site.pylonState === "damaged" ? 0x25302c : 0x2b4f47);
         if (pylon.material.emissive) {
@@ -7717,13 +8117,14 @@ const IronLanternDescent = (() => {
   }
 
   function updateScene(handle, state, timeSeconds) {
+    const motionSettings = motionSettingsForPreference(currentMotionPreference);
     resizeScene(handle);
     syncLanternMeshes(handle, state);
     syncRouteMeshes(handle, state);
-    updateSurveyMeshes(handle, state, timeSeconds);
-    updatePumpworksMeshes(handle, state, timeSeconds);
-    updateVentMeshes(handle, state, timeSeconds);
-    updateRelayMeshes(handle, state, timeSeconds);
+    updateSurveyMeshes(handle, state, timeSeconds, motionSettings);
+    updatePumpworksMeshes(handle, state, timeSeconds, motionSettings);
+    updateVentMeshes(handle, state, timeSeconds, motionSettings);
+    updateRelayMeshes(handle, state, timeSeconds, motionSettings);
     handle.objects.player.position.set(state.player.position.x, 0, state.player.position.z);
     handle.objects.player.rotation.y = state.player.facing;
     handle.objects.playerLamp.position.set(state.player.position.x, state.player.position.y + 0.4, state.player.position.z);
@@ -7735,8 +8136,8 @@ const IronLanternDescent = (() => {
         return;
       }
       mesh.visible = !node.mineState.depleted;
-      mesh.rotation.y = timeSeconds * 0.2 + node.position.x;
-      mesh.scale.setScalar(node.mineState.status === "cutting" ? 1.12 : 1);
+      mesh.rotation.y = timeSeconds * motionSettings.sampleRotationRate + node.position.x;
+      mesh.scale.setScalar(node.mineState.status === "cutting" ? motionRangeScale(true, 0.12, motionSettings) : 1);
     });
 
     state.hazardZones.forEach((zone) => {
@@ -7746,7 +8147,7 @@ const IronLanternDescent = (() => {
       }
       mesh.visible = true;
       mesh.scale.y = zone.active ? 1.24 : 1;
-      mesh.rotation.y = timeSeconds * 0.08;
+      mesh.rotation.y = timeSeconds * motionSettings.hazardRotationRate;
       mesh.children.forEach((child) => {
         if (child.material) {
           child.material.opacity = zone.active ? 0.2 : 0.1;
@@ -7756,10 +8157,10 @@ const IronLanternDescent = (() => {
 
     handle.objects.scannerRing.visible = state.scanner.cooldown > 0;
     if (handle.objects.scannerRing.visible) {
-      const scale = Math.max(1, 1 + state.scanner.pulseAge * 3.8);
+      const scale = Math.max(1, 1 + state.scanner.pulseAge * motionSettings.scannerExpandRate);
       handle.objects.scannerRing.position.set(state.player.position.x, 0.1, state.player.position.z);
       handle.objects.scannerRing.scale.setScalar(scale);
-      handle.objects.scannerRing.material.opacity = Math.max(0, 0.42 - state.scanner.pulseAge * 0.16);
+      handle.objects.scannerRing.material.opacity = Math.max(0, motionSettings.scannerOpacityBase - state.scanner.pulseAge * motionSettings.scannerOpacityFade);
     }
 
     handle.camera.position.set(state.camera.position.x, state.camera.position.y, state.camera.position.z);
@@ -7774,7 +8175,7 @@ const IronLanternDescent = (() => {
     }
     const deltaSeconds = Math.min(0.05, (now - lastFrameTime) / 1000 || 0.016);
     lastFrameTime = now;
-    if (!startSurfaceOpen()) {
+    if (!startSurfaceOpen() && !pauseHelpOpen()) {
       currentState = stepRun(currentState, pressedControls, deltaSeconds);
     }
     updateScene(sceneHandle, currentState, now / 1000);
@@ -7788,6 +8189,7 @@ const IronLanternDescent = (() => {
       return;
     }
     currentState = createInitialState();
+    initializeMotionPreference();
     bindControls();
     renderStartDepth(currentState.expeditionStart.selectedDepthId);
     if (dom["begin-descent-action"]) {
@@ -7853,6 +8255,12 @@ const IronLanternDescent = (() => {
     pulseScanner,
     returnToLift,
     stageEvidenceState,
+    resolveReducedMotionPreference,
+    motionSettingsForPreference,
+    motionPulse,
+    restartConfirmationIntent,
+    confirmRestart,
+    cancelRestartConfirmation,
     purchaseUpgrade,
     resetRun,
     loadSceneAssets,
