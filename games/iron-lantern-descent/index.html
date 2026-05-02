@@ -12,6 +12,46 @@
   <main class="lantern-shell" id="iron-lantern-descent" tabindex="-1">
     <canvas id="iron-lantern-scene" class="scene-canvas" aria-label="Iron Lantern Descent 3D cave scene"></canvas>
     <div class="scene-vignette" aria-hidden="true"></div>
+    <div class="world-label-layer" id="world-label-layer" aria-hidden="true"></div>
+
+    <section class="expedition-start" id="expedition-start" aria-label="Expedition start">
+      <div class="start-art" aria-hidden="true">
+        <img src="assets/arcade-title-card.png" alt="" />
+      </div>
+      <div class="start-frame">
+        <span class="eyebrow">Iron Lantern expedition board</span>
+        <h2>Iron Lantern Descent</h2>
+        <div class="depth-selector" id="depth-selector" aria-label="Depth choices">
+          <button type="button" class="depth-choice" data-depth="upper" data-selected="true">
+            <span>Upper Cut</span>
+            <strong>Copper Iris</strong>
+          </button>
+          <button type="button" class="depth-choice" data-depth="pumpworks">
+            <span>Deep Pumpworks</span>
+            <strong>Flood Line</strong>
+          </button>
+          <button type="button" class="depth-choice" data-depth="relay">
+            <span>Echo Relay</span>
+            <strong>Beacon Route</strong>
+          </button>
+        </div>
+        <dl class="start-readiness">
+          <div>
+            <dt>Readiness</dt>
+            <dd id="start-readiness">3 lanterns / 96 oxygen / drill ready</dd>
+          </div>
+          <div>
+            <dt>Reward</dt>
+            <dd id="start-reward">32cr Copper Iris sample / first upgrade preview</dd>
+          </div>
+          <div>
+            <dt>Route</dt>
+            <dd id="start-route">Iron Lift to Copper Iris, lantern return marker advised</dd>
+          </div>
+        </dl>
+        <button type="button" class="begin-descent-action" id="begin-descent-action">Begin Descent</button>
+      </div>
+    </section>
 
     <header class="topline">
       <a class="backlink" href="../../">Millrace Arcade</a>
@@ -188,6 +228,24 @@
       <span>F context</span>
       <span>L lantern</span>
     </footer>
+
+    <aside class="feedback-rail" id="feedback-rail" aria-label="Interaction feedback">
+      <div class="feedback-meter" id="feedback-mining" data-feedback="mining">
+        <span>Drill</span>
+        <strong>idle</strong>
+        <i aria-hidden="true"></i>
+      </div>
+      <div class="feedback-meter" id="feedback-route" data-feedback="route">
+        <span>Route</span>
+        <strong>lift safe</strong>
+        <i aria-hidden="true"></i>
+      </div>
+      <div class="feedback-meter" id="feedback-action" data-feedback="action">
+        <span>Signal</span>
+        <strong>Iron Lift ready</strong>
+        <i aria-hidden="true"></i>
+      </div>
+    </aside>
   </main>
 
   <script src="vendor/three.min.js"></script>

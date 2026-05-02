@@ -42,6 +42,57 @@ class IronLanternDescentAssetIntegrationTests(unittest.TestCase):
         self.assertIn('background-image: url("assets/oxygen-light-icons.png")', files["iron-lantern-descent.css"])
         self.assertIn('sourceManifest: "assets/asset-manifest.json"', files["iron-lantern-descent.js"])
 
+    def test_expedition_start_surface_reuses_local_title_asset_without_dense_play_hud(self) -> None:
+        html = source_text("index.html")
+        css = source_text("iron-lantern-descent.css")
+        script = source_text("iron-lantern-descent.js")
+        start_surface = html.split('id="expedition-start"', 1)[1].split("</section>", 1)[0]
+
+        for token in (
+            'class="expedition-start"',
+            'aria-label="Expedition start"',
+            'class="start-art"',
+            'src="assets/arcade-title-card.png"',
+            'id="depth-selector"',
+            'class="depth-choice"',
+            'id="start-readiness"',
+            'id="start-reward"',
+            'id="start-route"',
+            'id="begin-descent-action"',
+            "Begin Descent",
+        ):
+            self.assertIn(token, html)
+
+        for dense_token in (
+            "pumpworks-readout",
+            "vent-readout",
+            "relay-readout",
+            "rescue-readout",
+            "event-log",
+        ):
+            self.assertNotIn(dense_token, start_surface)
+
+        for token in (
+            ".expedition-start",
+            ".start-art img",
+            ".start-frame",
+            ".depth-choice[data-selected=\"true\"]",
+            ".begin-descent-action",
+            ".world-label-layer",
+            ".feedback-rail",
+        ):
+            self.assertIn(token, css)
+
+        for token in (
+            "expeditionStart",
+            "depthChoices",
+            "renderStartDepth",
+            "startSurfaceOpen",
+            "beginDescent",
+            "Begin descent: Iron Lift gate released.",
+        ):
+            self.assertIn(token, script)
+
     def test_scene_asset_loader_uses_generated_texture_paths(self) -> None:
         script = source_text("iron-lantern-descent.js")
         css = source_text("iron-lantern-descent.css")

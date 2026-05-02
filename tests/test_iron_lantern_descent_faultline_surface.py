@@ -272,6 +272,98 @@ class IronLanternDescentFaultlineSurfaceTests(unittest.TestCase):
         ):
             self.assertNotRegex(script, rf'assets/[^"\'\)\s]*{re.escape(stale_raster)}[^"\'\)\s]*\.png')
 
+    def test_world_labels_and_feedback_state_cover_scene_identity_objects(self) -> None:
+        html = source_text("index.html")
+        css = source_text("iron-lantern-descent.css")
+        script = source_text("iron-lantern-descent.js")
+
+        for token in (
+            "world-label-layer",
+            "feedback-rail",
+            "feedback-mining",
+            "feedback-route",
+            "feedback-action",
+        ):
+            self.assertIn(token, html)
+
+        for token in (
+            ".world-label",
+            '.world-label[data-tone="warm"]',
+            '.world-label[data-tone="danger"]',
+            '.world-label[data-tone="target"]',
+            ".feedback-meter",
+            '.feedback-meter[data-tone="danger"]',
+            "--progress",
+        ):
+            self.assertIn(token, css)
+
+        for token in (
+            "worldLabelDefinitions",
+            "label-current-target",
+            "kind: \"pump-station\"",
+            "kind: \"pressure-valve\"",
+            "kind: \"cinder-vent\"",
+            "kind: \"fan-filter-prop\"",
+            "kind: \"echo-relay-pylon\"",
+            "kind: \"rescue-cache\"",
+            "kind: \"lift-beacon\"",
+            "buildFeedbackState",
+            "renderWorldLabels",
+            "renderFeedback",
+            "LOW OXYGEN",
+        ):
+            self.assertIn(token, script)
+
+        result = self.run_node(
+            """
+            const game = require("./games/iron-lantern-descent/iron-lantern-descent.js");
+            let state = game.createInitialState({ seed: 515, runCount: 5 });
+            state = game.placeLantern(state);
+            const target = state.sampleNodes.find((node) => node.id === "sample-copper-iris");
+            state.player.position = { x: target.position.x, y: 1.6, z: target.position.z };
+            state = game.mineNearestSample(game.syncDerivedState(state), 0.7);
+            state = game.pulseScanner(state);
+            const labels = game.worldLabelDefinitions(state);
+            console.log(JSON.stringify({
+              kinds: Array.from(new Set(labels.map((label) => label.kind))).sort(),
+              texts: labels.map((label) => label.text),
+              currentTarget: labels.find((label) => label.kind === "current-target"),
+              routeLabel: labels.find((label) => label.kind === "return-route"),
+              feedback: state.feedback,
+            }));
+            """
+        )
+
+        for kind in (
+            "lift",
+            "return-route",
+            "current-target",
+            "sample-vein",
+            "lantern-anchor",
+            "hazard",
+            "survey-stake",
+            "pump-station",
+            "pressure-valve",
+            "cinder-vent",
+            "fan-filter-prop",
+            "echo-relay-pylon",
+            "rescue-cache",
+            "lift-beacon",
+        ):
+            self.assertIn(kind, result["kinds"])
+
+        self.assertIn("Copper Iris", result["texts"])
+        self.assertIn("Pump Station", result["texts"])
+        self.assertIn("Cinder Vent", result["texts"])
+        self.assertIn("Echo Relay Pylon", result["texts"])
+        self.assertEqual("Current Target", result["currentTarget"]["text"])
+        self.assertIn("%", result["routeLabel"]["detail"])
+        self.assertGreater(result["feedback"]["mining"]["progress"], 0)
+        self.assertEqual("cutting", result["feedback"]["mining"]["status"])
+        self.assertTrue(result["feedback"]["scanPulseActive"])
+        self.assertIn("route", result["feedback"])
+        self.assertIn("movement", result["feedback"])
+
     def test_surface_controls_change_survey_state_and_route_pressure(self) -> None:
         result = self.run_node(
             """

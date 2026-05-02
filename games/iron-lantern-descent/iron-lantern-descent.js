@@ -132,6 +132,35 @@ const IronLanternDescent = (() => {
         { id: "summary-upgrade-preview", label: "Expedition summary" },
       ],
     },
+    expeditionStart: {
+      selectedDepthId: "upper",
+      depthChoices: [
+        {
+          id: "upper",
+          name: "Upper Cut",
+          focus: "Copper Iris",
+          readiness: "3 lanterns / 96 oxygen / drill ready",
+          reward: "32cr Copper Iris sample / first upgrade preview",
+          route: "Iron Lift to Copper Iris, lantern return marker advised",
+        },
+        {
+          id: "pumpworks",
+          name: "Deep Pumpworks",
+          focus: "Flood Line",
+          readiness: "siphon charge / lantern anchor / pressure valve",
+          reward: "drainage map, pumpworks credits, safer lower route",
+          route: "Iron Lift to Lower Pumpworks by marked lantern chain",
+        },
+        {
+          id: "relay",
+          name: "Echo Relay",
+          focus: "Beacon Route",
+          readiness: "echo charges / cinder airflow / rescue cache",
+          reward: "return-route relief, rescue cache, emergency beacon",
+          route: "Cinder shaft to echo pylon and lift beacon station",
+        },
+      ],
+    },
     survey: {
       release: {
         version: "0.1.0",
@@ -1772,6 +1801,11 @@ const IronLanternDescent = (() => {
         objective: null,
         summary: null,
       },
+      expeditionStart: {
+        selectedDepthId: GAME_DATA.expeditionStart.selectedDepthId,
+        depthChoices: clone(GAME_DATA.expeditionStart.depthChoices),
+        status: "awaiting begin descent",
+      },
       disclosure: {
         systems: {},
         defaultHudSystems: [],
@@ -1792,6 +1826,14 @@ const IronLanternDescent = (() => {
         defaultCards: [],
         controlHints: [],
         advancedSuppressed: [],
+      },
+      feedback: {
+        movement: null,
+        mining: null,
+        route: null,
+        action: null,
+        oxygenWarning: null,
+        scanPulseActive: false,
       },
       run: {
         status: "active",
@@ -2794,6 +2836,306 @@ const IronLanternDescent = (() => {
     };
   }
 
+  function labelPoint(position, y = 1.65) {
+    return {
+      x: position.x,
+      y: position.y === undefined ? y : position.y,
+      z: position.z,
+    };
+  }
+
+  function labelTargetPosition(state, targetId, targetKind) {
+    if (!targetId) {
+      return null;
+    }
+    if (targetId === state.lift.id || targetKind === "lift") {
+      return labelPoint(state.lift.position, 3.7);
+    }
+    const sample = (state.sampleNodes || []).find((node) => node.id === targetId);
+    if (sample) {
+      return labelPoint(sample.position, 2.85);
+    }
+    const survey = (state.surveySites || []).find((site) => site.id === targetId);
+    if (survey) {
+      return labelPoint(survey.position, 2.25);
+    }
+    const pump = (state.pumpworksSites || []).find((site) => site.id === targetId);
+    if (pump) {
+      return labelPoint(pump.position, 2.35);
+    }
+    const vent = (state.ventSites || []).find((site) => site.id === targetId);
+    if (vent) {
+      return labelPoint(vent.position, 2.45);
+    }
+    const relay = (state.relaySites || []).find((site) => site.id === targetId);
+    if (relay) {
+      return labelPoint(relay.position, 3.0);
+    }
+    return null;
+  }
+
+  function labelEntry(state, entry) {
+    const position = labelPoint(entry.position, entry.y || 1.65);
+    return {
+      id: entry.id,
+      kind: entry.kind,
+      text: entry.text,
+      detail: entry.detail || "",
+      tone: entry.tone || "signal",
+      priority: entry.priority || 0,
+      position,
+      distance: Number(distance(state.player.position, position).toFixed(1)),
+      bearing: bearingTo(state.player.position, position, state.player.facing),
+    };
+  }
+
+  function worldLabelDefinitions(state) {
+    const labels = [];
+    const add = (entry) => {
+      if (entry && entry.position) {
+        labels.push(labelEntry(state, entry));
+      }
+    };
+    const firstTarget = firstExpeditionTarget(state);
+    const currentTargetPosition = labelTargetPosition(state, state.scanner.targetId, state.scanner.targetKind);
+
+    add({
+      id: "label-iron-lift",
+      kind: "lift",
+      text: "Iron Lift",
+      detail: `${state.lift.status} / ${Math.round(state.lift.distance)}m`,
+      position: state.lift.position,
+      y: 3.7,
+      tone: "warm",
+      priority: 100,
+    });
+    add({
+      id: "label-return-route",
+      kind: "return-route",
+      text: "Return Route",
+      detail: `${state.route.status} / ${state.route.returnConfidence}%`,
+      position: labelTargetPosition(state, state.route.nearestPointId, state.route.nearestPointKind) || state.lift.position,
+      y: 2.0,
+      tone: state.route.returnConfidence < 35 ? "danger" : state.route.returnConfidence < 70 ? "warm" : "signal",
+      priority: 98,
+    });
+    if (currentTargetPosition) {
+      add({
+        id: "label-current-target",
+        kind: "current-target",
+        text: "Current Target",
+        detail: state.scanner.targetName,
+        position: currentTargetPosition,
+        tone: "target",
+        priority: 99,
+      });
+    }
+    if (firstTarget) {
+      add({
+        id: `label-${firstTarget.id}`,
+        kind: "sample-vein",
+        text: firstTarget.name,
+        detail: firstTarget.mineState.depleted ? "depleted vein" : `${firstTarget.mineState.status} sample vein`,
+        position: firstTarget.position,
+        y: 2.85,
+        tone: firstTarget.mineState.depleted ? "warm" : "signal",
+        priority: 96,
+      });
+    }
+
+    (state.sampleNodes || []).forEach((node) => {
+      if (firstTarget && node.id === firstTarget.id) {
+        return;
+      }
+      add({
+        id: `label-${node.id}`,
+        kind: "sample-vein",
+        text: node.name,
+        detail: node.mineState.depleted ? "depleted vein" : `${node.remaining} sample / ${node.value}cr`,
+        position: node.position,
+        y: 2.5,
+        tone: node.mineState.depleted ? "warm" : "signal",
+        priority: node.mineState.depleted ? 30 : 52,
+      });
+    });
+
+    (state.lanterns.anchors || []).forEach((anchor) => {
+      add({
+        id: `label-${anchor.id}`,
+        kind: "lantern-anchor",
+        text: "Lantern Anchor",
+        detail: `${anchor.id} / route marker`,
+        position: anchor.position,
+        y: 2.4,
+        tone: "warm",
+        priority: 92,
+      });
+    });
+
+    (state.hazardZones || []).forEach((zone) => {
+      add({
+        id: `label-${zone.id}`,
+        kind: "hazard",
+        text: zone.name,
+        detail: zone.active ? "oxygen drain" : "hazard edge",
+        position: zone.position,
+        y: 2.1,
+        tone: zone.active ? "danger" : "warm",
+        priority: zone.active ? 90 : 44,
+      });
+    });
+
+    (state.surveySites || []).forEach((site) => {
+      add({
+        id: `label-${site.id}`,
+        kind: "survey-stake",
+        text: site.name,
+        detail: site.stakePlanted ? "survey stake set" : "sample route survey",
+        position: site.position,
+        y: 2.35,
+        tone: site.windowState === "tremor" || site.windowState === "collapsed" ? "danger" : "signal",
+        priority: site.inRange ? 88 : 48,
+      });
+    });
+
+    (state.pumpworksSites || []).forEach((site) => {
+      add({
+        id: `label-${site.id}-pump`,
+        kind: "pump-station",
+        text: "Pump Station",
+        detail: `${site.name} / ${site.status}`,
+        position: site.position,
+        y: 2.35,
+        tone: site.windowState === "flood" || site.windowState === "overrun" ? "danger" : "signal",
+        priority: site.inRange ? 88 : 46,
+      });
+      add({
+        id: `label-${site.id}-valve`,
+        kind: "pressure-valve",
+        text: "Valve",
+        detail: `${site.valveState} / ${Math.round((site.floodLevel || 0) * 100)}% flood`,
+        position: { x: site.position.x + 1.1, y: 1.7, z: site.position.z - 0.8 },
+        tone: site.valveState === "overrun" ? "danger" : "warm",
+        priority: site.inRange ? 82 : 38,
+      });
+    });
+
+    (state.ventSites || []).forEach((site) => {
+      add({
+        id: `label-${site.id}-vent`,
+        kind: "cinder-vent",
+        text: "Cinder Vent",
+        detail: `${site.name} / ${site.airflowState}`,
+        position: site.position,
+        y: 2.45,
+        tone: site.windowState === "gas" || site.windowState === "overrun" ? "danger" : "signal",
+        priority: site.inRange ? 88 : 44,
+      });
+      add({
+        id: `label-${site.id}-fan-filter`,
+        kind: "fan-filter-prop",
+        text: "Fan / Filter",
+        detail: `${site.fanState} / ${site.filterDeployed ? "filter set" : "filter rack"}`,
+        position: { x: site.position.x - 0.8, y: 1.9, z: site.position.z - 0.8 },
+        tone: site.fanState === "stalled" ? "danger" : "warm",
+        priority: site.inRange ? 80 : 36,
+      });
+    });
+
+    (state.relaySites || []).forEach((site) => {
+      add({
+        id: `label-${site.id}-pylon`,
+        kind: "echo-relay-pylon",
+        text: "Echo Relay Pylon",
+        detail: `${site.name} / ${site.pylonState}`,
+        position: site.position,
+        y: 3.0,
+        tone: site.windowState === "noisy" || site.windowState === "overrun" ? "danger" : "signal",
+        priority: site.inRange ? 90 : 42,
+      });
+      add({
+        id: `label-${site.id}-cache`,
+        kind: "rescue-cache",
+        text: "Rescue Cache",
+        detail: site.cacheState.status,
+        position: { x: site.position.x + 1.1, y: 1.75, z: site.position.z + 0.8 },
+        tone: site.cacheState.status === "claimed" ? "signal" : "warm",
+        priority: site.inRange ? 82 : 34,
+      });
+      add({
+        id: `label-${site.id}-beacon`,
+        kind: "lift-beacon",
+        text: "Lift Beacon",
+        detail: site.beaconState,
+        position: { x: site.position.x - 1.0, y: 2.2, z: site.position.z - 0.7 },
+        tone: site.beaconState === "misfired" ? "danger" : "warm",
+        priority: site.inRange ? 80 : 32,
+      });
+    });
+
+    return labels.sort((a, b) => (b.priority - a.priority) || (a.distance - b.distance));
+  }
+
+  function buildFeedbackState(state) {
+    const velocity = state.player.velocity || vector();
+    const speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+    const activeSample = state.mining.targetId
+      ? (state.sampleNodes || []).find((node) => node.id === state.mining.targetId)
+      : nearestSample(state)?.node;
+    const sampleProgress = activeSample
+      ? clamp(activeSample.mineState.progress / activeSample.difficulty, 0, 1)
+      : 0;
+    const oxygenPercent = state.oxygen.current / state.oxygen.max;
+    const lastLog = state.log && state.log.length ? state.log[0].message : "No signal yet.";
+    const movement = state.movement.collision.lastBlocked
+      ? `blocked / ${state.movement.collision.lastPassage}`
+      : speed > 0.2
+        ? `moving / ${state.movement.collision.lastPassage}`
+        : `holding / ${state.movement.collision.lastPassage}`;
+    const miningLabel = activeSample
+      ? activeSample.mineState.depleted
+        ? `${activeSample.name} depleted`
+        : state.mining.status === "cutting"
+          ? `${activeSample.name} ${Math.round(sampleProgress * 100)}%`
+          : `${activeSample.name} ${activeSample.mineState.status}`
+      : state.mining.status;
+    const actionTone = oxygenPercent < 0.2
+      ? "danger"
+      : state.scanner.cooldown > 0
+        ? "signal"
+        : state.route.returnConfidence < 70
+          ? "warm"
+          : "signal";
+
+    return {
+      movement: {
+        label: movement,
+        speed: Number(speed.toFixed(2)),
+        blocked: Boolean(state.movement.collision.lastBlocked),
+      },
+      mining: {
+        label: miningLabel,
+        status: state.mining.status,
+        progress: Number(sampleProgress.toFixed(2)),
+        targetId: activeSample ? activeSample.id : null,
+        tone: state.mining.status === "cutting" ? "warm" : activeSample && activeSample.mineState.depleted ? "signal" : null,
+      },
+      route: {
+        label: `${state.route.status} / ${state.route.returnConfidence}%`,
+        progress: state.route.returnConfidence / 100,
+        tone: state.route.returnConfidence < 35 ? "danger" : state.route.returnConfidence < 70 ? "warm" : "signal",
+      },
+      action: {
+        label: oxygenPercent < 0.2 ? `LOW OXYGEN / ${Math.ceil(state.oxygen.current)}` : lastLog,
+        detail: movement,
+        progress: state.scanner.cooldown > 0 ? clamp(state.scanner.pulseAge / GAME_DATA.scanner.cooldownSeconds, 0, 1) : oxygenPercent,
+        tone: actionTone,
+      },
+      oxygenWarning: oxygenPercent < 0.2 ? "low oxygen" : oxygenPercent < 0.45 ? "oxygen falling" : null,
+      scanPulseActive: state.scanner.cooldown > 0,
+    };
+  }
+
   function syncRunContractState(state) {
     state.firstExpedition = buildFirstExpeditionState(state);
     state.disclosure = buildDisclosureState(state);
@@ -2811,6 +3153,7 @@ const IronLanternDescent = (() => {
     };
     state.contextAction = resolveContextAction(state);
     state.hud = buildHudState(state);
+    state.feedback = buildFeedbackState(state);
     return state;
   }
 
@@ -4960,6 +5303,10 @@ const IronLanternDescent = (() => {
       next.mining.lastYield += yieldValue;
       next.cargo.samples += 1;
       next.cargo.value += yieldValue;
+      next.log.unshift({
+        tick: next.tick,
+        message: `${node.name} sample secured: +${yieldValue}cr cargo.`,
+      });
     }
 
     if (node.remaining <= 0) {
@@ -4967,6 +5314,7 @@ const IronLanternDescent = (() => {
       node.mineState.depleted = true;
       node.mineState.progress = 0;
       next.mining.status = "sample secured";
+      next.log.unshift({ tick: next.tick, message: `${node.name} vein depleted.` });
     } else if (next.mining.lastYield > 0) {
       node.mineState.status = "parted";
       next.mining.status = "sample secured";
@@ -5229,7 +5577,18 @@ const IronLanternDescent = (() => {
     const ids = [
       "iron-lantern-descent",
       "iron-lantern-scene",
+      "world-label-layer",
+      "expedition-start",
+      "depth-selector",
+      "start-readiness",
+      "start-reward",
+      "start-route",
+      "begin-descent-action",
       "control-strip",
+      "feedback-rail",
+      "feedback-mining",
+      "feedback-route",
+      "feedback-action",
       "advanced-ledger",
       "run-status",
       "objective-readout",
@@ -5503,6 +5862,141 @@ const IronLanternDescent = (() => {
     );
   }
 
+  function startDepthById(depthId) {
+    return GAME_DATA.expeditionStart.depthChoices.find((depth) => depth.id === depthId) ||
+      GAME_DATA.expeditionStart.depthChoices[0];
+  }
+
+  function renderStartDepth(depthId) {
+    const depth = startDepthById(depthId);
+    if (!depth) {
+      return;
+    }
+    if (dom["start-readiness"]) {
+      dom["start-readiness"].textContent = depth.readiness;
+    }
+    if (dom["start-reward"]) {
+      dom["start-reward"].textContent = depth.reward;
+    }
+    if (dom["start-route"]) {
+      dom["start-route"].textContent = depth.route;
+    }
+    if (dom["depth-selector"]) {
+      dom["depth-selector"].querySelectorAll(".depth-choice").forEach((button) => {
+        button.dataset.selected = String(button.dataset.depth === depth.id);
+      });
+    }
+    if (currentState && currentState.expeditionStart) {
+      currentState.expeditionStart.selectedDepthId = depth.id;
+    }
+  }
+
+  function startSurfaceOpen() {
+    return Boolean(dom["expedition-start"] && !dom["expedition-start"].hidden);
+  }
+
+  function beginDescent() {
+    if (!dom["expedition-start"]) {
+      return;
+    }
+    dom["expedition-start"].hidden = true;
+    if (currentState) {
+      currentState.expeditionStart.status = "descent begun";
+      currentState.log.unshift({ tick: currentState.tick, message: "Begin descent: Iron Lift gate released." });
+      currentState = syncDerivedState(currentState);
+      renderHud(currentState);
+    }
+    lastFrameTime = performance.now();
+    dom.root.focus({ preventScroll: true });
+  }
+
+  function setFeedbackMeter(id, data) {
+    const meter = dom[id];
+    if (!meter || !data) {
+      return;
+    }
+    const label = meter.querySelector("strong");
+    const title = meter.querySelector("span");
+    const progress = Math.round(clamp(data.progress === undefined ? 0 : data.progress, 0, 1) * 100);
+    if (title && data.title) {
+      title.textContent = data.title;
+    }
+    if (label) {
+      label.textContent = data.label;
+    }
+    if (data.tone) {
+      meter.dataset.tone = data.tone;
+    } else {
+      delete meter.dataset.tone;
+    }
+    meter.style.setProperty("--progress", `${progress}%`);
+  }
+
+  function renderFeedback(state) {
+    if (!dom["feedback-rail"]) {
+      return;
+    }
+    const feedback = state.feedback || buildFeedbackState(state);
+    setFeedbackMeter("feedback-mining", {
+      title: "Drill",
+      label: feedback.mining.label,
+      progress: feedback.mining.progress,
+      tone: feedback.mining.tone,
+    });
+    setFeedbackMeter("feedback-route", {
+      title: "Route",
+      label: feedback.route.label,
+      progress: feedback.route.progress,
+      tone: feedback.route.tone,
+    });
+    setFeedbackMeter("feedback-action", {
+      title: feedback.scanPulseActive ? "Scan Pulse" : feedback.oxygenWarning ? "Warning" : "Signal",
+      label: feedback.action.label,
+      progress: feedback.action.progress,
+      tone: feedback.action.tone,
+    });
+  }
+
+  function renderWorldLabels(handle, state) {
+    if (!dom["world-label-layer"] || !handle || !handle.camera || !handle.renderer) {
+      return;
+    }
+    const THREE = handle.THREE;
+    const canvas = handle.renderer.domElement;
+    const width = Math.max(1, canvas.clientWidth);
+    const height = Math.max(1, canvas.clientHeight);
+    const projected = worldLabelDefinitions(state)
+      .filter((label) => label.distance <= 48 || label.priority >= 90)
+      .slice(0, 24)
+      .map((label) => {
+        const point = new THREE.Vector3(label.position.x, label.position.y, label.position.z);
+        point.project(handle.camera);
+        return { label, point };
+      })
+      .filter(({ point }) => point.z >= -1 && point.z <= 1 && point.x >= -1.16 && point.x <= 1.16 && point.y >= -1.12 && point.y <= 1.12)
+      .sort((a, b) => a.label.priority - b.label.priority);
+
+    dom["world-label-layer"].replaceChildren(
+      ...projected.map(({ label, point }) => {
+        const node = document.createElement("div");
+        const eyebrow = document.createElement("span");
+        const value = document.createElement("strong");
+        const marginX = width < 500 ? 72 : 94;
+        const x = clamp(((point.x + 1) / 2) * width, marginX, width - marginX);
+        const y = clamp(((-point.y + 1) / 2) * height, 52, height - 120);
+        node.className = "world-label";
+        node.dataset.kind = label.kind;
+        node.dataset.tone = label.tone;
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+        eyebrow.textContent = label.text;
+        value.textContent = label.detail;
+        node.append(eyebrow, value);
+        return node;
+      })
+    );
+  }
+
   function toggleAdvancedLedger(forceVisible) {
     if (!dom["advanced-ledger"]) {
       return;
@@ -5596,7 +6090,7 @@ const IronLanternDescent = (() => {
     dom["context-action-readout"].textContent = context.prompt;
     dom["context-action-detail"].textContent = contextDetail;
     dom["credits-readout"].textContent = `${state.credits}cr`;
-    dom["lift-readout"].textContent = `${state.route.status} / ${formatBearing(state.lift.bearing)} / ${Math.round(state.lift.distance)}m`;
+    dom["lift-readout"].textContent = `${String(Math.round(state.lift.bearing)).padStart(3, "0")} / ${Math.round(state.lift.distance)}m`;
     dom["route-readout"].textContent = `${state.route.returnConfidence}%`;
     dom["survey-readout"].textContent = surveyTarget;
     dom["stability-readout"].textContent = `${state.routeStability.status} / ${state.routeStability.stability}% / ${state.routeStability.pressure}p`;
@@ -5784,6 +6278,7 @@ const IronLanternDescent = (() => {
       })
     );
     renderControlHints(state);
+    renderFeedback(state);
   }
 
   function controlForCode(code) {
@@ -5792,6 +6287,19 @@ const IronLanternDescent = (() => {
 
   function bindControls() {
     window.addEventListener("keydown", (event) => {
+      if (startSurfaceOpen()) {
+        const target = event.target;
+        if (target && target.closest && target.closest(".expedition-start")) {
+          return;
+        }
+        if (controlForCode(event.code) || event.code === "Enter" || event.code === "Space") {
+          event.preventDefault();
+        }
+        if (event.code === "Enter") {
+          beginDescent();
+        }
+        return;
+      }
       if (event.code === "KeyI") {
         event.preventDefault();
         toggleAdvancedLedger();
@@ -5923,6 +6431,16 @@ const IronLanternDescent = (() => {
       }
     });
 
+    if (dom["depth-selector"]) {
+      dom["depth-selector"].querySelectorAll(".depth-choice").forEach((button) => {
+        button.addEventListener("click", () => {
+          renderStartDepth(button.dataset.depth);
+        });
+      });
+    }
+    if (dom["begin-descent-action"]) {
+      dom["begin-descent-action"].addEventListener("click", beginDescent);
+    }
     dom["context-action"].addEventListener("click", () => {
       currentState = performContextAction(currentState);
       renderHud(currentState);
@@ -7087,6 +7605,7 @@ const IronLanternDescent = (() => {
     handle.camera.position.set(state.camera.position.x, state.camera.position.y, state.camera.position.z);
     handle.camera.lookAt(state.camera.target.x, state.camera.target.y, state.camera.target.z);
     handle.renderer.render(handle.scene, handle.camera);
+    renderWorldLabels(handle, state);
   }
 
   function animationFrame(now) {
@@ -7095,7 +7614,9 @@ const IronLanternDescent = (() => {
     }
     const deltaSeconds = Math.min(0.05, (now - lastFrameTime) / 1000 || 0.016);
     lastFrameTime = now;
-    currentState = stepRun(currentState, pressedControls, deltaSeconds);
+    if (!startSurfaceOpen()) {
+      currentState = stepRun(currentState, pressedControls, deltaSeconds);
+    }
     updateScene(sceneHandle, currentState, now / 1000);
     renderHud(currentState);
     window.requestAnimationFrame(animationFrame);
@@ -7108,6 +7629,10 @@ const IronLanternDescent = (() => {
     }
     currentState = createInitialState();
     bindControls();
+    renderStartDepth(currentState.expeditionStart.selectedDepthId);
+    if (dom["begin-descent-action"]) {
+      dom["begin-descent-action"].focus({ preventScroll: true });
+    }
     if (!window.THREE) {
       currentState.renderer.status = "blocked";
       renderHud(currentState);
@@ -7162,6 +7687,8 @@ const IronLanternDescent = (() => {
     fireLiftBeacon,
     resolveContextAction,
     performContextAction,
+    worldLabelDefinitions,
+    buildFeedbackState,
     mineNearestSample,
     pulseScanner,
     returnToLift,
