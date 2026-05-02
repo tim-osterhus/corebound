@@ -145,25 +145,79 @@ const IronLanternDescent = (() => {
           id: "upper",
           name: "Upper Cut",
           focus: "Copper Iris",
+          description: "A controlled first descent from the Iron Lift to the Copper Iris seam.",
           readiness: "3 lanterns / 96 oxygen / drill ready",
           reward: "32cr Copper Iris sample / first upgrade preview",
           route: "Iron Lift to Copper Iris, lantern return marker advised",
+          character: "Mara Venn",
+          rank: "Lantern Initiate",
+          summaryLoadout: "3 lanterns / drill / oxygen 96",
+          summaryReward: "32cr and tank weave preview",
+          cavernFocus: "Copper Iris route lit from the Iron Lift",
+          rewardCards: [
+            { label: "32cr", value: "Copper Iris" },
+            { label: "Upgrade", value: "Tank weave preview" },
+          ],
+          loadoutCards: [
+            { label: "Lanterns", value: "3 anchors" },
+            { label: "Tool", value: "Drill ready" },
+          ],
+          consumableCards: [
+            { label: "Oxygen", value: "96 tank" },
+            { label: "Signal", value: "Lift marker" },
+          ],
         },
         {
           id: "pumpworks",
           name: "Deep Pumpworks",
           focus: "Flood Line",
+          description: "A lower machinery contract where drainage windows and pressure valves open the safer route.",
           readiness: "siphon charge / lantern anchor / pressure valve",
           reward: "drainage map, pumpworks credits, safer lower route",
           route: "Iron Lift to Lower Pumpworks by marked lantern chain",
+          character: "Mara Venn",
+          rank: "Pumpworks Scout",
+          summaryLoadout: "siphon charge / lantern anchor / valve kit",
+          summaryReward: "drainage map and lower-route credits",
+          cavernFocus: "Flood Line machinery under teal sump light",
+          rewardCards: [
+            { label: "Map", value: "Drainage plate" },
+            { label: "Credits", value: "Pumpworks salvage" },
+          ],
+          loadoutCards: [
+            { label: "Siphon", value: "1 charge" },
+            { label: "Valve", value: "Pressure key" },
+          ],
+          consumableCards: [
+            { label: "Anchor", value: "Lantern chain" },
+            { label: "Sealant", value: "Leak patch" },
+          ],
         },
         {
           id: "relay",
           name: "Echo Relay",
           focus: "Beacon Route",
+          description: "A deep return-route repair through cinder airflow, relay pylons, and lift beacon hardware.",
           readiness: "echo charges / cinder airflow / rescue cache",
           reward: "return-route relief, rescue cache, emergency beacon",
           route: "Cinder shaft to echo pylon and lift beacon station",
+          character: "Mara Venn",
+          rank: "Echo Route Warden",
+          summaryLoadout: "2 echo charges / filter / rescue cache key",
+          summaryReward: "route relief and emergency beacon claim",
+          cavernFocus: "Beacon Route ringing across the blue-black lower cut",
+          rewardCards: [
+            { label: "Route", value: "Return relief" },
+            { label: "Cache", value: "Rescue locker" },
+          ],
+          loadoutCards: [
+            { label: "Echo", value: "2 charges" },
+            { label: "Filter", value: "Cinder airflow" },
+          ],
+          consumableCards: [
+            { label: "Beacon", value: "Lift flare" },
+            { label: "Cable", value: "Relay spool" },
+          ],
         },
       ],
     },
@@ -5587,9 +5641,20 @@ const IronLanternDescent = (() => {
       "world-label-layer",
       "expedition-start",
       "depth-selector",
+      "start-cavern-depth",
+      "start-cavern-focus",
+      "start-depth-name",
+      "start-depth-description",
       "start-readiness",
       "start-reward",
       "start-route",
+      "start-reward-cards",
+      "start-loadout-cards",
+      "start-consumable-cards",
+      "start-character",
+      "start-rank",
+      "start-summary-loadout",
+      "start-summary-reward",
       "begin-descent-action",
       "control-strip",
       "feedback-rail",
@@ -5874,10 +5939,42 @@ const IronLanternDescent = (() => {
       GAME_DATA.expeditionStart.depthChoices[0];
   }
 
+  function renderStartCardList(containerId, cards, cardKind) {
+    const container = dom[containerId];
+    if (!container) {
+      return;
+    }
+    container.replaceChildren(
+      ...(cards || []).map((card) => {
+        const item = document.createElement("article");
+        const label = document.createElement("span");
+        const value = document.createElement("strong");
+        item.className = "start-item-card";
+        item.dataset.card = cardKind;
+        label.textContent = card.label;
+        value.textContent = card.value;
+        item.append(label, value);
+        return item;
+      })
+    );
+  }
+
   function renderStartDepth(depthId) {
     const depth = startDepthById(depthId);
     if (!depth) {
       return;
+    }
+    if (dom["start-cavern-depth"]) {
+      dom["start-cavern-depth"].textContent = depth.name;
+    }
+    if (dom["start-cavern-focus"]) {
+      dom["start-cavern-focus"].textContent = depth.cavernFocus || `${depth.focus} route`;
+    }
+    if (dom["start-depth-name"]) {
+      dom["start-depth-name"].textContent = depth.name;
+    }
+    if (dom["start-depth-description"]) {
+      dom["start-depth-description"].textContent = depth.description;
     }
     if (dom["start-readiness"]) {
       dom["start-readiness"].textContent = depth.readiness;
@@ -5888,9 +5985,26 @@ const IronLanternDescent = (() => {
     if (dom["start-route"]) {
       dom["start-route"].textContent = depth.route;
     }
+    if (dom["start-character"]) {
+      dom["start-character"].textContent = depth.character;
+    }
+    if (dom["start-rank"]) {
+      dom["start-rank"].textContent = depth.rank;
+    }
+    if (dom["start-summary-loadout"]) {
+      dom["start-summary-loadout"].textContent = depth.summaryLoadout;
+    }
+    if (dom["start-summary-reward"]) {
+      dom["start-summary-reward"].textContent = depth.summaryReward;
+    }
+    renderStartCardList("start-reward-cards", depth.rewardCards, "reward");
+    renderStartCardList("start-loadout-cards", depth.loadoutCards, "loadout");
+    renderStartCardList("start-consumable-cards", depth.consumableCards, "consumable");
     if (dom["depth-selector"]) {
       dom["depth-selector"].querySelectorAll(".depth-choice").forEach((button) => {
-        button.dataset.selected = String(button.dataset.depth === depth.id);
+        const selected = button.dataset.depth === depth.id;
+        button.dataset.selected = String(selected);
+        button.setAttribute("aria-pressed", String(selected));
       });
     }
     if (currentState && currentState.expeditionStart) {

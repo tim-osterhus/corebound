@@ -51,13 +51,27 @@ class IronLanternDescentAssetIntegrationTests(unittest.TestCase):
         for token in (
             'class="expedition-start"',
             'aria-label="Expedition start"',
+            'data-start-region="left-depth-cards"',
+            'data-start-region="center-cavern-lantern"',
+            'data-start-region="right-selected-depth"',
+            'data-start-region="bottom-character-loadout"',
             'class="start-art"',
+            'class="hanging-lantern"',
             'src="assets/arcade-title-card.png"',
             'id="depth-selector"',
             'class="depth-choice"',
+            'id="start-depth-name"',
+            'id="start-depth-description"',
             'id="start-readiness"',
             'id="start-reward"',
             'id="start-route"',
+            'id="start-reward-cards"',
+            'id="start-loadout-cards"',
+            'id="start-consumable-cards"',
+            'id="start-character"',
+            'id="start-rank"',
+            'id="start-summary-loadout"',
+            'id="start-summary-reward"',
             'id="begin-descent-action"',
             "Begin Descent",
         ):
@@ -74,8 +88,12 @@ class IronLanternDescentAssetIntegrationTests(unittest.TestCase):
 
         for token in (
             ".expedition-start",
+            ".start-cavern-hero",
             ".start-art img",
             ".start-frame",
+            ".start-detail-panel",
+            ".start-bottom-summary",
+            ".start-item-card[data-card=\"reward\"]",
             ".depth-choice[data-selected=\"true\"]",
             ".begin-descent-action",
             ".world-label-layer",
@@ -87,9 +105,64 @@ class IronLanternDescentAssetIntegrationTests(unittest.TestCase):
             "expeditionStart",
             "depthChoices",
             "renderStartDepth",
+            "renderStartCardList",
             "startSurfaceOpen",
             "beginDescent",
             "Begin descent: Iron Lift gate released.",
+        ):
+            self.assertIn(token, script)
+
+    def test_expedition_start_depth_selection_updates_detail_regions_from_data(self) -> None:
+        script = source_text("iron-lantern-descent.js")
+        depth_choices = json.loads(self.run_node(
+            "game.GAME_DATA.expeditionStart.depthChoices.map((depth) => ({"
+            "id: depth.id,"
+            "description: depth.description,"
+            "readiness: depth.readiness,"
+            "reward: depth.reward,"
+            "route: depth.route,"
+            "character: depth.character,"
+            "rank: depth.rank,"
+            "summaryLoadout: depth.summaryLoadout,"
+            "summaryReward: depth.summaryReward,"
+            "cavernFocus: depth.cavernFocus,"
+            "rewardCards: depth.rewardCards.length,"
+            "loadoutCards: depth.loadoutCards.length,"
+            "consumableCards: depth.consumableCards.length"
+            "}))"
+        ))
+
+        self.assertEqual(["upper", "pumpworks", "relay"], [depth["id"] for depth in depth_choices])
+        for depth in depth_choices:
+            for field in (
+                "description",
+                "readiness",
+                "reward",
+                "route",
+                "character",
+                "rank",
+                "summaryLoadout",
+                "summaryReward",
+                "cavernFocus",
+            ):
+                self.assertTrue(depth[field], f"{depth['id']} missing {field}")
+            self.assertGreaterEqual(depth["rewardCards"], 2)
+            self.assertGreaterEqual(depth["loadoutCards"], 2)
+            self.assertGreaterEqual(depth["consumableCards"], 2)
+
+        for token in (
+            'dom["start-cavern-depth"].textContent = depth.name',
+            'dom["start-cavern-focus"].textContent = depth.cavernFocus ||',
+            'dom["start-depth-name"].textContent = depth.name',
+            'dom["start-depth-description"].textContent = depth.description',
+            'dom["start-character"].textContent = depth.character',
+            'dom["start-rank"].textContent = depth.rank',
+            'dom["start-summary-loadout"].textContent = depth.summaryLoadout',
+            'dom["start-summary-reward"].textContent = depth.summaryReward',
+            'renderStartCardList("start-reward-cards", depth.rewardCards, "reward")',
+            'renderStartCardList("start-loadout-cards", depth.loadoutCards, "loadout")',
+            'renderStartCardList("start-consumable-cards", depth.consumableCards, "consumable")',
+            'button.setAttribute("aria-pressed", String(selected))',
         ):
             self.assertIn(token, script)
 
