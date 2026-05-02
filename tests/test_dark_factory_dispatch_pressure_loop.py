@@ -42,6 +42,46 @@ class DarkFactoryDispatchPressureLoopTests(unittest.TestCase):
         self.assertEqual("active", result["failureNextStatus"])
         self.assertEqual(1, result["runFailedContracts"])
 
+    def test_completed_tutorial_keeps_first_shift_advanced_pressure_pacing(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
+            let state = game.createInitialState({ seed: 611, faultsEnabled: false, tutorialCompleted: true });
+            state = game.stepFactory(state, 4);
+
+            console.log(JSON.stringify({
+              tutorialCompleted: state.tutorial.completed,
+              tick: state.tick,
+              breachStatus: state.breach.status,
+              breachTraceStatus: state.breach.trace.status,
+              freightStatus: state.freight.manifests.find((manifest) => (
+                manifest.id === "ashline-spare-crates"
+              )).status,
+              railStatus: state.railSabotage.incidents.find((incident) => (
+                incident.id === "ashline-rail-spoof"
+              )).status,
+              crisisStatus: state.crisisArbitration.cases.find((caseState) => (
+                caseState.id === "ashline-dock-priority"
+              )).status,
+              advancedLogCount: state.log.filter((entry) => (
+                entry.message.includes("Freight")
+                  || entry.message.includes("Rail")
+                  || entry.message.includes("Breach")
+                  || entry.message.includes("Docket")
+              )).length,
+            }));
+            """
+        )
+
+        self.assertTrue(result["tutorialCompleted"])
+        self.assertEqual(4, result["tick"])
+        self.assertEqual("active", result["breachStatus"])
+        self.assertEqual("active", result["breachTraceStatus"])
+        self.assertEqual("available", result["freightStatus"])
+        self.assertEqual("available", result["railStatus"])
+        self.assertEqual("open", result["crisisStatus"])
+        self.assertGreaterEqual(result["advancedLogCount"], 2)
+
     def test_seeded_fault_blocks_lane_and_requires_recovery_decision(self) -> None:
         result = self.run_node(
             """

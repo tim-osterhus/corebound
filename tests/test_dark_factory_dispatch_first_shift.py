@@ -55,6 +55,119 @@ class DarkFactoryDispatchFirstShiftTests(unittest.TestCase):
         self.assertEqual("v0.5.0 Rail Sabotage", result["preservedRailRelease"])
         self.assertEqual("v0.6.0 Crisis Arbitration", result["preservedCrisisRelease"])
 
+    def test_training_shift_wait_keeps_tutorial_recoverable_and_advanced_systems_idle(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
+            const advancedSnapshot = (state) => ({
+              grid: {
+                pressure: state.grid.pressure,
+                currentLoad: state.grid.currentLoad,
+                auditStatus: state.grid.audit.status,
+                blackoutEvents: state.grid.blackout.events.length,
+              },
+              breach: {
+                status: state.breach.status,
+                intensity: state.breach.intensity,
+                traceStatus: state.breach.trace.status,
+                historyEvents: state.breach.history.length,
+              },
+              freight: state.freight.manifests.map((manifest) => ({
+                id: manifest.id,
+                status: manifest.status,
+                openedAtTick: manifest.openedAtTick,
+                outcome: manifest.outcome,
+                inspectionStatus: manifest.inspection.status,
+              })),
+              rail: state.railSabotage.incidents.map((incident) => ({
+                id: incident.id,
+                status: incident.status,
+                openedAtTick: incident.openedAtTick,
+                outcome: incident.outcome,
+                dockLocked: incident.dock.locked,
+                scanStatus: incident.scan.status,
+              })),
+              crisis: state.crisisArbitration.cases.map((caseState) => ({
+                id: caseState.id,
+                status: caseState.status,
+                openedAtTick: caseState.openedAtTick,
+                outcome: caseState.outcome,
+                dueTick: caseState.dueTick,
+              })),
+            });
+            const advancedLogTerms = [
+              "Grid",
+              "Breach",
+              "Freight",
+              "Rail",
+              "Crisis",
+              "Docket",
+              "Sabotage",
+              "blackout",
+              "manifest",
+              "arbitration",
+            ];
+
+            let state = game.createInitialState({ seed: 1972, faultGraceTicks: 0 });
+            const beforeAdvanced = advancedSnapshot(state);
+            const smeltEntry = state.queue.find((entry) => entry.jobTypeId === "smelt-circuits");
+            state = game.selectJobCard(state, smeltEntry.id);
+            state = game.selectLane(state, "forge-line");
+            state = game.performContextAction(state, "assign");
+            state = game.performContextAction(state, "start");
+            state = game.stepFactory(state, 12);
+            const lane = state.lanes.find((candidate) => candidate.id === "forge-line");
+            const recoverAction = state.contextualActions.find((action) => action.id === "recover");
+            const advancedVisible = {
+              grid: state.disclosure.systems.gridSiege.visible,
+              breach: state.disclosure.systems.signalBreach.visible,
+              freight: state.disclosure.systems.freightLockdown.visible,
+              rail: state.disclosure.systems.railSabotage.visible,
+              crisis: state.disclosure.systems.crisisArbitration.visible,
+            };
+            const advancedLogEntries = state.log
+              .filter((entry) => advancedLogTerms.some((term) => entry.message.includes(term)))
+              .map((entry) => entry.message);
+
+            console.log(JSON.stringify({
+              tick: state.tick,
+              tutorialStatus: state.tutorial.status,
+              tutorialCompleted: state.tutorial.completed,
+              tutorialStep: state.tutorial.stepId,
+              tutorialContractStatus: state.tutorial.contract.status,
+              tutorialTimeRemaining: state.tutorial.contract.timeRemaining,
+              shiftObjectiveTimeRemaining: state.shift.objective.timeRemaining,
+              runStatus: state.run.status,
+              failedContracts: state.run.failedContracts,
+              laneStatus: lane.status,
+              laneFault: lane.fault && lane.fault.id,
+              laneGridLocked: Boolean(lane.gridLock),
+              recoverAvailable: recoverAction && recoverAction.available,
+              beforeAdvanced,
+              afterAdvanced: advancedSnapshot(state),
+              advancedVisible,
+              advancedLogEntries,
+            }));
+            """
+        )
+
+        self.assertEqual(12, result["tick"])
+        self.assertEqual("active", result["tutorialStatus"])
+        self.assertFalse(result["tutorialCompleted"])
+        self.assertEqual("recover-material-jam", result["tutorialStep"])
+        self.assertEqual("active", result["tutorialContractStatus"])
+        self.assertEqual(12, result["tutorialTimeRemaining"])
+        self.assertEqual(12, result["shiftObjectiveTimeRemaining"])
+        self.assertEqual("active", result["runStatus"])
+        self.assertEqual(0, result["failedContracts"])
+        self.assertEqual("blocked", result["laneStatus"])
+        self.assertEqual("material-jam", result["laneFault"])
+        self.assertFalse(result["laneGridLocked"])
+        self.assertTrue(result["recoverAvailable"])
+        self.assertEqual(result["beforeAdvanced"], result["afterAdvanced"])
+        self.assertTrue(all(visible is False for visible in result["advancedVisible"].values()))
+        self.assertEqual([], result["advancedLogEntries"])
+
     def test_click_first_training_shift_reaches_recovery_contract_and_summary(self) -> None:
         result = self.run_node(
             """
