@@ -1,19 +1,25 @@
 {
   "schema_version": 1,
-  "generatedAt": "2026-05-02T20:49:41.465Z",
-  "baseUrl": "http://127.0.0.1:8775/",
+  "generatedAt": "2026-05-02T22:45:31.594Z",
+  "baseUrl": "http://127.0.0.1:8784/",
   "game": "iron-lantern-descent",
   "version": "0.5.0",
   "release": "v0.5.0 Cave Readability Repair",
   "screenshots": {
     "arcadeDesktop": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-arcade-desktop.png",
     "arcadeNarrow": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-arcade-narrow.png",
+    "startLayout": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-start-layout.png",
     "selectionSurface": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-selection-surface.png",
     "freshLiftScene": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-fresh-lift-scene.png",
+    "pauseHelpOverlay": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-pause-help-overlay.png",
+    "reducedMotion": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-reduced-motion.png",
+    "restartConfirmation": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-restart-confirmation.png",
+    "desktopActiveNoScroll": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-desktop-active-no-scroll.png",
     "lanternPlacement": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-lantern-placement.png",
     "mining": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-mining.png",
     "returnBanking": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-return-banking.png",
     "advancedLedger": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-advanced-ledger.png",
+    "narrowActiveNoScroll": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-narrow-active-no-scroll.png",
     "narrowSmoke": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-narrow.png",
     "snapshot050": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/iron-lantern-descent-assets/browser-smoke-v0-5-snapshot.png"
   },
@@ -32,7 +38,15 @@
       "releaseLabel": "v0.5.0 Cave Readability Repair",
       "copyIncludesRepair": true,
       "copyIncludesCopperIris": true,
-      "copyIncludesAdvancedLedgers": true
+      "copyIncludesAdvancedLedgers": true,
+      "overflow": {
+        "width": 1280,
+        "height": 800,
+        "scrollWidth": 1280,
+        "scrollHeight": 2914,
+        "overflowingX": false,
+        "overflowingY": true
+      }
     },
     "narrow": {
       "title": "Millrace Arcade",
@@ -48,21 +62,70 @@
       "releaseLabel": "v0.5.0 Cave Readability Repair",
       "copyIncludesRepair": true,
       "copyIncludesCopperIris": true,
-      "copyIncludesAdvancedLedgers": true
+      "copyIncludesAdvancedLedgers": true,
+      "overflow": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 6988,
+        "overflowingX": false,
+        "overflowingY": true
+      }
     }
   },
   "direct": {
+    "startLayout": {
+      "visible": true,
+      "surface": "expedition-start",
+      "regions": [
+        "left-depth-cards",
+        "center-cavern-lantern",
+        "right-selected-depth",
+        "bottom-character-loadout"
+      ],
+      "depthCardCount": 3,
+      "selectedDepth": "Upper Cut",
+      "heroFocus": "Copper Iris route lit from the Iron Lift",
+      "readiness": "3 lanterns / 96 oxygen / drill ready",
+      "reward": "32cr Copper Iris sample / first upgrade preview",
+      "route": "Iron Lift to Copper Iris, lantern return marker advised",
+      "rewardCards": 2,
+      "loadoutCards": 2,
+      "consumableCards": 2,
+      "bottomSummary": [
+        "Mara Venn",
+        "Lantern Initiate",
+        "3 lanterns / drill / oxygen 96",
+        "32cr and tank weave preview"
+      ],
+      "beginVisible": true,
+      "canvas": {
+        "width": 1280,
+        "height": 800,
+        "nonDark": 136795,
+        "bright": 59868
+      },
+      "overflow": {
+        "width": 1280,
+        "height": 800,
+        "scrollWidth": 1280,
+        "scrollHeight": 800,
+        "overflowingX": false,
+        "overflowingY": false
+      }
+    },
     "selectionSurface": {
       "title": "Iron Lantern Descent",
       "visible": true,
-      "heading": "Iron Lantern Descent",
-      "selectedDepth": "Copper Iris",
+      "selectedDepth": "Upper Cut",
       "readiness": "3 lanterns / 96 oxygen / drill ready",
       "reward": "32cr Copper Iris sample / first upgrade preview",
       "route": "Iron Lift to Copper Iris, lantern return marker advised",
       "beginVisible": true,
       "canvas": {
-        "nonDark": 136796,
+        "width": 1280,
+        "height": 800,
+        "nonDark": 136793,
         "bright": 59868
       }
     },
@@ -70,20 +133,100 @@
       "title": "Iron Lantern Descent",
       "renderer": "active / local renderer + assets",
       "eyebrow": "v0.5.0 cave readability repair",
-      "objective": "Move toward Copper Iris.",
+      "objective": "Collect Copper Iris and return to the Iron Lift.",
       "contextAction": "Move Toward Copper Iris",
       "hudCardCount": 6,
       "controlHintCount": 4,
-      "worldLabels": [
-        "Gas Vent hazard edge",
-        "Cinder Rib Fault sample route survey",
-        "Iron Bloom 1 sample / 44cr",
-        "Copper Iris ready sample vein",
-        "Current Target Copper Iris"
+      "controlHints": [
+        "W/S move",
+        "A/D look",
+        "F context",
+        "L lantern"
       ],
+      "advancedLedgerVisible": false,
       "canvas": {
+        "width": 1280,
+        "height": 800,
         "nonDark": 136793,
         "bright": 59868
+      },
+      "overflow": {
+        "width": 1280,
+        "height": 800,
+        "scrollWidth": 1280,
+        "scrollHeight": 800,
+        "overflowingX": false,
+        "overflowingY": false
+      }
+    },
+    "pauseHelpOverlay": {
+      "visible": true,
+      "advancedLedgerVisible": false,
+      "restartConfirmation": "closed",
+      "objective": "Collect Copper Iris and return to the Iron Lift.",
+      "contextAction": "Move Toward Copper Iris",
+      "controlHints": [
+        "W/S move",
+        "A/D look",
+        "F context",
+        "L lantern",
+        "Esc pause",
+        "R restart"
+      ],
+      "motionToggleText": "Reduced Motion Off",
+      "motionTogglePressed": "false",
+      "hasResume": true,
+      "hasRestart": true,
+      "hasReturn": true
+    },
+    "reducedMotion": {
+      "surface": "descent",
+      "rootMotion": "reduced",
+      "dataReducedMotion": "true",
+      "toggleText": "Reduced Motion On",
+      "togglePressed": "true",
+      "status": "stage reduced motion",
+      "motionSettings": {
+        "full": {
+          "pulseAmount": 1,
+          "rangeScaleMultiplier": 1,
+          "rotationMultiplier": 1,
+          "scannerExpandRate": 3.8
+        },
+        "reduced": {
+          "pulseAmount": 0,
+          "rangeScaleMultiplier": 0.35,
+          "rotationMultiplier": 0,
+          "scannerExpandRate": 0.75
+        }
+      }
+    },
+    "restartConfirmation": {
+      "visible": true,
+      "state": "open",
+      "title": "Confirm restart",
+      "copy": "Restarting clears this descent but keeps accepted carryover.",
+      "cancelLabel": "Cancel",
+      "confirmLabel": "Confirm Restart"
+    },
+    "restartInteraction": {
+      "keyROpensConfirmation": true,
+      "statusBeforeCancel": "active / run 1",
+      "statusAfterCancel": "active / run 1",
+      "cancelPreservesRunStatus": true,
+      "confirmationClosedAfterCancel": true,
+      "confirmResetsRun": true,
+      "statusAfterConfirm": "active / run 2"
+    },
+    "desktopActiveNoScroll": {
+      "surface": "descent",
+      "overflow": {
+        "width": 1280,
+        "height": 800,
+        "scrollWidth": 1280,
+        "scrollHeight": 800,
+        "overflowingX": false,
+        "overflowingY": false
       }
     },
     "visualStates": {
@@ -101,6 +244,8 @@
         },
         "feedbackRoute": "anchor safe / 82%",
         "canvas": {
+          "width": 1280,
+          "height": 800,
           "nonDark": 103520,
           "bright": 22662
         }
@@ -114,8 +259,18 @@
             "capacity": 4
           }
         },
-        "feedbackMining": "Copper Iris depleted",
+        "feedbackMining": "Iron Bloom ready",
+        "feedbackAction": "Copper Iris vein depleted.",
+        "sampleSummary": [
+          {
+            "name": "Copper Iris",
+            "remaining": 0,
+            "status": "depleted"
+          }
+        ],
         "canvas": {
+          "width": 1280,
+          "height": 800,
           "nonDark": 113826,
           "bright": 26402
         }
@@ -133,6 +288,8 @@
         },
         "feedbackAction": "Lift banked 1 sample(s), 0 map, and 32cr.",
         "canvas": {
+          "width": 1280,
+          "height": 800,
           "nonDark": 139701,
           "bright": 63382
         }
@@ -141,8 +298,9 @@
     "advancedLedger": {
       "visible": true,
       "rootEvidenceState": "advancedLedger",
-      "ledgerTitle": "Iron Bloom",
       "canvas": {
+        "width": 1280,
+        "height": 800,
         "nonDark": 139701,
         "bright": 63382
       }
@@ -151,25 +309,59 @@
       "title": "Iron Lantern Descent",
       "renderer": "active / local renderer + assets",
       "eyebrow": "v0.5.0 cave readability repair",
-      "objective": "Move toward Copper Iris.",
+      "objective": "Collect Copper Iris and return to the Iron Lift.",
       "contextAction": "Move Toward Copper Iris",
       "hudCardCount": 6,
       "controlHintCount": 4,
       "canvas": {
+        "width": 390,
+        "height": 844,
         "nonDark": 114737,
         "bright": 53220
+      },
+      "overflow": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 844,
+        "overflowingX": false,
+        "overflowingY": false
+      }
+    },
+    "narrowActiveNoScroll": {
+      "surface": "descent",
+      "overflow": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "scrollHeight": 844,
+        "overflowingX": false,
+        "overflowingY": false
       }
     },
     "snapshot050": {
       "title": "Iron Lantern Descent",
       "eyebrow": "v0.5.0 cave readability repair",
       "hasEvidenceHook": true,
+      "hasPauseHelp": true,
+      "hasReducedMotionToggle": true,
+      "hasRestartConfirmation": true,
       "hasNestedVersionsText": false,
       "faviconHref": "../../../../favicon.png",
       "backlinkHref": "../../../../",
       "canvas": {
-        "nonDark": 136792,
+        "width": 1280,
+        "height": 800,
+        "nonDark": 136794,
         "bright": 59868
+      },
+      "overflow": {
+        "width": 1280,
+        "height": 800,
+        "scrollWidth": 1280,
+        "scrollHeight": 800,
+        "overflowingX": false,
+        "overflowingY": false
       }
     }
   },
@@ -177,8 +369,14 @@
   "checks": {
     "arcadeDesktop": true,
     "arcadeNarrow": true,
+    "startLayout": true,
     "selectionSurface": true,
     "freshLiftScene": true,
+    "pauseHelpOverlay": true,
+    "reducedMotion": true,
+    "restartConfirmation": true,
+    "desktopActiveNoScroll": true,
+    "narrowActiveNoScroll": true,
     "lanternPlacement": true,
     "mining": true,
     "returnBanking": true,
@@ -190,5 +388,5 @@
     "consoleClean": true
   },
   "ok": true,
-  "notes": "Browser smoke used a local static server, Playwright screenshots, and the page-local IronLanternDescent API to capture descent selection, fresh lift scene, lantern placement, mining, return-to-lift banking, advanced ledger disclosure, narrow layout, and v0.5.0 snapshot continuity."
+  "notes": "Browser smoke used a local static server, Playwright screenshots, and the page-local IronLanternDescent API to capture the remediated start layout, pause/help overlay, reduced-motion state, restart confirmation, desktop and narrow active-play no-scroll states, accepted v0.5.0 gameplay states, console cleanliness, and v0.5.0 snapshot continuity."
 }

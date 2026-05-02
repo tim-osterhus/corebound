@@ -52,6 +52,9 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         self.assertEqual(game["release"]["label"], version["label"])
         self.assertIn("Copper Iris first-expedition onboarding", version["summary"])
         self.assertIn("hidden advanced ledgers", version["summary"])
+        self.assertIn("pause/help controls", version["summary"])
+        self.assertIn("reduced-motion handling", version["summary"])
+        self.assertIn("restart confirmation", version["summary"])
         self.assertNotIn("commit", version)
         self.assertTrue((ROOT / version["path"]).is_dir())
 
@@ -162,6 +165,11 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         self.assertIn("v0.4.0 Echo Relay Network", live_script)
         self.assertIn("v0.4.0 Echo Relay Network", snapshot_script)
         self.assertIn("stageEvidenceState", snapshot_script)
+        self.assertIn("pause-help-overlay", snapshot_html)
+        self.assertIn("reduced-motion-toggle", snapshot_html)
+        self.assertIn("restart-confirmation", snapshot_html)
+        self.assertIn("requestRestartConfirmation", snapshot_script)
+        self.assertIn("resolveReducedMotionPreference", snapshot_script)
         self.assertIn("v0.3.0 Cinder Vent Network", live_script)
         self.assertIn("v0.3.0 Cinder Vent Network", snapshot_script)
         self.assertIn("v0.2.0 Deep Pumpworks", live_script)
@@ -205,8 +213,14 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         self.assertEqual([], report["consoleErrors"])
         self.assertTrue(report["checks"]["arcadeDesktop"])
         self.assertTrue(report["checks"]["arcadeNarrow"])
+        self.assertTrue(report["checks"]["startLayout"])
         self.assertTrue(report["checks"]["selectionSurface"])
         self.assertTrue(report["checks"]["freshLiftScene"])
+        self.assertTrue(report["checks"]["pauseHelpOverlay"])
+        self.assertTrue(report["checks"]["reducedMotion"])
+        self.assertTrue(report["checks"]["restartConfirmation"])
+        self.assertTrue(report["checks"]["desktopActiveNoScroll"])
+        self.assertTrue(report["checks"]["narrowActiveNoScroll"])
         self.assertTrue(report["checks"]["lanternPlacement"])
         self.assertTrue(report["checks"]["mining"])
         self.assertTrue(report["checks"]["returnBanking"])
@@ -222,30 +236,79 @@ class IronLanternDescentReleaseContinuityTests(unittest.TestCase):
         self.assertTrue(report["arcade"]["desktop"]["hasSnapshot040"])
         self.assertTrue(report["arcade"]["desktop"]["hasSnapshot030"])
         self.assertTrue(report["arcade"]["desktop"]["hasSnapshot020"])
+        self.assertEqual(
+            [
+                "left-depth-cards",
+                "center-cavern-lantern",
+                "right-selected-depth",
+                "bottom-character-loadout",
+            ],
+            report["direct"]["startLayout"]["regions"],
+        )
+        self.assertGreaterEqual(report["direct"]["startLayout"]["rewardCards"], 2)
+        self.assertGreaterEqual(report["direct"]["startLayout"]["loadoutCards"], 2)
+        self.assertGreaterEqual(report["direct"]["startLayout"]["consumableCards"], 2)
+        self.assertTrue(report["direct"]["startLayout"]["beginVisible"])
         self.assertIn("Copper Iris", report["direct"]["selectionSurface"]["route"])
         self.assertIn("Move Toward Copper Iris", report["direct"]["freshLiftScene"]["contextAction"])
         self.assertLessEqual(report["direct"]["freshLiftScene"]["hudCardCount"], 6)
         self.assertLessEqual(report["direct"]["freshLiftScene"]["controlHintCount"], 4)
+        self.assertTrue(report["direct"]["pauseHelpOverlay"]["visible"])
+        self.assertFalse(report["direct"]["pauseHelpOverlay"]["advancedLedgerVisible"])
+        self.assertIn("Move Toward Copper Iris", report["direct"]["pauseHelpOverlay"]["contextAction"])
+        self.assertIn("Esc pause", report["direct"]["pauseHelpOverlay"]["controlHints"])
+        self.assertEqual("reduced", report["direct"]["reducedMotion"]["rootMotion"])
+        self.assertEqual("true", report["direct"]["reducedMotion"]["dataReducedMotion"])
+        self.assertEqual("true", report["direct"]["reducedMotion"]["togglePressed"])
+        self.assertLess(
+            report["direct"]["reducedMotion"]["motionSettings"]["reduced"]["scannerExpandRate"],
+            report["direct"]["reducedMotion"]["motionSettings"]["full"]["scannerExpandRate"],
+        )
+        self.assertTrue(report["direct"]["restartConfirmation"]["visible"])
+        self.assertEqual("open", report["direct"]["restartConfirmation"]["state"])
+        self.assertTrue(report["direct"]["restartInteraction"]["keyROpensConfirmation"])
+        self.assertTrue(report["direct"]["restartInteraction"]["cancelPreservesRunStatus"])
+        self.assertTrue(report["direct"]["restartInteraction"]["confirmResetsRun"])
+        self.assertFalse(report["direct"]["desktopActiveNoScroll"]["overflow"]["overflowingX"])
+        self.assertFalse(report["direct"]["desktopActiveNoScroll"]["overflow"]["overflowingY"])
+        self.assertFalse(report["direct"]["narrowActiveNoScroll"]["overflow"]["overflowingX"])
+        self.assertFalse(report["direct"]["narrowActiveNoScroll"]["overflow"]["overflowingY"])
         self.assertEqual(1, report["direct"]["visualStates"]["lanternPlacement"]["state"]["lanterns"]["anchors"])
         self.assertGreater(report["direct"]["visualStates"]["mining"]["state"]["cargo"]["samples"], 0)
+        self.assertIn("Copper Iris", report["direct"]["visualStates"]["mining"]["feedbackAction"])
         self.assertEqual("extracted", report["direct"]["visualStates"]["returnBanking"]["runStatus"])
         self.assertEqual("summary-upgrade-preview", report["direct"]["visualStates"]["returnBanking"]["state"]["phase"])
         self.assertTrue(report["direct"]["advancedLedger"]["visible"])
         self.assertGreater(report["direct"]["freshLiftScene"]["canvas"]["nonDark"], 0)
         self.assertGreater(report["direct"]["narrow"]["canvas"]["nonDark"], 0)
+        self.assertTrue(report["direct"]["snapshot050"]["hasPauseHelp"])
+        self.assertTrue(report["direct"]["snapshot050"]["hasReducedMotionToggle"])
+        self.assertTrue(report["direct"]["snapshot050"]["hasRestartConfirmation"])
 
         for key in (
+            "startLayout",
             "selectionSurface",
             "freshLiftScene",
+            "pauseHelpOverlay",
+            "reducedMotion",
+            "restartConfirmation",
+            "desktopActiveNoScroll",
             "lanternPlacement",
             "mining",
             "returnBanking",
             "advancedLedger",
+            "narrowActiveNoScroll",
             "narrowSmoke",
+            "snapshot050",
         ):
             screenshot = Path(report["screenshots"][key])
             self.assertTrue(screenshot.is_file(), key)
             self.assertGreater(screenshot.stat().st_size, 0, key)
+            self.assertEqual(".png", screenshot.suffix, key)
+            self.assertTrue(
+                str(screenshot).startswith(str(ROOT / "_visual-check" / "iron-lantern-descent-assets")),
+                str(screenshot),
+            )
 
 
 if __name__ == "__main__":

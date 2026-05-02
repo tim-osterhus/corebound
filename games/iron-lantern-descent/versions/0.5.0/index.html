@@ -9,32 +9,53 @@
   <link rel="stylesheet" href="iron-lantern-descent.css" />
 </head>
 <body>
-  <main class="lantern-shell" id="iron-lantern-descent" tabindex="-1">
+  <main class="lantern-shell" id="iron-lantern-descent" tabindex="-1" data-motion="full" data-reduced-motion="false">
     <canvas id="iron-lantern-scene" class="scene-canvas" aria-label="Iron Lantern Descent 3D cave scene"></canvas>
     <div class="scene-vignette" aria-hidden="true"></div>
     <div class="world-label-layer" id="world-label-layer" aria-hidden="true"></div>
 
     <section class="expedition-start" id="expedition-start" aria-label="Expedition start">
-      <div class="start-art" aria-hidden="true">
-        <img src="assets/arcade-title-card.png" alt="" />
-      </div>
-      <div class="start-frame">
+      <aside class="start-depth-rail start-frame" data-start-region="left-depth-cards" aria-label="Selectable depth cards">
         <span class="eyebrow">Iron Lantern expedition board</span>
-        <h2>Iron Lantern Descent</h2>
+        <h2>Depth Board</h2>
         <div class="depth-selector" id="depth-selector" aria-label="Depth choices">
-          <button type="button" class="depth-choice" data-depth="upper" data-selected="true">
+          <button type="button" class="depth-choice" data-depth="upper" data-selected="true" aria-pressed="true">
             <span>Upper Cut</span>
             <strong>Copper Iris</strong>
+            <small>First descent / lantern route</small>
           </button>
-          <button type="button" class="depth-choice" data-depth="pumpworks">
+          <button type="button" class="depth-choice" data-depth="pumpworks" aria-pressed="false">
             <span>Deep Pumpworks</span>
             <strong>Flood Line</strong>
+            <small>Drainage contract / pressure gates</small>
           </button>
-          <button type="button" class="depth-choice" data-depth="relay">
+          <button type="button" class="depth-choice" data-depth="relay" aria-pressed="false">
             <span>Echo Relay</span>
             <strong>Beacon Route</strong>
+            <small>Cinder shaft / return signal</small>
           </button>
         </div>
+      </aside>
+
+      <div class="start-cavern-hero" data-start-region="center-cavern-lantern" aria-label="Cavern and hanging lantern preview">
+        <div class="start-art" aria-hidden="true">
+          <img src="assets/arcade-title-card.png" alt="" />
+          <div class="hanging-lantern">
+            <span class="lantern-chain"></span>
+            <span class="lantern-housing"></span>
+            <span class="lantern-glow"></span>
+          </div>
+        </div>
+        <div class="start-hero-caption">
+          <span id="start-cavern-depth">Upper Cut</span>
+          <strong id="start-cavern-focus">Copper Iris route lit from the Iron Lift</strong>
+        </div>
+      </div>
+
+      <aside class="start-detail-panel start-frame" data-start-region="right-selected-depth" aria-live="polite" aria-label="Selected depth details">
+        <span class="eyebrow">Selected depth</span>
+        <h2 id="start-depth-name">Upper Cut</h2>
+        <p id="start-depth-description">A controlled first descent from the Iron Lift to the Copper Iris seam.</p>
         <dl class="start-readiness">
           <div>
             <dt>Readiness</dt>
@@ -49,7 +70,52 @@
             <dd id="start-route">Iron Lift to Copper Iris, lantern return marker advised</dd>
           </div>
         </dl>
+        <div class="start-card-groups" aria-label="Selected depth loadout cards">
+          <div class="start-card-group">
+            <span>Rewards</span>
+            <div class="start-card-list" id="start-reward-cards" data-card-kind="reward">
+              <article class="start-item-card" data-card="reward"><span>32cr</span><strong>Copper Iris</strong></article>
+              <article class="start-item-card" data-card="reward"><span>Upgrade</span><strong>Tank weave preview</strong></article>
+            </div>
+          </div>
+          <div class="start-card-group">
+            <span>Loadout</span>
+            <div class="start-card-list" id="start-loadout-cards" data-card-kind="loadout">
+              <article class="start-item-card" data-card="loadout"><span>Lanterns</span><strong>3 anchors</strong></article>
+              <article class="start-item-card" data-card="loadout"><span>Tool</span><strong>Drill ready</strong></article>
+            </div>
+          </div>
+          <div class="start-card-group">
+            <span>Consumables</span>
+            <div class="start-card-list" id="start-consumable-cards" data-card-kind="consumable">
+              <article class="start-item-card" data-card="consumable"><span>Oxygen</span><strong>96 tank</strong></article>
+              <article class="start-item-card" data-card="consumable"><span>Signal</span><strong>Lift marker</strong></article>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="start-bottom-summary start-frame" data-start-region="bottom-character-loadout" aria-label="Character rank and loadout summary">
+        <div class="start-summary-grid">
+          <div>
+            <span>Operator</span>
+            <strong id="start-character">Mara Venn</strong>
+          </div>
+          <div>
+            <span>Rank</span>
+            <strong id="start-rank">Lantern Initiate</strong>
+          </div>
+          <div>
+            <span>Loadout</span>
+            <strong id="start-summary-loadout">3 lanterns / drill / oxygen 96</strong>
+          </div>
+          <div>
+            <span>Expected return</span>
+            <strong id="start-summary-reward">32cr and tank weave preview</strong>
+          </div>
+        </div>
         <button type="button" class="begin-descent-action" id="begin-descent-action">Begin Descent</button>
+        <span class="start-scroll-pad" aria-hidden="true"></span>
       </div>
     </section>
 
@@ -219,6 +285,53 @@
         <button type="button" id="lift-action">Lift</button>
         <button type="button" id="upgrade-action">Upgrade</button>
         <button type="button" id="restart-action">Restart</button>
+      </div>
+    </aside>
+
+    <aside class="pause-help-overlay" id="pause-help-overlay" role="dialog" aria-modal="true" aria-label="Pause and help" tabindex="-1" hidden data-restart-confirmation="closed">
+      <div class="pause-help-panel">
+        <div class="pause-help-head">
+          <span>Pause</span>
+          <strong>Descent Controls</strong>
+        </div>
+        <div class="pause-help-grid" aria-label="Current run help">
+          <article class="pause-help-readout" data-pause-card="objective">
+            <span>Objective</span>
+            <strong id="pause-objective-readout">Descend, mark the route, sample ore, return to the lift.</strong>
+          </article>
+          <article class="pause-help-readout" data-pause-card="context">
+            <span>Context</span>
+            <strong id="pause-context-readout">Move Toward Copper Iris</strong>
+            <small id="pause-context-detail">F or Enter</small>
+          </article>
+          <article class="pause-help-readout" data-pause-card="controls">
+            <span>Active Controls</span>
+            <div class="pause-control-list" id="pause-control-list" aria-label="Active control hints">
+              <span>W/S move</span>
+              <span>A/D look</span>
+              <span>F context</span>
+              <span>L lantern</span>
+            </div>
+          </article>
+          <article class="pause-help-readout" data-pause-card="motion">
+            <span>Motion</span>
+            <button type="button" id="reduced-motion-toggle" aria-pressed="false">Reduced Motion Off</button>
+            <small id="reduced-motion-status">default full motion</small>
+          </article>
+        </div>
+        <div class="pause-actions" aria-label="Pause actions">
+          <button type="button" id="resume-action">Resume</button>
+          <button type="button" id="pause-restart-action">Restart Run</button>
+          <button type="button" id="pause-return-action">Return To Lift</button>
+        </div>
+        <div class="restart-confirmation" id="restart-confirmation" hidden data-confirmation-state="closed">
+          <strong id="restart-confirmation-title">Confirm restart</strong>
+          <p id="restart-confirmation-copy">Restarting clears this descent but keeps accepted carryover.</p>
+          <div class="restart-confirmation-actions">
+            <button type="button" id="cancel-restart-action">Cancel</button>
+            <button type="button" id="confirm-restart-action">Confirm Restart</button>
+          </div>
+        </div>
       </div>
     </aside>
 
