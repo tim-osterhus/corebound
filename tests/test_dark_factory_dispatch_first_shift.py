@@ -221,7 +221,12 @@ class DarkFactoryDispatchFirstShiftTests(unittest.TestCase):
               tutorialCompleted: state.tutorial.completed,
               tutorialContractStatus: state.tutorial.contract.status,
               shiftStatus: state.shift.status,
+              shiftObjectiveName: state.shift.objective.name,
               summaryOpen: Boolean(state.shift.summary),
+              summaryProducedCircuits: state.shift.summary && state.shift.summary.produced.circuits,
+              summaryResourceChangeRep: state.shift.summary && state.shift.summary.resourceChanges.reputation,
+              summaryIncidentStatus: state.shift.summary && state.shift.summary.incident.status,
+              summaryNextShift: state.shift.summary && state.shift.summary.nextShiftPreview.shift,
               upgradeChoiceStatus: state.shift.upgradeChoice.status,
               contextualActionIds: state.contextualActions.map((action) => action.id),
             }));
@@ -247,9 +252,190 @@ class DarkFactoryDispatchFirstShiftTests(unittest.TestCase):
         self.assertTrue(result["tutorialCompleted"])
         self.assertEqual("complete", result["tutorialContractStatus"])
         self.assertEqual("summary", result["shiftStatus"])
+        self.assertEqual("Training Shift", result["shiftObjectiveName"])
         self.assertTrue(result["summaryOpen"])
+        self.assertEqual(3, result["summaryProducedCircuits"])
+        self.assertEqual(1, result["summaryResourceChangeRep"])
+        self.assertEqual("resolved", result["summaryIncidentStatus"])
+        self.assertEqual(2, result["summaryNextShift"])
         self.assertEqual("available", result["upgradeChoiceStatus"])
-        self.assertEqual([], result["contextualActionIds"])
+        self.assertEqual(["start-next-shift"], result["contextualActionIds"])
+
+    def test_training_shift_summary_hold_blocks_advanced_pressure_until_handoff(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
+            const advancedSnapshot = (state) => ({
+              grid: {
+                pressure: state.grid.pressure,
+                currentLoad: state.grid.currentLoad,
+                auditStatus: state.grid.audit.status,
+                blackoutEvents: state.grid.blackout.events.length,
+              },
+              breach: {
+                status: state.breach.status,
+                intensity: state.breach.intensity,
+                traceStatus: state.breach.trace.status,
+                historyEvents: state.breach.history.length,
+              },
+              freight: state.freight.manifests.map((manifest) => ({
+                id: manifest.id,
+                status: manifest.status,
+                openedAtTick: manifest.openedAtTick,
+                outcome: manifest.outcome,
+                inspectionStatus: manifest.inspection.status,
+              })),
+              rail: state.railSabotage.incidents.map((incident) => ({
+                id: incident.id,
+                status: incident.status,
+                openedAtTick: incident.openedAtTick,
+                outcome: incident.outcome,
+                dockLocked: incident.dock.locked,
+                scanStatus: incident.scan.status,
+              })),
+              crisis: state.crisisArbitration.cases.map((caseState) => ({
+                id: caseState.id,
+                status: caseState.status,
+                openedAtTick: caseState.openedAtTick,
+                outcome: caseState.outcome,
+                dueTick: caseState.dueTick,
+              })),
+            });
+            const factoryRating = (state) => {
+              const activeFaults = state.lanes.filter((lane) => lane.fault || lane.status === "locked").length;
+              return Math.max(0, Math.min(99, state.resources.stability - activeFaults * 6 + state.resources.reputation * 3));
+            };
+            const advancedLogTerms = [
+              "Grid",
+              "Breach",
+              "Freight",
+              "Rail",
+              "Crisis",
+              "Docket",
+              "Sabotage",
+              "blackout",
+              "manifest",
+              "arbitration",
+            ];
+
+            let state = game.createInitialState({ seed: 1972, faultGraceTicks: 0 });
+            const smeltEntry = state.queue.find((entry) => entry.jobTypeId === "smelt-circuits");
+            state = game.selectJobCard(state, smeltEntry.id);
+            state = game.selectLane(state, "forge-line");
+            state = game.performContextAction(state, "assign");
+            state = game.performContextAction(state, "start");
+            state = game.stepFactory(state, 1);
+            state = game.performContextAction(state, "recover");
+            state = game.stepFactory(state, state.lanes.find((lane) => lane.id === "forge-line").recoveryRemaining);
+            state = game.performContextAction(state, "start");
+            state = game.stepFactory(state, state.lanes.find((lane) => lane.id === "forge-line").currentJob.remaining);
+
+            const holdOpen = {
+              tick: state.tick,
+              objectiveName: state.shift.objective.name,
+              objectiveStatus: state.shift.objective.status,
+              objectiveTimeRemaining: state.shift.objective.timeRemaining,
+              summaryStatus: state.shift.summary.status,
+              summaryProduced: state.shift.summary.produced,
+              summaryResources: state.shift.summary.resources,
+              summaryResourceChanges: state.shift.summary.resourceChanges,
+              summaryIncident: state.shift.summary.incident,
+              summaryNextShift: state.shift.summary.nextShiftPreview,
+              handoffAction: state.contextualActions.find((action) => action.id === "start-next-shift"),
+              advanced: advancedSnapshot(state),
+              rating: factoryRating(state),
+              laneGridLock: Boolean(state.lanes.find((lane) => lane.id === "forge-line").gridLock),
+              contractStatuses: state.contracts.map((contract) => ({
+                id: contract.id,
+                status: contract.status,
+                timeRemaining: contract.timeRemaining,
+              })),
+            };
+
+            state = game.stepFactory(state, 15);
+            const holdAfterWait = {
+              tick: state.tick,
+              objectiveName: state.shift.objective.name,
+              objectiveStatus: state.shift.objective.status,
+              objectiveTimeRemaining: state.shift.objective.timeRemaining,
+              summaryStatus: state.shift.summary.status,
+              summaryProduced: state.shift.summary.produced,
+              summaryResources: state.shift.summary.resources,
+              summaryResourceChanges: state.shift.summary.resourceChanges,
+              summaryIncident: state.shift.summary.incident,
+              advanced: advancedSnapshot(state),
+              rating: factoryRating(state),
+              laneGridLock: Boolean(state.lanes.find((lane) => lane.id === "forge-line").gridLock),
+              contractStatuses: state.contracts.map((contract) => ({
+                id: contract.id,
+                status: contract.status,
+                timeRemaining: contract.timeRemaining,
+              })),
+              advancedVisible: {
+                grid: state.disclosure.systems.gridSiege.visible,
+                breach: state.disclosure.systems.signalBreach.visible,
+                freight: state.disclosure.systems.freightLockdown.visible,
+                rail: state.disclosure.systems.railSabotage.visible,
+                crisis: state.disclosure.systems.crisisArbitration.visible,
+              },
+              advancedLogEntries: state.log
+                .filter((entry) => advancedLogTerms.some((term) => entry.message.includes(term)))
+                .map((entry) => entry.message),
+              handoffAction: state.contextualActions.find((action) => action.id === "start-next-shift"),
+            };
+
+            const nextShift = game.performContextAction(state, "start-next-shift");
+
+            console.log(JSON.stringify({
+              holdOpen,
+              holdAfterWait,
+              nextShiftRun: nextShift.restart.run,
+              nextShiftSummaryOpen: Boolean(nextShift.shift.summary),
+              nextShiftGridVisible: nextShift.disclosure.systems.gridSiege.visible,
+              nextShiftBreachVisible: nextShift.disclosure.systems.signalBreach.visible,
+              nextShiftFreightVisible: nextShift.disclosure.systems.freightLockdown.visible,
+              nextShiftRailVisible: nextShift.disclosure.systems.railSabotage.visible,
+              nextShiftCrisisVisible: nextShift.disclosure.systems.crisisArbitration.visible,
+            }));
+            """
+        )
+
+        opened = result["holdOpen"]
+        waited = result["holdAfterWait"]
+
+        self.assertEqual("Training Shift", opened["objectiveName"])
+        self.assertEqual("complete", opened["objectiveStatus"])
+        self.assertEqual("complete", opened["summaryStatus"])
+        self.assertEqual(3, opened["summaryProduced"]["circuits"])
+        self.assertGreater(opened["summaryResources"]["reputation"], 0)
+        self.assertEqual({"reputation": 1}, opened["summaryResourceChanges"])
+        self.assertEqual("resolved", opened["summaryIncident"]["status"])
+        self.assertEqual(2, opened["summaryNextShift"]["shift"])
+        self.assertEqual("start-next-shift", opened["handoffAction"]["id"])
+
+        self.assertEqual(opened["tick"] + 15, waited["tick"])
+        self.assertEqual("Training Shift", waited["objectiveName"])
+        self.assertEqual(opened["objectiveStatus"], waited["objectiveStatus"])
+        self.assertEqual(opened["objectiveTimeRemaining"], waited["objectiveTimeRemaining"])
+        self.assertEqual(opened["summaryProduced"], waited["summaryProduced"])
+        self.assertEqual(opened["summaryResources"], waited["summaryResources"])
+        self.assertEqual(opened["summaryResourceChanges"], waited["summaryResourceChanges"])
+        self.assertEqual(opened["summaryIncident"], waited["summaryIncident"])
+        self.assertEqual(opened["advanced"], waited["advanced"])
+        self.assertEqual(opened["rating"], waited["rating"])
+        self.assertEqual(opened["laneGridLock"], waited["laneGridLock"])
+        self.assertEqual(opened["contractStatuses"], waited["contractStatuses"])
+        self.assertTrue(all(visible is False for visible in waited["advancedVisible"].values()))
+        self.assertEqual([], waited["advancedLogEntries"])
+        self.assertEqual("start-next-shift", waited["handoffAction"]["id"])
+
+        self.assertEqual(2, result["nextShiftRun"])
+        self.assertFalse(result["nextShiftSummaryOpen"])
+        self.assertTrue(result["nextShiftGridVisible"])
+        self.assertTrue(result["nextShiftBreachVisible"])
+        self.assertTrue(result["nextShiftFreightVisible"])
+        self.assertTrue(result["nextShiftRailVisible"])
+        self.assertTrue(result["nextShiftCrisisVisible"])
 
     def test_tutorial_completion_persists_and_later_shift_unlocks_advanced_access(self) -> None:
         result = self.run_node(

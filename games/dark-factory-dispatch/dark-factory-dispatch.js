@@ -1086,6 +1086,9 @@ const DarkFactoryDispatch = (() => {
 
   function createShiftSummary(state) {
     const trainingContract = state.tutorial ? state.tutorial.contract : null;
+    const forcedJam = state.tutorial ? state.tutorial.forcedJam : null;
+    const jamFault = forcedJam ? byId(GAME_DATA.faultTypes, forcedJam.faultTypeId) : null;
+    const nextShift = campaignShiftForRun((state.restart ? state.restart.run : state.campaign.shift) + 1);
     return {
       id: "training-shift-summary",
       shift: state.campaign.shift,
@@ -1096,8 +1099,21 @@ const DarkFactoryDispatch = (() => {
       failedContracts: state.run.failedContracts,
       produced: clone(state.produced),
       resources: clone(state.resources),
+      resourceChanges: trainingContract ? clone(trainingContract.reward) : {},
+      incident: forcedJam ? {
+        name: jamFault ? jamFault.name : titleCase(forcedJam.faultTypeId),
+        laneId: forcedJam.laneId,
+        status: forcedJam.resolved ? "resolved" : forcedJam.triggered ? "triggered" : "not triggered",
+      } : null,
       trainingContract: trainingContract ? clone(trainingContract) : null,
       nextUnlocks: ["upgrade-choice", "shift-02-advanced-systems"],
+      nextShiftPreview: {
+        shift: nextShift.shift,
+        phase: nextShift.phase,
+        demand: nextShift.demand,
+        unlocks: ["Grid Siege", "Signal Breach", "Freight Lockdown", "Rail Sabotage", "Crisis Arbitration"],
+      },
+      handoffAction: "start-next-shift",
     };
   }
 
@@ -1107,7 +1123,7 @@ const DarkFactoryDispatch = (() => {
     return {
       id: `shift-${formatShiftNumber(state.campaign.shift)}`,
       status: summaryOpen ? "summary" : state.run.status,
-      objective: state.tutorial && !state.tutorial.completed
+      objective: state.tutorial && (summaryOpen || !state.tutorial.completed)
         ? clone(state.tutorial.contract)
         : clone(state.contracts.find((contract) => contract.status === "active") || state.contracts[0]),
       summary: summaryOpen ? createShiftSummary(state) : null,
@@ -1286,6 +1302,16 @@ const DarkFactoryDispatch = (() => {
     return Boolean(tutorialActive(state) && state.restart && state.restart.run === 1);
   }
 
+  function trainingSummaryHoldActive(state) {
+    return Boolean(
+      state.tutorial
+        && state.tutorial.enabled
+        && state.tutorial.status === "summary"
+        && state.restart
+        && state.restart.run === 1
+    );
+  }
+
   function setTutorialStepInPlace(state, stepId) {
     if (!state.tutorial || state.tutorial.stepId === stepId) {
       return;
@@ -1322,6 +1348,9 @@ const DarkFactoryDispatch = (() => {
   }
 
   function contextualActionsForState(state) {
+    if (trainingSummaryHoldActive(state)) {
+      return [actionState("start-next-shift", "Start Shift 02", true)];
+    }
     const lane = selectedLane(state);
     const entry = selectedQueueEntry(state);
     if (!lane) {
@@ -5242,7 +5271,7 @@ const DarkFactoryDispatch = (() => {
       .every(([resource, amount]) => (state.produced[resource] || 0) >= amount);
   }
 
-  function completeTutorialInPlace(state, persist = true) {
+  function completeTutorialInPlace(state, persist = false) {
     if (!state.tutorial || state.tutorial.completed) {
       return false;
     }
@@ -5259,6 +5288,7 @@ const DarkFactoryDispatch = (() => {
       ? writeTutorialCompletion(null, true) || state.tutorial.completionPersisted
       : state.tutorial.completionPersisted;
     applyBundle(state.resources, state.tutorial.contract.reward, 1);
+    state.selection = createSelectionState();
     setTutorialStepInPlace(state, "shift-summary");
     state.log.unshift({ tick: state.tick, message: `${state.tutorial.contract.name} complete; shift summary opened.` });
     return true;
@@ -5341,6 +5371,9 @@ const DarkFactoryDispatch = (() => {
     }
     if (action.id === "release-quarantine") {
       return quarantineBreachLane(state, action.laneId, false);
+    }
+    if (action.id === "start-next-shift") {
+      return startNextShift(state);
     }
     return withLog(state, "Contextual action ignored.");
   }
@@ -5657,8 +5690,8 @@ const DarkFactoryDispatch = (() => {
         break;
       }
       next.tick += 1;
-      const trainingGateActive = guidedTrainingShiftActive(next);
-      if (!trainingGateActive) {
+      const trainingPressureHoldActive = guidedTrainingShiftActive(next) || trainingSummaryHoldActive(next);
+      if (!trainingPressureHoldActive) {
         maybeActivateEmergencyContracts(next);
         advanceBreachState(next);
         advanceGridState(next);
@@ -5684,7 +5717,7 @@ const DarkFactoryDispatch = (() => {
           completeLaneJob(next, lane);
         }
       });
-      if (!trainingGateActive) {
+      if (!trainingPressureHoldActive) {
         evaluateContracts(next);
       }
       evaluateTutorialContractInPlace(next);
@@ -5839,6 +5872,16 @@ const DarkFactoryDispatch = (() => {
     next.restart.lastResetTick = state ? state.tick : 0;
     next.log.unshift({ tick: 0, message: `Shift ${String(nextRun).padStart(2, "0")} restarted.` });
     return next;
+  }
+
+  function startNextShift(state, storage = null) {
+    const handoff = clone(state);
+    if (handoff.tutorial && handoff.tutorial.status === "summary") {
+      handoff.tutorial.status = "complete";
+      handoff.tutorial.completionPersisted = writeTutorialCompletion(storage, true)
+        || handoff.tutorial.completionPersisted;
+    }
+    return resetFactoryState(handoff);
   }
 
   function runtimeForLane(jobType, lane) {
@@ -6530,6 +6573,7 @@ const DarkFactoryDispatch = (() => {
       objective: document.getElementById("objective-card"),
       topStats: document.getElementById("top-stats"),
       resources: document.getElementById("resource-readouts"),
+      advancedDrawer: document.getElementById("advanced-drawer"),
       escalation: document.getElementById("escalation-surface"),
       grid: document.getElementById("grid-siege-board"),
       freight: document.getElementById("freight-lockdown-board"),
@@ -6636,6 +6680,9 @@ const DarkFactoryDispatch = (() => {
       const button = event.target.closest("button[data-action]");
       if (!button) {
         return;
+      }
+      if (button.dataset.action === "start-next-shift") {
+        currentState = startNextShift(currentState);
       }
       if (button.dataset.action === "breach-trace") {
         currentState = traceBreachSource(currentState);
@@ -7013,18 +7060,25 @@ const DarkFactoryDispatch = (() => {
     if (state.disclosure && state.disclosure.flags.shiftSummary && state.shift && state.shift.summary) {
       const summaryFeedback = shiftSummaryFeedbackState(state);
       const producedText = formatBundle(summaryFeedback.produced);
+      const resourceChangeText = formatBundle(state.shift.summary.resourceChanges);
+      const incidentText = state.shift.summary.incident
+        ? `${state.shift.summary.incident.name} ${state.shift.summary.incident.status}`
+        : "no incident";
+      const nextPreview = state.shift.summary.nextShiftPreview;
       dom.queuePolicySelect.value = surface.queuePolicy.id;
       dom.escalation.innerHTML = `
         <article class="escalation-card shift-summary-card" data-surface="shift-summary" data-feedback="${summaryFeedback.feedback}" data-procedural-asset="${summaryFeedback.proceduralAsset}">
           <span>Shift summary</span>
           <strong>${state.shift.summary.trainingContract ? state.shift.summary.trainingContract.name : surface.phase}</strong>
           <p>status ${summaryFeedback.status} / produced ${producedText}</p>
-          <p>upgrade choice ${summaryFeedback.upgradeChoice} / next ${state.shift.summary.nextUnlocks.join(" / ")}</p>
+          <p>resources ${formatBundle(state.shift.summary.resources)} / change ${resourceChangeText}</p>
+          <p>incident ${incidentText} / next ${state.shift.summary.nextUnlocks.join(" / ")}</p>
         </article>
         <article class="escalation-card" data-surface="choices">
           <span>Improvement rack</span>
           <strong>${state.shift.upgradeChoice.status}</strong>
           <p>${state.shift.upgradeChoice.options.map((option) => `${option.name}: ${option.affordable ? "ready" : "short"}`).join(" / ")}</p>
+          <p>shift ${formatShiftNumber(nextPreview.shift)} / ${nextPreview.phase} / demand x${nextPreview.demand}</p>
         </article>
       `;
       return;
@@ -7768,6 +7822,28 @@ const DarkFactoryDispatch = (() => {
     if (!dom.selectedDetail) {
       return;
     }
+    if (trainingSummaryHoldActive(state) && state.shift && state.shift.summary) {
+      const summary = state.shift.summary;
+      const incidentText = summary.incident
+        ? `${summary.incident.name} ${summary.incident.status}`
+        : "no incident";
+      dom.selectedDetail.innerHTML = `
+        <article class="selected-card" data-selection="shift-summary">
+          <div class="selected-title">
+            <strong>${summary.trainingContract ? summary.trainingContract.name : "Shift summary"}</strong>
+            <span class="status-pill">${summary.status}</span>
+          </div>
+          <div class="selected-meta">
+            <span>output ${formatBundle(summary.produced)}</span>
+            <span>resources ${formatBundle(summary.resources)}</span>
+            <span>change ${formatBundle(summary.resourceChanges)}</span>
+            <span>incident ${incidentText}</span>
+            <span>next ${summary.nextUnlocks.join(" / ")}</span>
+          </div>
+        </article>
+      `;
+      return;
+    }
     const lane = selectedLane(state);
     const entry = selectedQueueEntry(state);
     if (lane) {
@@ -7882,6 +7958,7 @@ const DarkFactoryDispatch = (() => {
     stepFactory,
     injectLaneFault,
     recoverLane,
+    startNextShift,
     purchaseUpgrade,
     setQueuePolicy,
     toggleLaneOverdrive,
@@ -7924,6 +8001,7 @@ const DarkFactoryDispatch = (() => {
     resetFactoryState,
     completeTutorial,
     replayTutorial,
+    trainingSummaryHoldActive,
     readTutorialCompletion,
     writeTutorialCompletion,
     canPay,
