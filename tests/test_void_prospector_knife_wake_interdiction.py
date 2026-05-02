@@ -41,7 +41,9 @@ class VoidProspectorKnifeWakeInterdictionTests(unittest.TestCase):
             console.log(JSON.stringify({
               stormVersion: rift.storm.version,
               interdictionVersion: rift.interdiction.version,
+              signalGateVersion: rift.signalGate.version,
               interdictionLabel: rift.interdiction.releaseLabel,
+              signalGateIds: game.signalGateSummary(rift).gates.map((gate) => gate.id),
               riftCell: game.interdictionSummary(rift).cells[0],
               umbraCell: game.interdictionSummary(umbra).cells[0],
               target: game.targetSummary(target),
@@ -54,7 +56,9 @@ class VoidProspectorKnifeWakeInterdictionTests(unittest.TestCase):
 
         self.assertEqual("0.4.0", result["stormVersion"])
         self.assertEqual("0.5.0", result["interdictionVersion"])
+        self.assertEqual("0.6.0", result["signalGateVersion"])
         self.assertEqual("Knife Wake Interdiction", result["interdictionLabel"])
+        self.assertIn("gate-rift-relay-aperture", result["signalGateIds"])
         self.assertGreaterEqual(result["generatedCount"], 2)
         self.assertEqual("cell-rift-decoy-net", result["riftCell"]["id"])
         self.assertEqual("false distress ping on the Rift Relay Convoy lane", result["riftCell"]["trigger"])

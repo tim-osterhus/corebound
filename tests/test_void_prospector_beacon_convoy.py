@@ -43,6 +43,8 @@ class VoidProspectorBeaconConvoyTests(unittest.TestCase):
               stormChartIds: game.stormSummary(rift).charts.map((chart) => chart.id),
               interdictionVersion: rift.interdiction.version,
               interdictionCellIds: game.interdictionSummary(rift).cells.map((cell) => cell.id),
+              signalGateVersion: rift.signalGate.version,
+              signalGateIds: game.signalGateSummary(rift).gates.map((gate) => gate.id),
               riftRoute: game.convoySummary(rift).routes[0],
               umbraRoute: game.convoySummary(umbra).routes[0],
               target: game.targetSummary(targeted),
@@ -58,8 +60,10 @@ class VoidProspectorBeaconConvoyTests(unittest.TestCase):
         self.assertEqual("Beacon Convoy", result["convoyLabel"])
         self.assertEqual("0.4.0", result["stormVersion"])
         self.assertEqual("0.5.0", result["interdictionVersion"])
+        self.assertEqual("0.6.0", result["signalGateVersion"])
         self.assertIn("storm-rift-breaker", result["stormChartIds"])
         self.assertIn("cell-rift-decoy-net", result["interdictionCellIds"])
+        self.assertIn("gate-rift-relay-aperture", result["signalGateIds"])
         self.assertGreaterEqual(result["routeCount"], 2)
         self.assertEqual("convoy-rift-relay", result["riftRoute"]["id"])
         self.assertFalse(result["riftRoute"]["prerequisitesReady"])

@@ -76,6 +76,7 @@ const VoidProspector = (() => {
         "chart processors",
         "storm plating",
         "patrol uplink",
+        "gate tuners",
       ],
     },
     contract: {
@@ -160,6 +161,18 @@ const VoidProspector = (() => {
           interdictionSupportIntegrity: 14,
           convoyAmbushMitigation: 0.08,
         },
+        {
+          id: "gate-tuners",
+          name: "Gate Tuners",
+          cost: 165,
+          countermeasureCharges: 1,
+          signalScanBonus: 0.9,
+          signalPylonIntegrity: 16,
+          signalCapacitorBonus: 0.8,
+          signalTransitWindowBonus: 3,
+          signalJamMitigation: 0.22,
+          signalPayoutBonus: 0.12,
+        },
       ],
       sectors: [
         {
@@ -227,6 +240,7 @@ const VoidProspector = (() => {
           ],
           convoyRoutes: [],
           interdictionCells: [],
+          signalGates: [],
           unlocks: ["rift-shelf"],
         },
         {
@@ -448,6 +462,62 @@ const VoidProspector = (() => {
               failureHullDamage: 12,
               failureFuelDrain: 8,
               failurePressure: 18,
+              cargoLoss: 1,
+            },
+          ],
+          signalGates: [
+            {
+              id: "gate-rift-relay-aperture",
+              name: "Rift Relay Signal Gate",
+              type: "relay aperture",
+              family: "convoy-lane",
+              routeAssociation: "convoy-rift-relay",
+              prerequisiteLabel: "Spoke charter, Rift Lens chart, and Rift Relay beacon",
+              prerequisites: {
+                completedSectorIds: ["spoke-approach"],
+                scannedAnomalyIds: ["anomaly-rift-lens"],
+                convoyBeaconRouteIds: ["convoy-rift-relay"],
+              },
+              position: { x: -18, y: 5, z: -42 },
+              radius: 5.6,
+              pylon: {
+                id: "pylon-rift-relay",
+                name: "Rift Relay Pylon",
+                position: { x: -12, y: 4, z: -36 },
+                radius: 4.4,
+                integrity: 56,
+              },
+              latticePosition: { x: 8, y: 6, z: -48 },
+              harmonicDifficulty: 3,
+              capacitorRequirement: 3.5,
+              chargeRate: 1.1,
+              chargeFuelCost: 1.4,
+              transitWindow: {
+                opensAt: 5,
+                closesAt: 16,
+              },
+              convoyRouteIds: ["convoy-rift-relay"],
+              stormChartIds: ["storm-rift-breaker"],
+              salvageSiteIds: ["salvage-rift-hulk"],
+              payoutCredits: 190,
+              rewardVariance: 20,
+              ladderScore: 46,
+              transitFuelCost: 8,
+              forceFuelCost: 14,
+              pirateGateJam: 22,
+              jamPressureScale: 0.28,
+              convoyTransitPayoutBonus: 0.06,
+              convoyAmbushReduction: 10,
+              convoyHazardReduction: 0.5,
+              salvageRiskReduction: 0.12,
+              stormAnchorIntegrity: 8,
+              piratePressureClear: 10,
+              stormWindowBonus: 3,
+              pylonAlignRange: 12,
+              partialPayoutRate: 0.55,
+              failureHullDamage: 10,
+              failureFuelDrain: 12,
+              failurePressure: 16,
               cargoLoss: 1,
             },
           ],
@@ -688,6 +758,64 @@ const VoidProspector = (() => {
               cargoLoss: 2,
             },
           ],
+          signalGates: [
+            {
+              id: "gate-umbra-blackbox-lattice",
+              name: "Umbra Blackbox Lattice",
+              type: "blackbox lattice",
+              family: "manifest-gate",
+              routeAssociation: "convoy-umbra-blackbox",
+              prerequisiteLabel: "Rift completion, Black Pylon chart, Knife Wake blackbox, and Umbra storm window",
+              prerequisites: {
+                completedSectorIds: ["rift-shelf"],
+                scannedAnomalyIds: ["anomaly-black-pylon"],
+                salvageManifestIds: ["salvage-umbra-blackbox"],
+                hazardChartedSectorIds: ["umbra-trench"],
+                stormChartIds: ["storm-umbra-knife-wake"],
+              },
+              position: { x: 12, y: 7, z: -54 },
+              radius: 6.4,
+              pylon: {
+                id: "pylon-umbra-blackbox",
+                name: "Umbra Blackbox Pylon",
+                position: { x: 22, y: 5, z: -44 },
+                radius: 5,
+                integrity: 66,
+              },
+              latticePosition: { x: -20, y: 6, z: -28 },
+              harmonicDifficulty: 3.8,
+              capacitorRequirement: 5,
+              chargeRate: 0.95,
+              chargeFuelCost: 1.7,
+              transitWindow: {
+                opensAt: 8,
+                closesAt: 22,
+              },
+              convoyRouteIds: ["convoy-umbra-blackbox"],
+              stormChartIds: ["storm-umbra-knife-wake"],
+              salvageSiteIds: ["salvage-umbra-blackbox", "salvage-umbra-vault"],
+              payoutCredits: 310,
+              rewardVariance: 34,
+              ladderScore: 84,
+              transitFuelCost: 12,
+              forceFuelCost: 20,
+              pirateGateJam: 42,
+              jamPressureScale: 0.34,
+              convoyTransitPayoutBonus: 0.09,
+              convoyAmbushReduction: 15,
+              convoyHazardReduction: 0.75,
+              salvageRiskReduction: 0.18,
+              stormAnchorIntegrity: 12,
+              piratePressureClear: 15,
+              stormWindowBonus: 4,
+              pylonAlignRange: 13,
+              partialPayoutRate: 0.5,
+              failureHullDamage: 18,
+              failureFuelDrain: 16,
+              failurePressure: 24,
+              cargoLoss: 2,
+            },
+          ],
           unlocks: ["tempest-verge"],
         },
         {
@@ -705,10 +833,13 @@ const VoidProspector = (() => {
           requiredStormPayout: 200,
           requiredInterdictions: 1,
           requiredInterdictionPayout: 180,
+          requiredSignalTransits: 1,
+          requiredSignalPayout: 240,
           rewardCredits: 420,
           surveyReward: 125,
           salvageReward: 55,
           stormReward: 90,
+          signalReward: 110,
           oreValueBonus: 17,
           oreReserveBonus: 3,
           hazard: {
@@ -898,6 +1029,65 @@ const VoidProspector = (() => {
               cargoLoss: 2,
             },
           ],
+          signalGates: [
+            {
+              id: "gate-tempest-verge-corridor",
+              name: "Tempest Verge Gate Corridor",
+              type: "charged transit corridor",
+              family: "late-run-lattice",
+              routeAssociation: "convoy-tempest-relay",
+              prerequisiteLabel: "Umbra completion, Verge charts, patrol net break, Umbra lattice, and Tempest storm window",
+              prerequisites: {
+                completedSectorIds: ["umbra-trench"],
+                scannedAnomalyIds: ["anomaly-tempest-eye", "anomaly-verge-spire"],
+                hazardChartedSectorIds: ["tempest-verge"],
+                stormChartIds: ["storm-tempest-verge"],
+                completedInterdictionCellIds: ["cell-tempest-patrol-net"],
+                completedSignalGateIds: ["gate-umbra-blackbox-lattice"],
+              },
+              position: { x: -2, y: 9, z: -52 },
+              radius: 7,
+              pylon: {
+                id: "pylon-tempest-verge",
+                name: "Tempest Verge Lattice Pylon",
+                position: { x: 8, y: 7, z: -42 },
+                radius: 5.4,
+                integrity: 78,
+              },
+              latticePosition: { x: 36, y: 6, z: -30 },
+              harmonicDifficulty: 4.4,
+              capacitorRequirement: 6,
+              chargeRate: 0.85,
+              chargeFuelCost: 2,
+              transitWindow: {
+                opensAt: 10,
+                closesAt: 26,
+              },
+              convoyRouteIds: ["convoy-tempest-relay"],
+              stormChartIds: ["storm-tempest-verge"],
+              salvageSiteIds: ["salvage-tempest-spool"],
+              payoutCredits: 420,
+              rewardVariance: 44,
+              ladderScore: 132,
+              transitFuelCost: 16,
+              forceFuelCost: 26,
+              pirateGateJam: 58,
+              jamPressureScale: 0.38,
+              convoyTransitPayoutBonus: 0.12,
+              convoyAmbushReduction: 22,
+              convoyHazardReduction: 1,
+              salvageRiskReduction: 0.24,
+              stormAnchorIntegrity: 16,
+              piratePressureClear: 24,
+              stormWindowBonus: 5,
+              pylonAlignRange: 14,
+              partialPayoutRate: 0.48,
+              failureHullDamage: 26,
+              failureFuelDrain: 22,
+              failurePressure: 34,
+              cargoLoss: 2,
+            },
+          ],
           unlocks: [],
         },
       ],
@@ -945,6 +1135,20 @@ const VoidProspector = (() => {
       countermeasureRaidReduction: 12,
       countermeasurePressureDrop: 16,
       failureCargoValueRate: 0.22,
+    },
+    signalGateExpedition: {
+      version: "0.6.0",
+      releaseLabel: "Signal Gate Expedition",
+      scanRange: 18,
+      baseScanPower: 1,
+      pylonAlignRange: 12,
+      capacitorRange: 13,
+      transitRange: 16,
+      baseChargeRate: 1,
+      chargeFuelCost: 1.5,
+      countermeasureJamReduction: 18,
+      countermeasurePressureDrop: 20,
+      countermeasureCapacitorCharge: 1.25,
     },
     asteroidField: {
       miningRange: 9,
@@ -1182,6 +1386,13 @@ const VoidProspector = (() => {
       partialInterdictionCellIds: uniqueList(base.partialInterdictionCellIds || []),
       scannedInterdictionCellIds: uniqueList(base.scannedInterdictionCellIds || []),
       luredInterdictionCellIds: uniqueList(base.luredInterdictionCellIds || []),
+      signalScore: base.signalScore || 0,
+      completedSignalGateIds: uniqueList(base.completedSignalGateIds || []),
+      failedSignalGateIds: uniqueList(base.failedSignalGateIds || []),
+      partialSignalGateIds: uniqueList(base.partialSignalGateIds || []),
+      scannedSignalGateIds: uniqueList(base.scannedSignalGateIds || []),
+      alignedSignalGateIds: uniqueList(base.alignedSignalGateIds || []),
+      chargedSignalGateIds: uniqueList(base.chargedSignalGateIds || []),
       hazardCharts: { ...(base.hazardCharts || {}) },
       lastChoice: base.lastChoice || "spoke-approach",
       lastCompletedSectorId: base.lastCompletedSectorId || null,
@@ -1212,6 +1423,12 @@ const VoidProspector = (() => {
       interdictionRaidMitigation: base.interdictionRaidMitigation || 0,
       interdictionPayoutBonus: base.interdictionPayoutBonus || 0,
       interdictionSupportIntegrity: base.interdictionSupportIntegrity || 0,
+      signalScanBonus: base.signalScanBonus || 0,
+      signalPylonIntegrity: base.signalPylonIntegrity || 0,
+      signalCapacitorBonus: base.signalCapacitorBonus || 0,
+      signalTransitWindowBonus: base.signalTransitWindowBonus || 0,
+      signalJamMitigation: base.signalJamMitigation || 0,
+      signalPayoutBonus: base.signalPayoutBonus || 0,
       lastService: base.lastService || "none",
       countermeasureStatus: base.countermeasureStatus || "idle",
     };
@@ -1239,6 +1456,12 @@ const VoidProspector = (() => {
       state.interdictionRaidMitigation += service.interdictionRaidMitigation || 0;
       state.interdictionPayoutBonus += service.interdictionPayoutBonus || 0;
       state.interdictionSupportIntegrity += service.interdictionSupportIntegrity || 0;
+      state.signalScanBonus += service.signalScanBonus || 0;
+      state.signalPylonIntegrity += service.signalPylonIntegrity || 0;
+      state.signalCapacitorBonus += service.signalCapacitorBonus || 0;
+      state.signalTransitWindowBonus += service.signalTransitWindowBonus || 0;
+      state.signalJamMitigation += service.signalJamMitigation || 0;
+      state.signalPayoutBonus += service.signalPayoutBonus || 0;
     });
     return state;
   }
@@ -1582,6 +1805,116 @@ const VoidProspector = (() => {
     };
   }
 
+  function createSignalGates(
+    seed = DEFAULT_SEED,
+    sectorInput = GAME_DATA.surveyLadder.defaultSectorId,
+    stationServices = createStationServiceState(),
+    options = {}
+  ) {
+    const sector = typeof sectorInput === "string" ? sectorById(sectorInput) : sectorInput;
+    const base = options.signalGate || {};
+    const gateMemory = base.gateMemory || {};
+    const random = createRng(seed + sector.tier * 25013 + 21019);
+    return (sector.signalGates || []).map((gate, index) => {
+      const remembered = gateMemory[gate.id] || {};
+      const rememberedGate = remembered.gateState || {};
+      const payoutCredits = (gate.payoutCredits || 0) + (gate.rewardVariance ? Math.floor(random() * gate.rewardVariance) : 0);
+      const maxPylonIntegrity = Math.max(
+        rememberedGate.maxPylonIntegrity || 0,
+        (gate.pylon && gate.pylon.integrity ? gate.pylon.integrity : 60) + (stationServices.signalPylonIntegrity || 0)
+      );
+      const transitWindow = {
+        opensAt: gate.transitWindow ? gate.transitWindow.opensAt || 0 : 0,
+        closesAt:
+          (gate.transitWindow ? gate.transitWindow.closesAt || 0 : 0) +
+          (stationServices.signalTransitWindowBonus || 0),
+        committed: false,
+        committedAt: null,
+        forced: false,
+        missed: false,
+        anchoredChartId: null,
+        abortedAt: null,
+        ...clone(rememberedGate.transitWindow || {}),
+      };
+      return {
+        ...clone(gate),
+        sectorId: gate.sectorId || sector.id,
+        payoutCredits,
+        scanSignature: `signal-gate-${sector.id}-${seed}-${index + 1}`,
+        position: clone(gate.position || GAME_DATA.ship.startPosition),
+        radius: gate.radius || 5,
+        prerequisiteStatus: {
+          ready: false,
+          missing: [],
+          label: gate.prerequisiteLabel || "signal gate prerequisites",
+        },
+        gateState: {
+          status: "locked",
+          progress: 0,
+          harmonicsScanned: false,
+          pylonAligned: false,
+          pylonIntegrity: 0,
+          maxPylonIntegrity,
+          capacitorCharge: 0,
+          capacitorRequirement: gate.capacitorRequirement || 1,
+          transitWindow,
+          payoutCredits,
+          deliveredValue: 0,
+          partialPayoutCredits: 0,
+          failureReason: null,
+          outcome: "none",
+          convoyTransitCommitted: false,
+          countermeasureUsed: false,
+          stormWindowAnchoredChartId: null,
+          pirateJam: gate.pirateGateJam || 0,
+          lastTouchedTick: null,
+          ...clone(rememberedGate),
+          maxPylonIntegrity,
+          transitWindow,
+          payoutCredits,
+        },
+      };
+    });
+  }
+
+  function createSignalGateState(options = {}, stationServices = createStationServiceState(), signalGates = []) {
+    const base = options.signalGate || {};
+    return {
+      version: GAME_DATA.signalGateExpedition.version,
+      releaseLabel: GAME_DATA.signalGateExpedition.releaseLabel,
+      activeGateId: base.activeGateId || null,
+      completedGateIds: uniqueList(base.completedGateIds || []),
+      failedGateIds: uniqueList(base.failedGateIds || []),
+      partialGateIds: uniqueList(base.partialGateIds || []),
+      scannedGateIds: uniqueList(base.scannedGateIds || []),
+      alignedGateIds: uniqueList(base.alignedGateIds || []),
+      chargedGateIds: uniqueList(base.chargedGateIds || []),
+      transitGateIds: uniqueList(base.transitGateIds || []),
+      payoutBanked: base.payoutBanked || 0,
+      signalScore: base.signalScore || 0,
+      scansCompleted: base.scansCompleted || 0,
+      pylonsAligned: base.pylonsAligned || 0,
+      capacitorsCharged: base.capacitorsCharged || 0,
+      transitsResolved: base.transitsResolved || 0,
+      convoyTransits: base.convoyTransits || 0,
+      abortedTransits: base.abortedTransits || 0,
+      pirateJamsMitigated: base.pirateJamsMitigated || 0,
+      scanPower: GAME_DATA.signalGateExpedition.baseScanPower + (stationServices.signalScanBonus || 0),
+      scanRange: GAME_DATA.signalGateExpedition.scanRange,
+      pylonAlignRange: GAME_DATA.signalGateExpedition.pylonAlignRange,
+      capacitorRange: GAME_DATA.signalGateExpedition.capacitorRange,
+      transitRange: GAME_DATA.signalGateExpedition.transitRange,
+      pylonSupportIntegrity: stationServices.signalPylonIntegrity || 0,
+      capacitorBonus: stationServices.signalCapacitorBonus || 0,
+      transitWindowBonus: stationServices.signalTransitWindowBonus || 0,
+      jamMitigation: stationServices.signalJamMitigation || 0,
+      payoutBonus: stationServices.signalPayoutBonus || 0,
+      status: base.status || (signalGates.length ? "signal gates charted" : "no signal gates"),
+      lastOutcome: base.lastOutcome || "none",
+      gateMemory: base.gateMemory || {},
+    };
+  }
+
   function interdictionCellMemoryFromCells(cells = []) {
     return cells.reduce((memory, cell) => {
       memory[cell.id] = {
@@ -1612,6 +1945,43 @@ const VoidProspector = (() => {
       cellMemory: {
         ...(state.interdiction.cellMemory || {}),
         ...interdictionCellMemoryFromCells(state.interdictionCells || []),
+      },
+    };
+  }
+
+  function signalGateMemoryFromGates(gates = []) {
+    return gates.reduce((memory, gate) => {
+      memory[gate.id] = {
+        gateState: clone(gate.gateState),
+      };
+      return memory;
+    }, {});
+  }
+
+  function signalGatePersistence(state) {
+    return {
+      activeGateId: state.signalGate.activeGateId,
+      completedGateIds: state.signalGate.completedGateIds,
+      failedGateIds: state.signalGate.failedGateIds,
+      partialGateIds: state.signalGate.partialGateIds,
+      scannedGateIds: state.signalGate.scannedGateIds,
+      alignedGateIds: state.signalGate.alignedGateIds,
+      chargedGateIds: state.signalGate.chargedGateIds,
+      transitGateIds: state.signalGate.transitGateIds,
+      payoutBanked: state.signalGate.payoutBanked,
+      signalScore: state.signalGate.signalScore,
+      scansCompleted: state.signalGate.scansCompleted,
+      pylonsAligned: state.signalGate.pylonsAligned,
+      capacitorsCharged: state.signalGate.capacitorsCharged,
+      transitsResolved: state.signalGate.transitsResolved,
+      convoyTransits: state.signalGate.convoyTransits,
+      abortedTransits: state.signalGate.abortedTransits,
+      pirateJamsMitigated: state.signalGate.pirateJamsMitigated,
+      status: state.signalGate.status,
+      lastOutcome: state.signalGate.lastOutcome,
+      gateMemory: {
+        ...(state.signalGate.gateMemory || {}),
+        ...signalGateMemoryFromGates(state.signalGates || []),
       },
     };
   }
@@ -1652,6 +2022,10 @@ const VoidProspector = (() => {
 
   function interdictionCellById(state, cellId) {
     return (state.interdictionCells || []).find((cell) => cell.id === cellId) || null;
+  }
+
+  function signalGateById(state, gateId) {
+    return (state.signalGates || []).find((gate) => gate.id === gateId) || null;
   }
 
   function convoyRouteMemoryFromRoutes(routes = []) {
@@ -1861,6 +2235,166 @@ const VoidProspector = (() => {
     };
   }
 
+  function signalGatePrerequisiteStatus(gate, state) {
+    const requirements = gate.prerequisites || {};
+    const missing = [];
+    const scannedAnomalyIds = currentScannedAnomalyIds(state);
+    const salvageManifestIds = currentSalvageManifestIds(state);
+
+    (requirements.completedSectorIds || []).forEach((sectorId) => {
+      if (!(state.ladder.completedSectorIds || []).includes(sectorId)) {
+        missing.push(`complete ${sectorById(sectorId).name}`);
+      }
+    });
+    (requirements.scannedAnomalyIds || []).forEach((anomalyId) => {
+      if (!scannedAnomalyIds.includes(anomalyId)) {
+        missing.push(`scan ${anomalyId}`);
+      }
+    });
+    (requirements.salvageManifestIds || []).forEach((siteId) => {
+      if (!salvageManifestIds.includes(siteId)) {
+        missing.push(`recover ${siteId}`);
+      }
+    });
+    (requirements.hazardChartedSectorIds || []).forEach((sectorId) => {
+      if (!(state.ladder.hazardCharts || {})[sectorId]) {
+        missing.push(`chart ${sectorById(sectorId).name}`);
+      }
+    });
+    (requirements.convoyBeaconRouteIds || []).forEach((routeId) => {
+      const route = convoyRouteById(state, routeId);
+      if (!route || !route.beaconState.deployed) {
+        missing.push(`deploy ${routeId} beacon`);
+      }
+    });
+    (requirements.stormChartIds || []).forEach((chartId) => {
+      const chart = stormChartById(state, chartId);
+      const lockedWindow = Boolean(
+        chart &&
+          chart.stormState &&
+          chart.stormState.safeWindow &&
+          chart.stormState.safeWindow.locked &&
+          chart.stormState.outcome === "none"
+      );
+      if (!(state.ladder.completedStormChartIds || []).includes(chartId) && !lockedWindow) {
+        missing.push(`lock ${chartId}`);
+      }
+    });
+    (requirements.completedInterdictionCellIds || []).forEach((cellId) => {
+      const cell = interdictionCellById(state, cellId);
+      const resolved = Boolean(cell && ["success", "partial"].includes(cell.interdictionState.outcome));
+      if (!(state.ladder.completedInterdictionCellIds || []).includes(cellId) && !resolved) {
+        missing.push(`break ${cellId}`);
+      }
+    });
+    (requirements.completedSignalGateIds || []).forEach((gateId) => {
+      const requiredGate = signalGateById(state, gateId);
+      const transited = Boolean(requiredGate && ["success", "partial"].includes(requiredGate.gateState.outcome));
+      if (!(state.ladder.completedSignalGateIds || []).includes(gateId) && !transited) {
+        missing.push(`transit ${gateId}`);
+      }
+    });
+
+    return {
+      ready: missing.length === 0,
+      missing,
+      label: gate.prerequisiteLabel || "signal gate prerequisites",
+    };
+  }
+
+  function signalGateTransitTiming(gate, state) {
+    const transitWindow = gate.gateState.transitWindow || {};
+    const opensAt = transitWindow.opensAt || 0;
+    const closesAt = transitWindow.closesAt || 0;
+    const elapsed = state.elapsed || 0;
+    return {
+      opensAt,
+      closesAt,
+      remaining: round(Math.max(0, closesAt - elapsed), 2),
+      open: elapsed >= opensAt && elapsed <= closesAt,
+      pending: elapsed < opensAt,
+      missed: elapsed > closesAt && !transitWindow.committed,
+      committed: Boolean(transitWindow.committed),
+      committedAt: transitWindow.committedAt,
+      forced: Boolean(transitWindow.forced),
+      anchoredChartId: transitWindow.anchoredChartId || gate.gateState.stormWindowAnchoredChartId || null,
+      abortedAt: transitWindow.abortedAt || null,
+    };
+  }
+
+  function signalGateReadiness(state, gateId) {
+    const gate = signalGateById(state, gateId);
+    if (!gate) {
+      return {
+        gateId,
+        ready: false,
+        missing: ["unknown signal gate"],
+        canScan: false,
+        canAlignPylon: false,
+        canChargeCapacitor: false,
+        canAnchorStormWindow: false,
+        canCommitTransit: false,
+        canAbortTransit: false,
+        canForceOpen: false,
+        canCountermeasureJam: false,
+      };
+    }
+    const prerequisites = signalGatePrerequisiteStatus(gate, state);
+    const timing = signalGateTransitTiming(gate, state);
+    const terminal = ["success", "partial", "failed"].includes(gate.gateState.outcome);
+    const charged = gate.gateState.capacitorCharge >= gate.gateState.capacitorRequirement;
+    const anchorableChart = (gate.stormChartIds || []).some((chartId) => {
+      const chart = stormChartById(state, chartId);
+      return Boolean(chart && chart.stormState.safeWindow.locked && chart.stormState.outcome === "none");
+    });
+    return {
+      gateId: gate.id,
+      ready: prerequisites.ready,
+      missing: prerequisites.missing,
+      label: prerequisites.label,
+      harmonicsScanned: gate.gateState.harmonicsScanned,
+      pylonAligned: gate.gateState.pylonAligned,
+      capacitorCharge: gate.gateState.capacitorCharge,
+      capacitorRequirement: gate.gateState.capacitorRequirement,
+      transitWindow: timing,
+      pirateJam: gate.gateState.pirateJam,
+      canScan: prerequisites.ready && !gate.gateState.harmonicsScanned && !terminal,
+      canAlignPylon: prerequisites.ready && gate.gateState.harmonicsScanned && !gate.gateState.pylonAligned && !terminal,
+      canChargeCapacitor:
+        prerequisites.ready &&
+        gate.gateState.harmonicsScanned &&
+        gate.gateState.pylonAligned &&
+        !charged &&
+        !terminal,
+      canAnchorStormWindow:
+        prerequisites.ready &&
+        gate.gateState.pylonAligned &&
+        anchorableChart &&
+        !gate.gateState.stormWindowAnchoredChartId &&
+        !terminal,
+      canCommitTransit:
+        prerequisites.ready &&
+        gate.gateState.harmonicsScanned &&
+        gate.gateState.pylonAligned &&
+        charged &&
+        (timing.open || timing.forced) &&
+        !terminal,
+      canAbortTransit: prerequisites.ready && gate.gateState.capacitorCharge > 0 && !terminal,
+      canForceOpen:
+        prerequisites.ready &&
+        gate.gateState.harmonicsScanned &&
+        gate.gateState.pylonAligned &&
+        charged &&
+        !timing.open &&
+        !terminal,
+      canCountermeasureJam:
+        prerequisites.ready &&
+        gate.gateState.harmonicsScanned &&
+        !terminal &&
+        (state.stationServices ? state.stationServices.countermeasureCharges > 0 : false),
+    };
+  }
+
   function interdictionResponseTiming(cell, state) {
     const responseWindow = cell.interdictionState.responseWindow || {};
     const opensAt = responseWindow.opensAt || 0;
@@ -1971,6 +2505,76 @@ const VoidProspector = (() => {
     } else {
       state.interdiction.activeCellId = null;
       state.interdiction.status = "no pirate cells";
+    }
+    return state;
+  }
+
+  function syncSignalGateDerivedState(state) {
+    if (!state.signalGate || !state.signalGates) {
+      return state;
+    }
+    let activeGate = null;
+    state.signalGate.scanPower =
+      GAME_DATA.signalGateExpedition.baseScanPower + (state.stationServices ? state.stationServices.signalScanBonus || 0 : 0);
+    state.signalGate.pylonSupportIntegrity = state.stationServices ? state.stationServices.signalPylonIntegrity || 0 : 0;
+    state.signalGate.capacitorBonus = state.stationServices ? state.stationServices.signalCapacitorBonus || 0 : 0;
+    state.signalGate.transitWindowBonus = state.stationServices ? state.stationServices.signalTransitWindowBonus || 0 : 0;
+    state.signalGate.jamMitigation = state.stationServices ? state.stationServices.signalJamMitigation || 0 : 0;
+    state.signalGate.payoutBonus = state.stationServices ? state.stationServices.signalPayoutBonus || 0 : 0;
+
+    state.signalGates.forEach((gate) => {
+      gate.prerequisiteStatus = signalGatePrerequisiteStatus(gate, state);
+      const supportedPylonMax = (gate.pylon && gate.pylon.integrity ? gate.pylon.integrity : 60) + state.signalGate.pylonSupportIntegrity;
+      gate.gateState.maxPylonIntegrity = Math.max(gate.gateState.maxPylonIntegrity || 0, supportedPylonMax);
+      if (!gate.gateState.transitWindow.committed && !gate.gateState.transitWindow.forced) {
+        const anchorBonus = gate.gateState.stormWindowAnchoredChartId ? gate.stormWindowBonus || 0 : 0;
+        gate.gateState.transitWindow.closesAt =
+          (gate.transitWindow ? gate.transitWindow.closesAt || 0 : 0) + state.signalGate.transitWindowBonus + anchorBonus;
+      }
+      gate.gateState.pirateJam = Math.max(0, round((gate.gateState.pirateJam || gate.pirateGateJam || 0), 2));
+      const terminal = ["success", "partial", "failed"].includes(gate.gateState.outcome);
+      if (terminal) {
+        return;
+      }
+      if (!gate.prerequisiteStatus.ready) {
+        gate.gateState.status = "locked";
+        return;
+      }
+      if (!gate.gateState.harmonicsScanned) {
+        gate.gateState.status = gate.gateState.status === "scanning" ? "scanning" : "harmonics quiet";
+        activeGate = activeGate || gate;
+        return;
+      }
+      if (!gate.gateState.pylonAligned) {
+        gate.gateState.status = "harmonics scanned";
+        activeGate = activeGate || gate;
+        return;
+      }
+      if (gate.gateState.capacitorCharge < gate.gateState.capacitorRequirement) {
+        gate.gateState.status = `capacitor ${round(gate.gateState.capacitorCharge, 1)}/${gate.gateState.capacitorRequirement}`;
+        activeGate = activeGate || gate;
+        return;
+      }
+      const timing = signalGateTransitTiming(gate, state);
+      if (timing.missed) {
+        gate.gateState.status = "transit window missed";
+      } else if (timing.open || timing.forced) {
+        gate.gateState.status = "transit window open";
+      } else {
+        gate.gateState.status = "capacitor charged";
+      }
+      activeGate = activeGate || gate;
+    });
+
+    if (activeGate) {
+      state.signalGate.activeGateId = activeGate.id;
+      state.signalGate.status = `${activeGate.name} ${activeGate.gateState.status}`;
+    } else if (state.signalGates.length) {
+      state.signalGate.activeGateId = null;
+      state.signalGate.status = "signal gates settled";
+    } else {
+      state.signalGate.activeGateId = null;
+      state.signalGate.status = "no signal gates";
     }
     return state;
   }
@@ -2289,6 +2893,75 @@ const VoidProspector = (() => {
     return modifier;
   }
 
+  function signalGateModifierForRoute(state, route) {
+    const modifier = {
+      active: false,
+      gateId: null,
+      jamPressure: 0,
+      ambushReduction: 0,
+      hazardReduction: 0,
+      payoutBonus: 0,
+      label: "none",
+    };
+    (state.signalGates || []).forEach((gate) => {
+      if (!(gate.convoyRouteIds || []).includes(route.id)) {
+        return;
+      }
+      const outcome = gate.gateState.outcome;
+      if (outcome === "success" || outcome === "partial") {
+        const scaleValue = outcome === "success" ? 1 : 0.5;
+        modifier.active = true;
+        modifier.gateId = gate.id;
+        modifier.ambushReduction = Math.max(modifier.ambushReduction, (gate.convoyAmbushReduction || 0) * scaleValue);
+        modifier.hazardReduction = Math.max(modifier.hazardReduction, (gate.convoyHazardReduction || 0) * scaleValue);
+        modifier.payoutBonus = Math.max(
+          modifier.payoutBonus,
+          (gate.convoyTransitPayoutBonus || 0) * scaleValue + (state.stationServices ? state.stationServices.signalPayoutBonus || 0 : 0)
+        );
+        modifier.label = `${gate.id} ${outcome}`;
+        return;
+      }
+      if (!gate.prerequisiteStatus || !gate.prerequisiteStatus.ready || !gate.gateState.harmonicsScanned) {
+        return;
+      }
+      const chargedScale = gate.gateState.capacitorCharge >= gate.gateState.capacitorRequirement ? 0.55 : 0.3;
+      const supportReduction = state.stationServices ? state.stationServices.signalJamMitigation || 0 : 0;
+      modifier.active = true;
+      modifier.gateId = gate.id;
+      modifier.jamPressure = Math.max(
+        modifier.jamPressure,
+        round(Math.max(0, (gate.gateState.pirateJam || gate.pirateGateJam || 0) - supportReduction * 100) * chargedScale, 2)
+      );
+      modifier.label = `${gate.id} unresolved`;
+    });
+    return modifier;
+  }
+
+  function signalGateSalvageRiskModifier(site, state) {
+    let modifier = 0;
+    (state.signalGates || []).forEach((gate) => {
+      if (!(gate.salvageSiteIds || []).includes(site.id)) {
+        return;
+      }
+      const outcome = gate.gateState.outcome;
+      if (outcome === "success") {
+        modifier -= gate.salvageRiskReduction || 0;
+        return;
+      }
+      if (outcome === "partial") {
+        modifier -= (gate.salvageRiskReduction || 0) * 0.5;
+        return;
+      }
+      if (!gate.prerequisiteStatus || !gate.prerequisiteStatus.ready || !gate.gateState.harmonicsScanned) {
+        return;
+      }
+      const chargeScale = gate.gateState.capacitorCharge >= gate.gateState.capacitorRequirement ? 0.45 : 0.22;
+      const supportReduction = state.stationServices ? state.stationServices.signalJamMitigation || 0 : 0;
+      modifier += Math.max(0, (gate.gateState.pirateJam || gate.pirateGateJam || 0) / 180 - supportReduction) * chargeScale;
+    });
+    return modifier;
+  }
+
   function createSectorContract(sector) {
     return {
       id: `charter-${sector.id}`,
@@ -2302,6 +2975,8 @@ const VoidProspector = (() => {
       requiredStormPayout: sector.requiredStormPayout || 0,
       requiredInterdictions: sector.requiredInterdictions || 0,
       requiredInterdictionPayout: sector.requiredInterdictionPayout || 0,
+      requiredSignalTransits: sector.requiredSignalTransits || 0,
+      requiredSignalPayout: sector.requiredSignalPayout || 0,
       rewardCredits: sector.rewardCredits,
       status: "active",
       sectorId: sector.id,
@@ -2316,6 +2991,8 @@ const VoidProspector = (() => {
       deliveredStormPayout: 0,
       deliveredInterdictions: 0,
       deliveredInterdictionPayout: 0,
+      deliveredSignalTransits: 0,
+      deliveredSignalPayout: 0,
       completedAt: null,
     };
   }
@@ -2418,6 +3095,7 @@ const VoidProspector = (() => {
     const convoyRoutes = createConvoyRoutes(seed, sector, stationServices, options);
     const stormCharts = createStormCharts(seed, sector, stationServices, options);
     const interdictionCells = createInterdictionCells(seed, sector, stationServices, options);
+    const signalGates = createSignalGates(seed, sector, stationServices, options);
     const ship = {
       name: GAME_DATA.ship.name,
       position: clone(GAME_DATA.ship.startPosition),
@@ -2457,6 +3135,8 @@ const VoidProspector = (() => {
       storm: createStormCartographyState(options, stationServices, stormCharts),
       interdictionCells,
       interdiction: createInterdictionState(options, stationServices, interdictionCells),
+      signalGates,
+      signalGate: createSignalGateState(options, stationServices, signalGates),
       station: {
         ...clone(GAME_DATA.station),
         docked: false,
@@ -2538,6 +3218,16 @@ const VoidProspector = (() => {
         interdictionFailures: 0,
         interdictionPartialPayouts: 0,
         interdictionCargoLost: 0,
+        signalGateScans: 0,
+        signalPylonsAligned: 0,
+        signalCapacitorsCharged: 0,
+        signalGateTransits: 0,
+        signalGatePayouts: 0,
+        signalGateFailures: 0,
+        signalGatePartialPayouts: 0,
+        signalGateConvoyTransits: 0,
+        signalGateAborts: 0,
+        signalGateJamsMitigated: 0,
         countermeasuresDeployed: 0,
         sorties: options.runCount || 1,
       },
@@ -2589,12 +3279,19 @@ const VoidProspector = (() => {
       position: cell.position,
       name: cell.name,
     }));
+    const signalGateTargets = (state.signalGates || []).map((gate) => ({
+      kind: "signal-gate",
+      id: gate.id,
+      position: gate.position,
+      name: gate.name,
+    }));
     return [
       ...asteroidTargets,
       ...salvageTargets,
       ...convoyTargets,
       ...stormTargets,
       ...interdictionTargets,
+      ...signalGateTargets,
       ...anomalyTargets,
       { kind: "station", id: state.station.id, position: state.station.position, name: state.station.name },
       { kind: "pirate", id: state.pirate.id, position: state.pirate.position, name: state.pirate.name },
@@ -2623,6 +3320,9 @@ const VoidProspector = (() => {
     if (target.kind === "interdiction") {
       return interdictionCellById(state, target.id);
     }
+    if (target.kind === "signal-gate") {
+      return signalGateById(state, target.id);
+    }
     if (target.kind === "station") {
       return state.station;
     }
@@ -2645,6 +3345,15 @@ const VoidProspector = (() => {
         return `Answer ${cell.name}: ${cell.interdictionState.status} / raid ${Math.round(
           cell.interdictionState.raidPressure
         )} / window ${interdictionResponseTiming(cell, state).remaining}s.`;
+      }
+    }
+    if (state.signalGate && state.signalGate.activeGateId) {
+      const gate = signalGateById(state, state.signalGate.activeGateId);
+      if (gate && gate.gateState.harmonicsScanned && gate.gateState.outcome === "none") {
+        return `Work ${gate.name}: ${gate.gateState.status} / capacitor ${round(
+          gate.gateState.capacitorCharge,
+          1
+        )}/${gate.gateState.capacitorRequirement} / jam ${Math.round(gate.gateState.pirateJam)}.`;
       }
     }
     if (state.storm && state.storm.activeChartId) {
@@ -2706,6 +3415,12 @@ const VoidProspector = (() => {
         state.contract.requiredInterdictionPayout - (state.contract.deliveredInterdictionPayout || 0)
       }cr from Knife Wake interdiction support.`;
     }
+    if ((state.contract.requiredSignalTransits || 0) > (state.contract.deliveredSignalTransits || 0)) {
+      return `Open ${state.contract.requiredSignalTransits - (state.contract.deliveredSignalTransits || 0)} Signal Gate transit.`;
+    }
+    if ((state.contract.requiredSignalPayout || 0) > (state.contract.deliveredSignalPayout || 0)) {
+      return `Bank ${state.contract.requiredSignalPayout - (state.contract.deliveredSignalPayout || 0)}cr from Signal Gate transit.`;
+    }
     if ((state.salvage.holdValue > 0 || state.salvage.relicsInHold > 0) && state.station.proximity.dockable) {
       return "Dock at Frontier Spoke to bank salvage value and relic manifests.";
     }
@@ -2736,6 +3451,7 @@ const VoidProspector = (() => {
     syncStormDerivedState(state);
     syncConvoyDerivedState(state);
     syncInterdictionDerivedState(state);
+    syncSignalGateDerivedState(state);
 
     const selected = findTarget(state);
     if (selected) {
@@ -2781,6 +3497,14 @@ const VoidProspector = (() => {
       state.contract.requiredInterdictionPayout > 0
         ? Math.min(1, (state.contract.deliveredInterdictionPayout || 0) / state.contract.requiredInterdictionPayout)
         : 1;
+    const signalTransitProgress =
+      state.contract.requiredSignalTransits > 0
+        ? Math.min(1, (state.contract.deliveredSignalTransits || 0) / state.contract.requiredSignalTransits)
+        : 1;
+    const signalPayoutProgress =
+      state.contract.requiredSignalPayout > 0
+        ? Math.min(1, (state.contract.deliveredSignalPayout || 0) / state.contract.requiredSignalPayout)
+        : 1;
     const progressParts = [oreProgress];
     if (state.contract.requiredScans > 0) {
       progressParts.push(scanProgress);
@@ -2802,6 +3526,12 @@ const VoidProspector = (() => {
     }
     if (state.contract.requiredInterdictionPayout > 0) {
       progressParts.push(interdictionPayoutProgress);
+    }
+    if (state.contract.requiredSignalTransits > 0) {
+      progressParts.push(signalTransitProgress);
+    }
+    if (state.contract.requiredSignalPayout > 0) {
+      progressParts.push(signalPayoutProgress);
     }
     state.contract.progress = round(
       progressParts.reduce((total, progress) => total + progress, 0) / progressParts.length,
@@ -3450,7 +4180,8 @@ const VoidProspector = (() => {
           phaseRisk -
           (state.salvage.riskMitigation || 0) -
           stormSalvageRiskMitigation(site, state) +
-          interdictionSalvageRiskModifier(site, state),
+          interdictionSalvageRiskModifier(site, state) +
+          signalGateSalvageRiskModifier(site, state),
         0,
         1.5
       ),
@@ -3674,7 +4405,9 @@ const VoidProspector = (() => {
       (state.contract.deliveredStormCharts || 0) >= (state.contract.requiredStormCharts || 0) &&
       (state.contract.deliveredStormPayout || 0) >= (state.contract.requiredStormPayout || 0) &&
       (state.contract.deliveredInterdictions || 0) >= (state.contract.requiredInterdictions || 0) &&
-      (state.contract.deliveredInterdictionPayout || 0) >= (state.contract.requiredInterdictionPayout || 0)
+      (state.contract.deliveredInterdictionPayout || 0) >= (state.contract.requiredInterdictionPayout || 0) &&
+      (state.contract.deliveredSignalTransits || 0) >= (state.contract.requiredSignalTransits || 0) &&
+      (state.contract.deliveredSignalPayout || 0) >= (state.contract.requiredSignalPayout || 0)
     );
   }
 
@@ -3697,6 +4430,12 @@ const VoidProspector = (() => {
         (next.contract.deliveredInterdictions || 0) >= sector.requiredInterdictions
       ) {
         next.ladder.interdictionScore += Math.ceil((sector.stormReward || sector.surveyReward || 0) * 0.75);
+      }
+      if (
+        (sector.requiredSignalTransits || 0) > 0 &&
+        (next.contract.deliveredSignalTransits || 0) >= sector.requiredSignalTransits
+      ) {
+        next.ladder.signalScore += sector.signalReward || Math.ceil((sector.surveyReward || 0) * 0.8);
       }
       next.ladder.lastCompletedSectorId = sector.id;
     }
@@ -3829,6 +4568,12 @@ const VoidProspector = (() => {
     next.stationServices.interdictionRaidMitigation += service.interdictionRaidMitigation || 0;
     next.stationServices.interdictionPayoutBonus += service.interdictionPayoutBonus || 0;
     next.stationServices.interdictionSupportIntegrity += service.interdictionSupportIntegrity || 0;
+    next.stationServices.signalScanBonus += service.signalScanBonus || 0;
+    next.stationServices.signalPylonIntegrity += service.signalPylonIntegrity || 0;
+    next.stationServices.signalCapacitorBonus += service.signalCapacitorBonus || 0;
+    next.stationServices.signalTransitWindowBonus += service.signalTransitWindowBonus || 0;
+    next.stationServices.signalJamMitigation += service.signalJamMitigation || 0;
+    next.stationServices.signalPayoutBonus += service.signalPayoutBonus || 0;
     next.stationServices.lastService = `${service.name} purchased`;
     next.log.unshift({ tick: next.tick, message: `${service.name} purchased for the next survey push.` });
     return syncDerivedState(next);
@@ -3850,6 +4595,12 @@ const VoidProspector = (() => {
         return deployInterdictionLure(state, cell.id);
       }
     }
+    if (state.signalGate && state.signalGate.activeGateId) {
+      const gate = signalGateById(state, state.signalGate.activeGateId);
+      if (gate && gate.gateState.harmonicsScanned && gate.gateState.outcome === "none") {
+        return mitigateSignalGateJam(state, gate.id);
+      }
+    }
     const next = clone(state);
     if (!next.stationServices || next.stationServices.countermeasureCharges <= 0) {
       next.stationServices = next.stationServices || createStationServiceState();
@@ -3867,6 +4618,558 @@ const VoidProspector = (() => {
     next.pirate.position = add(next.ship.position, scale(shove, next.pirate.attackRadius + 12));
     next.stats.countermeasuresDeployed += 1;
     next.log.unshift({ tick: next.tick, message: "Decoy burst broke the pirate wake lock." });
+    return syncDerivedState(next);
+  }
+
+  function signalGateInRange(state, gate, range, point = "gate") {
+    const targetPosition = point === "pylon" && gate.pylon ? gate.pylon.position : gate.position;
+    const targetRadius = point === "pylon" && gate.pylon ? gate.pylon.radius || 0 : gate.radius || 0;
+    return distance(state.ship.position, targetPosition) <= range + targetRadius;
+  }
+
+  function scanSignalGateHarmonics(state, gateId = null, deltaSeconds = 1) {
+    const dt = Math.max(0, Math.min(deltaSeconds, 2));
+    const next = syncDerivedState(clone(state));
+    if (next.run.status === "failed" || next.run.status === "complete") {
+      next.signalGate.status = "run closed";
+      return syncDerivedState(next);
+    }
+    const target = gateId ? signalGateById(next, gateId) : findTarget(next);
+    if (!target || (gateId === null && next.target.kind !== "signal-gate")) {
+      next.signalGate.status = "no signal gate lock";
+      return syncDerivedState(next);
+    }
+    const readiness = signalGateReadiness(next, target.id);
+    if (!readiness.ready) {
+      target.gateState.status = "locked";
+      next.signalGate.status = `locked: ${readiness.missing.join(", ")}`;
+      return syncDerivedState(next);
+    }
+    if (!signalGateInRange(next, target, next.signalGate.scanRange)) {
+      next.signalGate.status = "out of harmonic range";
+      return syncDerivedState(next);
+    }
+    if (target.gateState.harmonicsScanned) {
+      target.gateState.status = "harmonics scanned";
+      next.signalGate.status = `${target.name} already scanned`;
+      return syncDerivedState(next);
+    }
+
+    target.gateState.status = "scanning";
+    target.gateState.progress += next.signalGate.scanPower * dt;
+    target.gateState.lastTouchedTick = next.tick;
+    next.scanning.active = true;
+    next.scanning.targetId = target.id;
+    next.scanning.lastScan = clamp(target.gateState.progress / target.harmonicDifficulty, 0, 1);
+    next.scanning.status = `gate harmonics ${Math.round(next.scanning.lastScan * 100)}%`;
+    if (target.gateState.progress >= target.harmonicDifficulty) {
+      target.gateState.progress = target.harmonicDifficulty;
+      target.gateState.harmonicsScanned = true;
+      target.gateState.status = "harmonics scanned";
+      next.signalGate.scannedGateIds = uniqueList([...next.signalGate.scannedGateIds, target.id]);
+      next.ladder.scannedSignalGateIds = uniqueList([...(next.ladder.scannedSignalGateIds || []), target.id]);
+      next.signalGate.scansCompleted += 1;
+      next.stats.signalGateScans += 1;
+      next.pirate.state = next.pirate.state === "dormant" ? "shadowing" : next.pirate.state;
+      next.pirate.encounterState = next.pirate.encounterState === "distant" ? "contact" : next.pirate.encounterState;
+      next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (target.pirateGateJam || 0) * 0.08, 2));
+      next.signalGate.lastOutcome = `${target.name} harmonics scanned`;
+      next.log.unshift({ tick: next.tick, message: `${target.name} harmonics scanned into Signal Gate Expedition.` });
+    }
+    return syncDerivedState(next);
+  }
+
+  function alignSignalGatePylon(state, gateId) {
+    const next = syncDerivedState(clone(state));
+    const gate = signalGateById(next, gateId);
+    if (!gate) {
+      next.signalGate.status = "unknown signal gate";
+      return syncDerivedState(next);
+    }
+    const readiness = signalGateReadiness(next, gate.id);
+    if (!readiness.ready || !gate.gateState.harmonicsScanned) {
+      gate.gateState.status = "pylon locked";
+      next.signalGate.status = `pylon locked: ${readiness.missing.join(", ") || "scan harmonics"}`;
+      return syncDerivedState(next);
+    }
+    const range = gate.pylonAlignRange || next.signalGate.pylonAlignRange;
+    if (!signalGateInRange(next, gate, range, "pylon") && !next.station.proximity.dockable) {
+      gate.gateState.status = "pylon out of range";
+      next.signalGate.status = `${gate.pylon.name} out of range`;
+      return syncDerivedState(next);
+    }
+    if (gate.gateState.pylonAligned) {
+      gate.gateState.status = "pylon aligned";
+      next.signalGate.status = `${gate.pylon.name} already aligned`;
+      return syncDerivedState(next);
+    }
+
+    gate.gateState.pylonAligned = true;
+    gate.gateState.pylonIntegrity = gate.gateState.maxPylonIntegrity;
+    gate.gateState.status = "pylon aligned";
+    gate.gateState.lastTouchedTick = next.tick;
+    next.signalGate.alignedGateIds = uniqueList([...next.signalGate.alignedGateIds, gate.id]);
+    next.ladder.alignedSignalGateIds = uniqueList([...(next.ladder.alignedSignalGateIds || []), gate.id]);
+    next.signalGate.pylonsAligned += 1;
+    next.hazard.exposure = Math.max(0, round(next.hazard.exposure - 0.3, 3));
+    next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (gate.piratePressureClear || 0) * 0.25, 2));
+    next.stats.signalPylonsAligned += 1;
+    next.signalGate.lastOutcome = `${gate.pylon.name} aligned`;
+    next.log.unshift({ tick: next.tick, message: `${gate.pylon.name} aligned for ${gate.name}.` });
+    return syncDerivedState(next);
+  }
+
+  function chargeSignalGateCapacitor(state, gateId, deltaSeconds = 1) {
+    const dt = Math.max(0, Math.min(deltaSeconds, 3));
+    const next = syncDerivedState(clone(state));
+    const gate = signalGateById(next, gateId);
+    if (!gate) {
+      next.signalGate.status = "unknown signal gate";
+      return syncDerivedState(next);
+    }
+    const readiness = signalGateReadiness(next, gate.id);
+    if (!readiness.ready || !gate.gateState.harmonicsScanned || !gate.gateState.pylonAligned) {
+      gate.gateState.status = "capacitor locked";
+      next.signalGate.status = `capacitor locked: ${readiness.missing.join(", ") || "scan and align pylon"}`;
+      return syncDerivedState(next);
+    }
+    if (!signalGateInRange(next, gate, next.signalGate.capacitorRange) && !next.station.proximity.dockable) {
+      gate.gateState.status = "capacitor out of range";
+      next.signalGate.status = `${gate.name} capacitor out of range`;
+      return syncDerivedState(next);
+    }
+    if (gate.gateState.capacitorCharge >= gate.gateState.capacitorRequirement) {
+      gate.gateState.status = "capacitor charged";
+      next.signalGate.status = `${gate.name} capacitor charged`;
+      return syncDerivedState(next);
+    }
+    const fuelCost = (gate.chargeFuelCost || GAME_DATA.signalGateExpedition.chargeFuelCost) * dt;
+    if (next.ship.fuel <= 0 || next.ship.fuel < fuelCost * 0.35) {
+      gate.gateState.status = "capacitor fuel starved";
+      next.signalGate.status = `${gate.name} needs fuel to charge`;
+      return syncDerivedState(next);
+    }
+
+    const wasCharged = gate.gateState.capacitorCharge >= gate.gateState.capacitorRequirement;
+    const chargeGain = ((gate.chargeRate || GAME_DATA.signalGateExpedition.baseChargeRate) + (next.signalGate.capacitorBonus || 0)) * dt;
+    next.ship.fuel = Math.max(0, round(next.ship.fuel - fuelCost, 2));
+    gate.gateState.capacitorCharge = round(
+      Math.min(gate.gateState.capacitorRequirement, gate.gateState.capacitorCharge + chargeGain),
+      2
+    );
+    gate.gateState.lastTouchedTick = next.tick;
+    next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (gate.pirateGateJam || 0) * 0.015 * dt, 2));
+    if (!wasCharged && gate.gateState.capacitorCharge >= gate.gateState.capacitorRequirement) {
+      gate.gateState.status = "capacitor charged";
+      next.signalGate.chargedGateIds = uniqueList([...next.signalGate.chargedGateIds, gate.id]);
+      next.ladder.chargedSignalGateIds = uniqueList([...(next.ladder.chargedSignalGateIds || []), gate.id]);
+      next.signalGate.capacitorsCharged += 1;
+      next.stats.signalCapacitorsCharged += 1;
+      next.signalGate.lastOutcome = `${gate.name} capacitor charged`;
+      next.log.unshift({ tick: next.tick, message: `${gate.name} capacitor charged for transit.` });
+    } else {
+      gate.gateState.status = `capacitor ${round(gate.gateState.capacitorCharge, 1)}/${gate.gateState.capacitorRequirement}`;
+    }
+    return syncDerivedState(next);
+  }
+
+  function anchorSignalGateStormWindow(state, gateId, chartId = null) {
+    const next = syncDerivedState(clone(state));
+    const gate = signalGateById(next, gateId);
+    if (!gate) {
+      next.signalGate.status = "unknown signal gate";
+      return syncDerivedState(next);
+    }
+    const readiness = signalGateReadiness(next, gate.id);
+    if (!readiness.ready || !gate.gateState.pylonAligned) {
+      gate.gateState.status = "storm anchor locked";
+      next.signalGate.status = `storm anchor locked: ${readiness.missing.join(", ") || "align pylon"}`;
+      return syncDerivedState(next);
+    }
+    const chart =
+      (chartId ? stormChartById(next, chartId) : null) ||
+      (gate.stormChartIds || [])
+        .map((candidateId) => stormChartById(next, candidateId))
+        .find((candidate) => candidate && candidate.stormState.safeWindow.locked && candidate.stormState.outcome === "none");
+    if (!chart || !(gate.stormChartIds || []).includes(chart.id) || !chart.stormState.safeWindow.locked) {
+      gate.gateState.status = "storm window unavailable";
+      next.signalGate.status = `${gate.name} needs a locked storm window`;
+      return syncDerivedState(next);
+    }
+    if (gate.gateState.stormWindowAnchoredChartId) {
+      next.signalGate.status = `${gate.name} already anchored to ${gate.gateState.stormWindowAnchoredChartId}`;
+      return syncDerivedState(next);
+    }
+
+    gate.gateState.stormWindowAnchoredChartId = chart.id;
+    gate.gateState.transitWindow.anchoredChartId = chart.id;
+    gate.gateState.transitWindow.closesAt = round(
+      (gate.gateState.transitWindow.closesAt || 0) + (gate.stormWindowBonus || 0) + (next.signalGate.transitWindowBonus || 0),
+      2
+    );
+    gate.gateState.pylonIntegrity = Math.min(
+      gate.gateState.maxPylonIntegrity,
+      round((gate.gateState.pylonIntegrity || 0) + (gate.stormAnchorIntegrity || 0), 2)
+    );
+    chart.stormState.anchorIntegrity = Math.max(0, round(chart.stormState.anchorIntegrity - 2, 2));
+    next.hazard.exposure = Math.max(0, round(next.hazard.exposure - (chart.hazardMitigation || 0) * 0.4, 3));
+    next.signalGate.lastOutcome = `${gate.name} anchored to ${chart.name}`;
+    next.log.unshift({ tick: next.tick, message: `${gate.name} transit window anchored to ${chart.name}.` });
+    return syncDerivedState(next);
+  }
+
+  function mitigateSignalGateJam(state, gateId) {
+    const next = syncDerivedState(clone(state));
+    const gate = signalGateById(next, gateId);
+    if (!gate) {
+      next.signalGate.status = "unknown signal gate";
+      return syncDerivedState(next);
+    }
+    const readiness = signalGateReadiness(next, gate.id);
+    if (!readiness.ready || !gate.gateState.harmonicsScanned) {
+      gate.gateState.status = "jam mitigation locked";
+      next.signalGate.status = `jam mitigation locked: ${readiness.missing.join(", ") || "scan harmonics"}`;
+      return syncDerivedState(next);
+    }
+    if (!next.stationServices || next.stationServices.countermeasureCharges <= 0) {
+      next.stationServices = next.stationServices || createStationServiceState();
+      next.stationServices.countermeasureStatus = "no gate burst";
+      return syncDerivedState(next);
+    }
+
+    next.stationServices.countermeasureCharges -= 1;
+    next.stationServices.countermeasureStatus = "signal gate burst";
+    gate.gateState.countermeasureUsed = true;
+    gate.gateState.pirateJam = Math.max(
+      0,
+      round((gate.gateState.pirateJam || gate.pirateGateJam || 0) - GAME_DATA.signalGateExpedition.countermeasureJamReduction, 2)
+    );
+    gate.gateState.capacitorCharge = round(
+      Math.min(
+        gate.gateState.capacitorRequirement,
+        gate.gateState.capacitorCharge + GAME_DATA.signalGateExpedition.countermeasureCapacitorCharge
+      ),
+      2
+    );
+    next.pirate.pressure = Math.max(0, round(next.pirate.pressure - GAME_DATA.signalGateExpedition.countermeasurePressureDrop, 2));
+    next.signalGate.pirateJamsMitigated += 1;
+    next.stats.countermeasuresDeployed += 1;
+    next.stats.signalGateJamsMitigated += 1;
+    next.signalGate.lastOutcome = `${gate.name} jam mitigated`;
+    next.log.unshift({ tick: next.tick, message: `Countermeasure burst cleared pirate gate interference around ${gate.name}.` });
+    return syncDerivedState(next);
+  }
+
+  function forceSignalGateOpen(state, gateId) {
+    const next = syncDerivedState(clone(state));
+    const gate = signalGateById(next, gateId);
+    if (!gate) {
+      next.signalGate.status = "unknown signal gate";
+      return syncDerivedState(next);
+    }
+    const readiness = signalGateReadiness(next, gate.id);
+    if (!readiness.ready || !gate.gateState.harmonicsScanned || !gate.gateState.pylonAligned) {
+      gate.gateState.status = "force locked";
+      next.signalGate.status = `force locked: ${readiness.missing.join(", ") || "scan and align pylon"}`;
+      return syncDerivedState(next);
+    }
+    if (gate.gateState.capacitorCharge < gate.gateState.capacitorRequirement) {
+      gate.gateState.status = "force needs capacitor";
+      next.signalGate.status = `${gate.name} capacitor not charged`;
+      return syncDerivedState(next);
+    }
+    const fuelCost = gate.forceFuelCost || (gate.transitFuelCost || 0) + 8;
+    next.ship.fuel = Math.max(0, round(next.ship.fuel - fuelCost, 2));
+    next.ship.hull = Math.max(0, round(next.ship.hull - Math.max(4, (gate.failureHullDamage || 0) * 0.35), 2));
+    gate.gateState.transitWindow.forced = true;
+    gate.gateState.transitWindow.opensAt = Math.min(gate.gateState.transitWindow.opensAt || next.elapsed, next.elapsed);
+    gate.gateState.transitWindow.closesAt = Math.max(gate.gateState.transitWindow.closesAt || 0, next.elapsed + 3);
+    gate.gateState.pirateJam = round((gate.gateState.pirateJam || gate.pirateGateJam || 0) + 12, 2);
+    gate.gateState.status = "forced open";
+    next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (gate.failurePressure || 0) * 0.45, 2));
+    next.signalGate.lastOutcome = `${gate.name} forced open`;
+    next.log.unshift({ tick: next.tick, message: `${gate.name} forced open against pirate gate interference.` });
+    return syncDerivedState(next);
+  }
+
+  function abortSignalGateTransit(state, gateId) {
+    const next = syncDerivedState(clone(state));
+    const gate = signalGateById(next, gateId);
+    if (!gate) {
+      next.signalGate.status = "unknown signal gate";
+      return syncDerivedState(next);
+    }
+    if (gate.gateState.outcome !== "none" || gate.gateState.capacitorCharge <= 0) {
+      next.signalGate.status = `${gate.name} has no pending transit`;
+      return syncDerivedState(next);
+    }
+    gate.gateState.capacitorCharge = Math.max(0, round(gate.gateState.capacitorCharge - Math.max(1, gate.gateState.capacitorRequirement * 0.45), 2));
+    gate.gateState.transitWindow.abortedAt = next.elapsed;
+    gate.gateState.status = "transit aborted";
+    gate.gateState.lastTouchedTick = next.tick;
+    next.signalGate.abortedTransits += 1;
+    next.stats.signalGateAborts += 1;
+    next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (gate.piratePressureClear || 0) * 0.3, 2));
+    next.signalGate.lastOutcome = `${gate.name} transit aborted`;
+    next.log.unshift({ tick: next.tick, message: `${gate.name} transit aborted before convoy commitment.` });
+    return syncDerivedState(next);
+  }
+
+  function signalGateTransitPower(state, gate, transitMode = "convoy") {
+    const pylonPower = (gate.gateState.pylonIntegrity || 0) * 0.25;
+    const capacitorPower = (gate.gateState.capacitorCharge || 0) * 8;
+    const stationPower =
+      (state.stationServices.signalJamMitigation || 0) * 100 +
+      (state.stationServices.signalPylonIntegrity || 0) * 0.35 +
+      (state.stationServices.signalCapacitorBonus || 0) * 8;
+    const stormPower = gate.gateState.stormWindowAnchoredChartId ? 18 : 0;
+    const convoyPower =
+      transitMode === "convoy"
+        ? (gate.convoyRouteIds || []).reduce((score, routeId) => {
+            const route = convoyRouteById(state, routeId);
+            if (!route) {
+              return score;
+            }
+            const beaconScore = route.beaconState.deployed ? 10 : 0;
+            const escortScore = route.convoyState ? Math.min(24, (route.convoyState.escortIntegrity || 0) * 0.22) : 0;
+            const completedScore = (state.ladder.completedConvoyRouteIds || []).includes(routeId) ? 14 : 0;
+            return score + Math.max(beaconScore + escortScore, completedScore);
+          }, 0)
+        : 0;
+    const salvagePower = (gate.salvageSiteIds || []).reduce((score, siteId) => {
+      const manifestReady = currentSalvageManifestIds(state).includes(siteId);
+      return score + (manifestReady ? 8 : 0);
+    }, 0);
+    const interdictionPower = (state.interdictionCells || []).reduce((score, cell) => {
+      if (!(cell.convoyRouteIds || []).some((routeId) => (gate.convoyRouteIds || []).includes(routeId))) {
+        return score;
+      }
+      return score + (["success", "partial"].includes(cell.interdictionState.outcome) ? 10 : 0);
+    }, 0);
+    const shipPower = (state.ship.fuel > (gate.transitFuelCost || 0) ? 8 : 0) + (state.ship.hull > 55 ? 6 : 0);
+    return round(18 + pylonPower + capacitorPower + stationPower + stormPower + convoyPower + salvagePower + interdictionPower + shipPower, 2);
+  }
+
+  function signalGateJamPressure(state, gate, forced = false) {
+    const stationReduction = (state.stationServices.signalJamMitigation || 0) * 100;
+    const pressureJam = (state.pirate.pressure || 0) * (gate.jamPressureScale || 0.32);
+    const forcedJam = forced ? 14 : 0;
+    return round(Math.max(1, (gate.gateState.pirateJam || gate.pirateGateJam || 0) + pressureJam + forcedJam - stationReduction), 2);
+  }
+
+  function settleSignalGateConvoyRoute(state, gate, route, outcome) {
+    const next = state;
+    if (!route || !route.convoyState || !route.beaconState.deployed || ["delivered", "partial", "failed"].includes(route.convoyState.status)) {
+      return next;
+    }
+    const success = outcome === "success";
+    const partial = outcome === "partial";
+    if (success || partial) {
+      const payoutRate = success ? 1 : route.partialPayoutRate || 0.5;
+      const payout = Math.round(
+        (route.convoyState.payoutCredits || route.payoutCredits || route.cargoValue) *
+          payoutRate *
+          (1 + (next.stationServices.convoyPayoutBonus || 0) + (gate.convoyTransitPayoutBonus || 0))
+      );
+      route.convoyState.status = success ? "delivered" : "partial";
+      route.convoyState.progress = 1;
+      route.convoyState.position = clone(route.endPosition || route.beacon.position);
+      route.convoyState.deliveredValue = payout;
+      route.convoyState.completedAt = next.tick;
+      route.convoyState.failureReason = partial ? "gate jam narrowed the convoy transit" : null;
+      route.convoyState.signalGateStatus = `${gate.id} ${outcome}`;
+      next.convoy.activeRouteId = next.convoy.activeRouteId === route.id ? null : next.convoy.activeRouteId;
+      next.convoy.completedRouteIds = uniqueList([...next.convoy.completedRouteIds, route.id]);
+      next.ladder.completedConvoyRouteIds = uniqueList([...(next.ladder.completedConvoyRouteIds || []), route.id]);
+      if (partial) {
+        next.convoy.partialRouteIds = uniqueList([...next.convoy.partialRouteIds, route.id]);
+        next.stats.convoyPartialPayouts += 1;
+      }
+      next.convoy.payoutBanked += payout;
+      next.convoy.convoyScore += partial ? Math.ceil((route.ladderScore || 0) * 0.55) : route.ladderScore || 0;
+      next.ladder.convoyScore += partial ? Math.ceil((route.ladderScore || 0) * 0.55) : route.ladderScore || 0;
+      next.credits += payout;
+      next.contract.deliveredConvoyValue = (next.contract.deliveredConvoyValue || 0) + payout;
+      next.stats.convoyPayouts += payout;
+      next.signalGate.convoyTransits += 1;
+      next.stats.signalGateConvoyTransits += 1;
+      return next;
+    }
+    route.convoyState.status = "failed";
+    route.convoyState.failureReason = "pirate gate jam scattered the convoy transit";
+    route.convoyState.completedAt = next.tick;
+    route.convoyState.escortIntegrity = Math.max(0, round((route.convoyState.escortIntegrity || 0) - (gate.pirateGateJam || 0) * 0.25, 2));
+    route.convoyState.signalGateStatus = `${gate.id} failed`;
+    next.convoy.failedRouteIds = uniqueList([...next.convoy.failedRouteIds, route.id]);
+    next.stats.convoyFailures += 1;
+    return next;
+  }
+
+  function applySignalGateOutcomeCoupling(state, gate, outcome, transitMode, payout) {
+    const next = state;
+    const success = outcome === "success";
+    const partial = outcome === "partial";
+    (gate.convoyRouteIds || []).forEach((routeId) => {
+      const route = convoyRouteById(next, routeId);
+      if (!route || !route.convoyState) {
+        return;
+      }
+      if (success || partial) {
+        const scaleValue = success ? 1 : 0.5;
+        route.convoyState.ambushPressure = Math.max(
+          0,
+          round((route.convoyState.ambushPressure || route.ambushPressure || 0) - (gate.convoyAmbushReduction || 0) * scaleValue, 2)
+        );
+        route.convoyState.hazardExposure = Math.max(
+          0,
+          round((route.convoyState.hazardExposure || route.hazardExposure || 0) - (gate.convoyHazardReduction || 0) * scaleValue, 2)
+        );
+        route.convoyState.signalGateStatus = `${gate.id} ${outcome}`;
+        if (transitMode === "convoy") {
+          settleSignalGateConvoyRoute(next, gate, route, outcome);
+        }
+      } else {
+        route.convoyState.ambushPressure = round((route.convoyState.ambushPressure || route.ambushPressure || 0) + (gate.failurePressure || 0) * 0.45, 2);
+        route.convoyState.signalGateStatus = `${gate.id} failed`;
+        if (transitMode === "convoy") {
+          settleSignalGateConvoyRoute(next, gate, route, outcome);
+        }
+      }
+    });
+    (gate.salvageSiteIds || []).forEach((siteId) => {
+      const site = (next.salvageSites || []).find((candidate) => candidate.id === siteId);
+      if (!site || !site.salvageState) {
+        return;
+      }
+      if (success || partial) {
+        site.salvageState.signalGateShield = {
+          gateId: gate.id,
+          status: success ? "transit shielded" : "partially shielded",
+          riskReduction: (gate.salvageRiskReduction || 0) * (success ? 1 : 0.5),
+        };
+      } else {
+        site.salvageState.signalGateRaid = {
+          gateId: gate.id,
+          status: "jam raided",
+          lostValue: Math.round((site.rewardValue || 0) * 0.18),
+        };
+        site.salvageState.scanConfidence = Math.max(0, round((site.salvageState.scanConfidence || 0) - 0.14, 3));
+      }
+    });
+    if (success) {
+      next.ship.fuel = Math.max(0, round(next.ship.fuel - (gate.transitFuelCost || 0), 2));
+      next.pirate.pressure = Math.max(0, round(next.pirate.pressure - (gate.piratePressureClear || 0), 2));
+      next.hazard.exposure = Math.max(0, round(next.hazard.exposure - (gate.convoyHazardReduction || 0) * 0.45, 3));
+    } else if (partial) {
+      next.ship.hull = Math.max(0, round(next.ship.hull - (gate.failureHullDamage || 0) * 0.45, 2));
+      next.ship.fuel = Math.max(0, round(next.ship.fuel - (gate.failureFuelDrain || 0) * 0.55, 2));
+      next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (gate.failurePressure || 0) * 0.35, 2));
+    } else {
+      next.ship.hull = Math.max(0, round(next.ship.hull - (gate.failureHullDamage || 0), 2));
+      next.ship.fuel = Math.max(0, round(next.ship.fuel - (gate.failureFuelDrain || 0), 2));
+      next.pirate.pressure = Math.min(100, round(next.pirate.pressure + (gate.failurePressure || 0), 2));
+    }
+    if (outcome === "failed" && next.cargo.ore > 0 && (gate.cargoLoss || 0) > 0) {
+      const lost = Math.min(next.cargo.ore, gate.cargoLoss || 0);
+      const averageValue = next.cargo.ore > 0 ? Math.ceil(next.cargo.value / next.cargo.ore) : 0;
+      next.cargo.ore -= lost;
+      next.cargo.value = Math.max(0, next.cargo.value - averageValue * lost);
+      next.stats.oreLost += lost;
+    }
+    if (payout > 0) {
+      next.credits += payout;
+    }
+    return next;
+  }
+
+  function commitSignalGateTransit(state, gateId, transitMode = "convoy") {
+    const next = syncDerivedState(clone(state));
+    const gate = signalGateById(next, gateId);
+    if (!gate) {
+      next.signalGate.status = "unknown signal gate";
+      return syncDerivedState(next);
+    }
+    if (["success", "partial", "failed"].includes(gate.gateState.outcome)) {
+      return syncDerivedState(next);
+    }
+    const readiness = signalGateReadiness(next, gate.id);
+    if (!readiness.ready || !gate.gateState.harmonicsScanned || !gate.gateState.pylonAligned) {
+      gate.gateState.status = "transit locked";
+      next.signalGate.status = `transit locked: ${readiness.missing.join(", ") || "scan and align pylon"}`;
+      return syncDerivedState(next);
+    }
+    if (gate.gateState.capacitorCharge < gate.gateState.capacitorRequirement) {
+      gate.gateState.status = "capacitor not charged";
+      next.signalGate.status = `${gate.name} capacitor not charged`;
+      return syncDerivedState(next);
+    }
+    if (!signalGateInRange(next, gate, next.signalGate.transitRange) && !next.station.proximity.dockable) {
+      gate.gateState.status = "transit out of range";
+      next.signalGate.status = `${gate.name} transit out of range`;
+      return syncDerivedState(next);
+    }
+    const timing = signalGateTransitTiming(gate, next);
+    if (timing.pending && !timing.forced) {
+      gate.gateState.status = `transit opens at ${timing.opensAt}`;
+      next.signalGate.status = gate.gateState.status;
+      return syncDerivedState(next);
+    }
+    const forced = timing.forced || timing.missed;
+    const transitPower = signalGateTransitPower(next, gate, transitMode);
+    const jamPressure = signalGateJamPressure(next, gate, forced);
+    let outcome = "failed";
+    if (!timing.missed && transitPower >= jamPressure) {
+      outcome = "success";
+    } else if (transitPower >= jamPressure * 0.58 || gate.gateState.countermeasureUsed || gate.gateState.stormWindowAnchoredChartId) {
+      outcome = "partial";
+    }
+    const payoutRate = outcome === "success" ? 1 : outcome === "partial" ? gate.partialPayoutRate || 0.5 : 0;
+    const payout = Math.round((gate.gateState.payoutCredits || gate.payoutCredits || 0) * payoutRate * (1 + (next.stationServices.signalPayoutBonus || 0)));
+
+    gate.gateState.status = outcome;
+    gate.gateState.outcome = outcome;
+    gate.gateState.deliveredValue = payout;
+    gate.gateState.partialPayoutCredits = outcome === "partial" ? payout : 0;
+    gate.gateState.failureReason =
+      outcome === "success"
+        ? null
+        : outcome === "partial"
+          ? "pirate gate interference clipped the transit corridor"
+          : "pirate gate interference collapsed the transit";
+    gate.gateState.transitWindow.committed = true;
+    gate.gateState.transitWindow.committedAt = next.elapsed;
+    gate.gateState.convoyTransitCommitted = transitMode === "convoy";
+    gate.gateState.lastTouchedTick = next.tick;
+    next.signalGate.transitsResolved += 1;
+    next.stats.signalGateTransits += 1;
+    next.signalGate.transitGateIds = uniqueList([...next.signalGate.transitGateIds, gate.id]);
+    if (outcome === "failed") {
+      next.signalGate.failedGateIds = uniqueList([...next.signalGate.failedGateIds, gate.id]);
+      next.ladder.failedSignalGateIds = uniqueList([...(next.ladder.failedSignalGateIds || []), gate.id]);
+      next.stats.signalGateFailures += 1;
+    } else {
+      next.signalGate.completedGateIds = uniqueList([...next.signalGate.completedGateIds, gate.id]);
+      next.ladder.completedSignalGateIds = uniqueList([...(next.ladder.completedSignalGateIds || []), gate.id]);
+      next.contract.deliveredSignalTransits = (next.contract.deliveredSignalTransits || 0) + 1;
+      if (outcome === "partial") {
+        next.signalGate.partialGateIds = uniqueList([...next.signalGate.partialGateIds, gate.id]);
+        next.ladder.partialSignalGateIds = uniqueList([...(next.ladder.partialSignalGateIds || []), gate.id]);
+        next.stats.signalGatePartialPayouts += 1;
+      }
+      const score = outcome === "success" ? gate.ladderScore || 0 : Math.ceil((gate.ladderScore || 0) * 0.55);
+      next.signalGate.signalScore += score;
+      next.ladder.signalScore += score;
+      next.signalGate.payoutBanked += payout;
+      next.contract.deliveredSignalPayout = (next.contract.deliveredSignalPayout || 0) + payout;
+      next.stats.signalGatePayouts += payout;
+    }
+    applySignalGateOutcomeCoupling(next, gate, outcome, transitMode, payout);
+    next.signalGate.status = `${gate.name} ${outcome}`;
+    next.signalGate.lastOutcome = `${payout}cr ${outcome}`;
+    next.log.unshift({
+      tick: next.tick,
+      message: `${gate.name} ${outcome === "success" ? "opened" : outcome === "partial" ? "partially opened" : "collapsed"} for ${payout} credits.`,
+    });
     return syncDerivedState(next);
   }
 
@@ -4354,6 +5657,7 @@ const VoidProspector = (() => {
     );
     const stormModifier = stormWindowModifierForRoute(next, route);
     const interdictionModifier = interdictionModifierForRoute(next, route);
+    const signalModifier = signalGateModifierForRoute(next, route);
     route.convoyState.status = "enroute";
     route.convoyState.progress = 0;
     route.convoyState.position = clone(route.startPosition || route.beacon.position);
@@ -4361,14 +5665,26 @@ const VoidProspector = (() => {
     route.convoyState.maxEscortIntegrity = escortIntegrity + interdictionModifier.escortIntegrity;
     route.convoyState.cargoValue = route.cargoValue;
     route.convoyState.payoutCredits = Math.round(
-      (route.payoutCredits || route.cargoValue) * (1 + stormModifier.payoutBonus + interdictionModifier.payoutBonus)
+      (route.payoutCredits || route.cargoValue) *
+        (1 + stormModifier.payoutBonus + interdictionModifier.payoutBonus + signalModifier.payoutBonus)
     );
     route.convoyState.deliveredValue = 0;
     route.convoyState.ambushPressure = Math.max(
       0,
-      round(ambushPressure + interdictionModifier.raidPressure - stormModifier.ambushReduction - interdictionModifier.ambushReduction, 2)
+      round(
+        ambushPressure +
+          interdictionModifier.raidPressure +
+          signalModifier.jamPressure -
+          stormModifier.ambushReduction -
+          interdictionModifier.ambushReduction -
+          signalModifier.ambushReduction,
+        2
+      )
     );
-    route.convoyState.hazardExposure = Math.max(0, round((route.hazardExposure || 0) - stormModifier.hazardReduction, 2));
+    route.convoyState.hazardExposure = Math.max(
+      0,
+      round((route.hazardExposure || 0) - stormModifier.hazardReduction - signalModifier.hazardReduction, 2)
+    );
     route.convoyState.failureReason = null;
     route.convoyState.startedAt = next.tick;
     route.convoyState.completedAt = null;
@@ -4377,6 +5693,7 @@ const VoidProspector = (() => {
     route.convoyState.lastDamage = 0;
     route.convoyState.stormWindowStatus = stormModifier.active ? `locked ${stormModifier.chartId}` : "none";
     route.convoyState.interdictionStatus = interdictionModifier.label;
+    route.convoyState.signalGateStatus = signalModifier.label;
     next.convoy.activeRouteId = route.id;
     next.convoy.status = `${route.name} enroute`;
     next.stats.convoysStarted += 1;
@@ -4418,11 +5735,19 @@ const VoidProspector = (() => {
       : 1;
     const stormModifier = stormWindowModifierForRoute(next, route);
     const stormScale = stormModifier.active ? 0.72 : 1;
+    const signalModifier = signalGateModifierForRoute(next, route);
+    const signalScale = signalModifier.active && signalModifier.jamPressure <= 0 ? 0.82 : 1;
     const countermeasureScale = route.convoyState.countermeasureUsed ? 0.62 : 1;
     const formationScale = inFormation ? 0.68 : 1.35;
     const ambushDamage =
-      Math.max(0, route.convoyState.ambushPressure || 0) * 0.028 * dt * countermeasureScale * formationScale * stormScale;
-    const hazardDamage = (route.convoyState.hazardExposure || 0) * 0.34 * dt * chartScale * beaconScale * stormScale;
+      Math.max(0, route.convoyState.ambushPressure || 0) *
+      0.028 *
+      dt *
+      countermeasureScale *
+      formationScale *
+      stormScale *
+      signalScale;
+    const hazardDamage = (route.convoyState.hazardExposure || 0) * 0.34 * dt * chartScale * beaconScale * stormScale * signalScale;
     const damage = round(ambushDamage + hazardDamage, 2);
 
     route.convoyState.escortIntegrity = Math.max(0, round(route.convoyState.escortIntegrity - damage, 2));
@@ -4574,7 +5899,12 @@ const VoidProspector = (() => {
       (!state.interdiction ||
         (state.stats.interdictionTranspondersScanned === 0 &&
           state.interdiction.payoutBanked === 0 &&
-          state.interdiction.raidsResolved === 0))
+          state.interdiction.raidsResolved === 0)) &&
+      (!state.signalGate ||
+        (state.stats.signalGateScans === 0 &&
+          state.signalGate.payoutBanked === 0 &&
+          state.signalGate.transitsResolved === 0 &&
+          state.signalGate.pylonsAligned === 0))
     );
   }
 
@@ -4607,6 +5937,7 @@ const VoidProspector = (() => {
       convoy: convoyPersistence(current),
       storm: stormPersistence(current),
       interdiction: interdictionPersistence(current),
+      signalGate: signalGatePersistence(current),
       sectorId: sector.id,
     });
     next.ladder.lastChoice = `sector ${sector.name}`;
@@ -4635,6 +5966,7 @@ const VoidProspector = (() => {
       convoy: convoyPersistence(state),
       storm: stormPersistence(state),
       interdiction: interdictionPersistence(state),
+      signalGate: signalGatePersistence(state),
       sectorId,
     });
     next.log.unshift({
@@ -4725,6 +6057,39 @@ const VoidProspector = (() => {
     return next;
   }
 
+  function updateSignalGateJams(state, deltaSeconds) {
+    const next = state;
+    if (!next.signalGate || !next.signalGates) {
+      return next;
+    }
+    const dt = Math.max(0, Math.min(deltaSeconds, 5));
+    next.signalGates.forEach((gate) => {
+      if (
+        !gate.prerequisiteStatus ||
+        !gate.prerequisiteStatus.ready ||
+        !gate.gateState.harmonicsScanned ||
+        ["success", "partial", "failed"].includes(gate.gateState.outcome)
+      ) {
+        return;
+      }
+      const chargedRatio = clamp(gate.gateState.capacitorCharge / Math.max(1, gate.gateState.capacitorRequirement), 0, 1);
+      if (chargedRatio <= 0) {
+        return;
+      }
+      const timing = signalGateTransitTiming(gate, next);
+      const windowScale = timing.open || timing.missed ? 1 : 0.35;
+      const supportScale = 1 - Math.min(0.45, next.stationServices ? next.stationServices.signalJamMitigation || 0 : 0);
+      const pressureGain = (gate.gateState.pirateJam || gate.pirateGateJam || 0) * 0.012 * dt * chargedRatio * windowScale * supportScale;
+      next.pirate.state = next.pirate.state === "dormant" ? "shadowing" : next.pirate.state;
+      next.pirate.encounterState = next.pirate.encounterState === "distant" ? "contact" : next.pirate.encounterState;
+      next.pirate.pressure = Math.min(100, round(next.pirate.pressure + pressureGain, 2));
+      if (gate.gateState.pylonAligned && gate.gateState.pylonIntegrity > 0 && !next.station.proximity.dockable) {
+        gate.gateState.pylonIntegrity = Math.max(0, round(gate.gateState.pylonIntegrity - pressureGain * 0.18, 2));
+      }
+    });
+    return next;
+  }
+
   function updatePirateState(state, deltaSeconds) {
     const next = state;
     if (next.elapsed >= next.pirate.spawnTick && next.pirate.state === "dormant") {
@@ -4774,6 +6139,7 @@ const VoidProspector = (() => {
     next = updateHazardState(next, dt);
     next = updateStormWindows(next, dt);
     next = updateInterdictionRaids(next, dt);
+    next = updateSignalGateJams(next, dt);
     if (next.convoy && next.convoy.activeRouteId) {
       next = advanceConvoyRoute(next, dt);
     }
@@ -4791,7 +6157,9 @@ const VoidProspector = (() => {
             ? scanStormChart(next, dt)
             : next.target.kind === "interdiction"
               ? scanInterdictionTransponder(next, next.target.id, dt)
-              : scanTarget(next, dt);
+              : next.target.kind === "signal-gate"
+                ? scanSignalGateHarmonics(next, next.target.id, dt)
+                : scanTarget(next, dt);
     }
     if (input.interact) {
       next = dockAtStation(next);
@@ -4888,6 +6256,8 @@ const VoidProspector = (() => {
         title: state.contract.title,
         ore: `${state.contract.deliveredOre}/${state.contract.requiredOre}`,
         scans: `${state.contract.deliveredScans}/${state.contract.requiredScans}`,
+        signalTransits: `${state.contract.deliveredSignalTransits || 0}/${state.contract.requiredSignalTransits || 0}`,
+        signalPayout: `${state.contract.deliveredSignalPayout || 0}/${state.contract.requiredSignalPayout || 0}`,
         progress: state.contract.progress,
       },
       hazard: {
@@ -4936,6 +6306,18 @@ const VoidProspector = (() => {
         partialCellIds: state.ladder.partialInterdictionCellIds.slice(),
         scannedCellIds: state.ladder.scannedInterdictionCellIds.slice(),
       },
+      signalGate: {
+        version: state.signalGate.version,
+        releaseLabel: state.signalGate.releaseLabel,
+        status: state.signalGate.status,
+        payoutBanked: state.signalGate.payoutBanked,
+        signalScore: state.ladder.signalScore,
+        completedGateIds: state.ladder.completedSignalGateIds.slice(),
+        failedGateIds: state.ladder.failedSignalGateIds.slice(),
+        partialGateIds: state.ladder.partialSignalGateIds.slice(),
+        scannedGateIds: state.ladder.scannedSignalGateIds.slice(),
+        alignedGateIds: state.ladder.alignedSignalGateIds.slice(),
+      },
     };
   }
 
@@ -4979,6 +6361,8 @@ const VoidProspector = (() => {
         stormReroute: site.salvageState.stormReroute || null,
         interdictionShield: site.salvageState.interdictionShield || null,
         interdictionRaid: site.salvageState.interdictionRaid || null,
+        signalGateShield: site.salvageState.signalGateShield || null,
+        signalGateRaid: site.salvageState.signalGateRaid || null,
       })),
     };
   }
@@ -5035,6 +6419,7 @@ const VoidProspector = (() => {
           lastDamage: route.convoyState.lastDamage,
           stormWindowStatus: route.convoyState.stormWindowStatus || "none",
           interdictionStatus: route.convoyState.interdictionStatus || "none",
+          signalGateStatus: route.convoyState.signalGateStatus || "none",
         },
       })),
     };
@@ -5189,6 +6574,104 @@ const VoidProspector = (() => {
           failureReason: cell.interdictionState.failureReason,
           countermeasureUsed: cell.interdictionState.countermeasureUsed,
           protectedSalvageIds: (cell.interdictionState.protectedSalvageIds || []).slice(),
+        },
+      })),
+    };
+  }
+
+  function signalGateSummary(state) {
+    return {
+      version: state.signalGate.version,
+      releaseLabel: state.signalGate.releaseLabel,
+      status: state.signalGate.status,
+      activeGateId: state.signalGate.activeGateId,
+      completedGateIds: state.signalGate.completedGateIds.slice(),
+      failedGateIds: state.signalGate.failedGateIds.slice(),
+      partialGateIds: state.signalGate.partialGateIds.slice(),
+      scannedGateIds: state.signalGate.scannedGateIds.slice(),
+      alignedGateIds: state.signalGate.alignedGateIds.slice(),
+      chargedGateIds: state.signalGate.chargedGateIds.slice(),
+      transitGateIds: state.signalGate.transitGateIds.slice(),
+      payoutBanked: state.signalGate.payoutBanked,
+      signalScore: state.ladder.signalScore,
+      scansCompleted: state.signalGate.scansCompleted,
+      pylonsAligned: state.signalGate.pylonsAligned,
+      capacitorsCharged: state.signalGate.capacitorsCharged,
+      transitsResolved: state.signalGate.transitsResolved,
+      convoyTransits: state.signalGate.convoyTransits,
+      abortedTransits: state.signalGate.abortedTransits,
+      pirateJamsMitigated: state.signalGate.pirateJamsMitigated,
+      scanPower: state.signalGate.scanPower,
+      scanRange: state.signalGate.scanRange,
+      pylonAlignRange: state.signalGate.pylonAlignRange,
+      capacitorRange: state.signalGate.capacitorRange,
+      transitRange: state.signalGate.transitRange,
+      pylonSupportIntegrity: state.stationServices.signalPylonIntegrity || 0,
+      capacitorBonus: state.stationServices.signalCapacitorBonus || 0,
+      transitWindowBonus: state.stationServices.signalTransitWindowBonus || 0,
+      jamMitigation: state.stationServices.signalJamMitigation || 0,
+      payoutBonus: state.stationServices.signalPayoutBonus || 0,
+      contract: {
+        requiredSignalTransits: state.contract.requiredSignalTransits || 0,
+        deliveredSignalTransits: state.contract.deliveredSignalTransits || 0,
+        requiredSignalPayout: state.contract.requiredSignalPayout || 0,
+        deliveredSignalPayout: state.contract.deliveredSignalPayout || 0,
+      },
+      gates: (state.signalGates || []).map((gate) => ({
+        id: gate.id,
+        name: gate.name,
+        type: gate.type,
+        family: gate.family,
+        sectorId: gate.sectorId,
+        routeAssociation: gate.routeAssociation || null,
+        prerequisitesReady: gate.prerequisiteStatus.ready,
+        missingPrerequisites: gate.prerequisiteStatus.missing.slice(),
+        scanSignature: gate.scanSignature,
+        harmonicDifficulty: gate.harmonicDifficulty,
+        capacitorRequirement: gate.gateState.capacitorRequirement,
+        capacitorCharge: gate.gateState.capacitorCharge,
+        transitWindow: signalGateTransitTiming(gate, state),
+        rewardCredits: gate.gateState.payoutCredits,
+        ladderScore: gate.ladderScore || 0,
+        pirateJam: gate.gateState.pirateJam,
+        pylon: {
+          id: gate.pylon.id,
+          name: gate.pylon.name,
+          position: clone(gate.pylon.position),
+          aligned: gate.gateState.pylonAligned,
+          integrity: gate.gateState.pylonIntegrity,
+          maxIntegrity: gate.gateState.maxPylonIntegrity,
+        },
+        lattice: {
+          position: clone(gate.latticePosition || gate.position),
+        },
+        targets: {
+          convoyRouteIds: (gate.convoyRouteIds || []).slice(),
+          salvageSiteIds: (gate.salvageSiteIds || []).slice(),
+          stormChartIds: (gate.stormChartIds || []).slice(),
+        },
+        modifiers: {
+          convoyAmbushReduction: gate.convoyAmbushReduction || 0,
+          convoyHazardReduction: gate.convoyHazardReduction || 0,
+          convoyTransitPayoutBonus: gate.convoyTransitPayoutBonus || 0,
+          salvageRiskReduction: gate.salvageRiskReduction || 0,
+          stormAnchorIntegrity: gate.stormAnchorIntegrity || 0,
+          piratePressureClear: gate.piratePressureClear || 0,
+          cargoLoss: gate.cargoLoss || 0,
+        },
+        state: {
+          status: gate.gateState.status,
+          progress: gate.gateState.progress,
+          harmonicsScanned: gate.gateState.harmonicsScanned,
+          pylonAligned: gate.gateState.pylonAligned,
+          capacitorCharge: gate.gateState.capacitorCharge,
+          outcome: gate.gateState.outcome,
+          deliveredValue: gate.gateState.deliveredValue,
+          partialPayoutCredits: gate.gateState.partialPayoutCredits,
+          failureReason: gate.gateState.failureReason,
+          convoyTransitCommitted: gate.gateState.convoyTransitCommitted,
+          countermeasureUsed: gate.gateState.countermeasureUsed,
+          stormWindowAnchoredChartId: gate.gateState.stormWindowAnchoredChartId,
         },
       })),
     };
@@ -5437,6 +6920,7 @@ const VoidProspector = (() => {
     const convoy = convoySummary(state);
     const storm = stormSummary(state);
     const interdiction = interdictionSummary(state);
+    const signalGate = signalGateSummary(state);
     const completedCount = summary.completedSectorIds.length;
     const totalSectors = GAME_DATA.surveyLadder.sectors.length;
     const target = targetSummary(state);
@@ -5545,6 +7029,12 @@ const VoidProspector = (() => {
       : false;
     const interdictionSupport = interdictionSupportText(interdiction, state);
     const interdictionTarget = interdictionCellSurface(selectedInterdiction || interdictionFocus, interdictionSupport);
+    const selectedSignal = target.kind === "signal-gate" ? signalGate.gates.find((gate) => gate.id === state.target.id) || null : null;
+    const selectedSignalGate = selectedSignal ? signalGateById(state, selectedSignal.id) : null;
+    const selectedSignalReadiness = selectedSignal ? signalGateReadiness(state, selectedSignal.id) : null;
+    const selectedSignalScanInRange = selectedSignalGate
+      ? signalGateInRange(state, selectedSignalGate, state.signalGate.scanRange)
+      : false;
     const convoyRows =
       convoy.routes.length > 0
         ? convoy.routes.map((route) => ({
@@ -5647,9 +7137,15 @@ const VoidProspector = (() => {
         `${state.contract.deliveredInterdictionPayout}/${state.contract.requiredInterdictionPayout}cr interdiction`
       );
     }
+    if (state.contract.requiredSignalTransits > 0) {
+      objectiveParts.push(`${state.contract.deliveredSignalTransits}/${state.contract.requiredSignalTransits} gate`);
+    }
+    if (state.contract.requiredSignalPayout > 0) {
+      objectiveParts.push(`${state.contract.deliveredSignalPayout}/${state.contract.requiredSignalPayout}cr gate`);
+    }
 
     return {
-      titleText: `${summary.releaseLabel} v${summary.version} + ${salvage.releaseLabel} v${salvage.version} + ${convoy.releaseLabel} v${convoy.version} + ${storm.releaseLabel} v${storm.version} + ${interdiction.releaseLabel} v${interdiction.version} / tier ${summary.tier}`,
+      titleText: `${summary.releaseLabel} v${summary.version} + ${salvage.releaseLabel} v${salvage.version} + ${convoy.releaseLabel} v${convoy.version} + ${storm.releaseLabel} v${storm.version} + ${interdiction.releaseLabel} v${interdiction.version} + ${signalGate.releaseLabel} v${signalGate.version} / tier ${summary.tier}`,
       ladderText: `tier ${summary.tier} / ${completedCount}/${totalSectors} charted`,
       sectorText: `${summary.sectorName} / ${summary.condition}`,
       objectiveProgressText: objectiveParts.join(" / "),
@@ -5721,6 +7217,7 @@ const VoidProspector = (() => {
       stormRows,
       interdictionCells: interdiction.cells,
       interdictionRows,
+      signalGates: signalGate.gates,
       actions: {
         canScan:
           canAct &&
@@ -5732,7 +7229,11 @@ const VoidProspector = (() => {
             (target.kind === "interdiction" &&
               selectedInterdictionReadiness &&
               selectedInterdictionReadiness.canScan &&
-              selectedInterdictionScanInRange)),
+              selectedInterdictionScanInRange) ||
+            (target.kind === "signal-gate" &&
+              selectedSignalReadiness &&
+              selectedSignalReadiness.canScan &&
+              selectedSignalScanInRange)),
         canScanSalvage: canAct && target.kind === "salvage",
         canExtractSalvage: canAct && target.kind === "salvage",
         canAbandonSalvage:
@@ -5797,6 +7298,19 @@ const VoidProspector = (() => {
               activeInterdiction.state.outcome === "none" &&
               state.stationServices.countermeasureCharges > 0
           ),
+        canCountermeasureSignalGate:
+          canAct &&
+          Boolean(
+            signalGate.activeGateId &&
+              signalGate.gates.find((gate) => gate.id === signalGate.activeGateId && gate.state.harmonicsScanned && gate.state.outcome === "none") &&
+              state.stationServices.countermeasureCharges > 0
+          ),
+        canScanSignalGate:
+          canAct &&
+          target.kind === "signal-gate" &&
+          selectedSignalReadiness &&
+          selectedSignalReadiness.canScan &&
+          selectedSignalScanInRange,
         canScanInterdiction:
           canAct &&
           target.kind === "interdiction" &&
@@ -5886,6 +7400,15 @@ const VoidProspector = (() => {
       status = `${target.interdictionState.status} / transponder ${progress}% / window ${
         timing.locked ? "marked" : timing.open ? "open" : timing.pending ? "pending" : "missed"
       } / raid ${Math.round(target.interdictionState.raidPressure)}`;
+    } else if (state.target.kind === "signal-gate") {
+      const timing = signalGateTransitTiming(target, state);
+      const progress = Math.round((target.gateState.progress / target.harmonicDifficulty) * 100);
+      status = `${target.gateState.status} / harmonics ${progress}% / capacitor ${round(
+        target.gateState.capacitorCharge,
+        1
+      )}/${target.gateState.capacitorRequirement} / window ${
+        timing.committed ? "committed" : timing.forced ? "forced" : timing.open ? "open" : timing.pending ? "pending" : "missed"
+      } / jam ${Math.round(target.gateState.pirateJam)}`;
     } else if (state.target.kind === "station") {
       status = state.station.proximity.dockable ? "dockable" : "stand off";
     } else if (state.target.kind === "pirate") {
@@ -5963,6 +7486,28 @@ const VoidProspector = (() => {
       summary.stormChartIds = (target.stormChartIds || []).slice();
       summary.outcome = target.interdictionState.outcome;
       summary.deliveredValue = target.interdictionState.deliveredValue;
+    }
+    if (state.target.kind === "signal-gate") {
+      summary.type = target.type;
+      summary.family = target.family;
+      summary.routeAssociation = target.routeAssociation || null;
+      summary.pylonId = target.pylon.id;
+      summary.pylonAligned = target.gateState.pylonAligned;
+      summary.pylonIntegrity = target.gateState.pylonIntegrity;
+      summary.maxPylonIntegrity = target.gateState.maxPylonIntegrity;
+      summary.harmonicsScanned = target.gateState.harmonicsScanned;
+      summary.capacitorCharge = target.gateState.capacitorCharge;
+      summary.capacitorRequirement = target.gateState.capacitorRequirement;
+      summary.transitWindow = signalGateTransitTiming(target, state);
+      summary.rewardCredits = target.gateState.payoutCredits;
+      summary.prerequisitesReady = target.prerequisiteStatus.ready;
+      summary.missingPrerequisites = target.prerequisiteStatus.missing.slice();
+      summary.convoyRouteIds = (target.convoyRouteIds || []).slice();
+      summary.salvageSiteIds = (target.salvageSiteIds || []).slice();
+      summary.stormChartIds = (target.stormChartIds || []).slice();
+      summary.pirateJam = target.gateState.pirateJam;
+      summary.outcome = target.gateState.outcome;
+      summary.deliveredValue = target.gateState.deliveredValue;
     }
     return summary;
   }
@@ -6237,7 +7782,8 @@ const VoidProspector = (() => {
         surface.actions.countermeasureReady ||
         surface.actions.canCountermeasureConvoy ||
         surface.actions.canCountermeasureStorm ||
-        surface.actions.canCountermeasureInterdiction
+        surface.actions.canCountermeasureInterdiction ||
+        surface.actions.canCountermeasureSignalGate
       );
       dom.countermeasureAction.textContent = `Burst ${surface.actions.countermeasureText}`;
     }
@@ -6268,6 +7814,12 @@ const VoidProspector = (() => {
     }
     if ((state.contract.requiredInterdictionPayout || 0) > 0) {
       parts.push(`${state.contract.deliveredInterdictionPayout}/${state.contract.requiredInterdictionPayout}cr interdiction`);
+    }
+    if ((state.contract.requiredSignalTransits || 0) > 0) {
+      parts.push(`${state.contract.deliveredSignalTransits}/${state.contract.requiredSignalTransits} gate`);
+    }
+    if ((state.contract.requiredSignalPayout || 0) > 0) {
+      parts.push(`${state.contract.deliveredSignalPayout}/${state.contract.requiredSignalPayout}cr gate`);
     }
     return parts.join(" / ");
   }
@@ -6501,11 +8053,13 @@ const VoidProspector = (() => {
       currentState =
         currentState.target.kind === "salvage"
           ? scanSalvageTarget(currentState, 1)
-          : currentState.target.kind === "storm"
-            ? scanStormChart(currentState, 1)
-            : currentState.target.kind === "interdiction"
-              ? scanInterdictionTransponder(currentState, currentState.target.id, 1)
-              : scanTarget(currentState, 1);
+            : currentState.target.kind === "storm"
+              ? scanStormChart(currentState, 1)
+              : currentState.target.kind === "interdiction"
+                ? scanInterdictionTransponder(currentState, currentState.target.id, 1)
+                : currentState.target.kind === "signal-gate"
+                  ? scanSignalGateHarmonics(currentState, currentState.target.id, 1)
+                  : scanTarget(currentState, 1);
     } else if (action === "beacon") {
       if (currentState.target.kind === "convoy") {
         const route = convoyRouteById(currentState, currentState.target.id);
@@ -7594,16 +9148,19 @@ const VoidProspector = (() => {
     createConvoyRoutes,
     createStormCharts,
     createInterdictionCells,
+    createSignalGates,
     createSurveyLadderState,
     createConvoyState,
     createStormCartographyState,
     createInterdictionState,
+    createSignalGateState,
     applyFlightInput,
     stepSpaceflight,
     mineTarget,
     scanTarget,
     scanStormChart,
     scanInterdictionTransponder,
+    scanSignalGateHarmonics,
     scanSalvageTarget,
     extractSalvageTarget,
     abandonSalvageTarget,
@@ -7627,6 +9184,14 @@ const VoidProspector = (() => {
     placeInterdictionMarker,
     deployInterdictionLure,
     resolveInterdictionRaid,
+    signalGateReadiness,
+    alignSignalGatePylon,
+    chargeSignalGateCapacitor,
+    anchorSignalGateStormWindow,
+    mitigateSignalGateJam,
+    forceSignalGateOpen,
+    abortSignalGateTransit,
+    commitSignalGateTransit,
     dockAtStation,
     purchaseUpgrade,
     purchaseStationService,
@@ -7639,6 +9204,7 @@ const VoidProspector = (() => {
     updateCameraState,
     updateHazardState,
     updateInterdictionRaids,
+    updateSignalGateJams,
     dockingStatus,
     upgradeSummary,
     surveySummary,
@@ -7646,6 +9212,7 @@ const VoidProspector = (() => {
     convoySummary,
     stormSummary,
     interdictionSummary,
+    signalGateSummary,
     surveyCockpitSurface,
     stationServiceSummary,
     targetSummary,

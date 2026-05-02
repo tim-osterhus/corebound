@@ -42,8 +42,10 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
               convoyVersion: rift.convoy.version,
               stormVersion: rift.storm.version,
               interdictionVersion: rift.interdiction.version,
+              signalGateVersion: rift.signalGate.version,
               stormLabel: rift.storm.releaseLabel,
               interdictionCells: game.interdictionSummary(rift).cells.map((cell) => cell.id),
+              signalGateIds: game.signalGateSummary(rift).gates.map((gate) => gate.id),
               riftChart: game.stormSummary(rift).charts[0],
               umbraChart: game.stormSummary(umbra).charts[0],
               target: game.targetSummary(target),
@@ -59,8 +61,10 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
         self.assertEqual("0.3.0", result["convoyVersion"])
         self.assertEqual("0.4.0", result["stormVersion"])
         self.assertEqual("0.5.0", result["interdictionVersion"])
+        self.assertEqual("0.6.0", result["signalGateVersion"])
         self.assertEqual("Storm Cartography", result["stormLabel"])
         self.assertIn("cell-rift-decoy-net", result["interdictionCells"])
+        self.assertIn("gate-rift-relay-aperture", result["signalGateIds"])
         self.assertGreaterEqual(result["generatedCount"], 2)
         self.assertEqual("storm-rift-breaker", result["riftChart"]["id"])
         self.assertTrue(result["riftChart"]["prerequisitesReady"])
@@ -286,6 +290,7 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
               recommendedSectorId: "tempest-verge",
               unlockedSectorIds: ["spoke-approach", "rift-shelf", "umbra-trench", "tempest-verge"],
               completedSectorIds: ["spoke-approach", "rift-shelf", "umbra-trench"],
+              completedSignalGateIds: ["gate-umbra-blackbox-lattice"],
             };
             let state = game.createInitialState({
               seed: 77,
@@ -296,6 +301,11 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
             const eye = state.anomalies.find((node) => node.id === "anomaly-tempest-eye");
             state.ship.position = { ...eye.position };
             state = game.setTarget(state, "anomaly", eye.id);
+            state = game.scanTarget(state, 2);
+            state = game.scanTarget(state, 2);
+            const spire = state.anomalies.find((node) => node.id === "anomaly-verge-spire");
+            state.ship.position = { ...spire.position };
+            state = game.setTarget(state, "anomaly", spire.id);
             state = game.scanTarget(state, 2);
             state = game.scanTarget(state, 2);
             state = game.setTarget(state, "storm", "storm-tempest-verge");
@@ -321,6 +331,21 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
             state.tick = 9;
             state = game.resolveInterdictionRaid(state, "cell-tempest-patrol-net", "escort");
             const afterInterdiction = JSON.parse(JSON.stringify(state));
+            state = game.setTarget(state, "signal-gate", "gate-tempest-verge-corridor");
+            state.ship.position = { ...state.signalGates[0].position };
+            state = game.scanSignalGateHarmonics(state, "gate-tempest-verge-corridor", 2);
+            state = game.scanSignalGateHarmonics(state, "gate-tempest-verge-corridor", 2);
+            state = game.scanSignalGateHarmonics(state, "gate-tempest-verge-corridor", 1);
+            state.ship.position = { ...state.signalGates[0].pylon.position };
+            state = game.alignSignalGatePylon(state, "gate-tempest-verge-corridor");
+            state.ship.position = { ...state.signalGates[0].position };
+            state = game.chargeSignalGateCapacitor(state, "gate-tempest-verge-corridor", 3);
+            state = game.chargeSignalGateCapacitor(state, "gate-tempest-verge-corridor", 3);
+            state = game.chargeSignalGateCapacitor(state, "gate-tempest-verge-corridor", 2);
+            state.elapsed = 11;
+            state.tick = 11;
+            state = game.commitSignalGateTransit(state, "gate-tempest-verge-corridor", "solo");
+            const afterSignalGate = JSON.parse(JSON.stringify(state));
             state.ship.position = { ...state.station.position };
             state.cargo.ore = 14;
             state.cargo.value = 700;
@@ -331,6 +356,8 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
               tempestContract: afterStorm.contract,
               interdictionContract: afterInterdiction.contract,
               interdictionSummary: game.interdictionSummary(afterInterdiction),
+              signalContract: afterSignalGate.contract,
+              signalSummary: game.signalGateSummary(afterSignalGate),
               routeReady,
               finalStatus: state.contract.status,
               runStatus: state.run.status,
@@ -341,6 +368,8 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
               resetStormSummary: game.stormSummary(reset),
               resetInterdictionCells: reset.ladder.completedInterdictionCellIds,
               resetInterdictionSummary: game.interdictionSummary(reset),
+              resetSignalGates: reset.ladder.completedSignalGateIds,
+              resetSignalSummary: game.signalGateSummary(reset),
             }));
             """
         )
@@ -351,6 +380,9 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
         self.assertEqual(1, result["interdictionContract"]["deliveredInterdictions"])
         self.assertGreaterEqual(result["interdictionContract"]["deliveredInterdictionPayout"], 180)
         self.assertIn("cell-tempest-patrol-net", result["interdictionSummary"]["completedCellIds"])
+        self.assertEqual(1, result["signalContract"]["deliveredSignalTransits"])
+        self.assertGreaterEqual(result["signalContract"]["deliveredSignalPayout"], 240)
+        self.assertIn("gate-tempest-verge-corridor", result["signalSummary"]["completedGateIds"])
         self.assertTrue(result["routeReady"]["ready"])
         self.assertEqual("complete", result["finalStatus"])
         self.assertEqual("complete", result["runStatus"])
@@ -361,6 +393,8 @@ class VoidProspectorStormCartographyTests(unittest.TestCase):
         self.assertEqual("0.4.0", result["resetStormSummary"]["version"])
         self.assertIn("cell-tempest-patrol-net", result["resetInterdictionCells"])
         self.assertEqual("0.5.0", result["resetInterdictionSummary"]["version"])
+        self.assertIn("gate-tempest-verge-corridor", result["resetSignalGates"])
+        self.assertEqual("0.6.0", result["resetSignalSummary"]["version"])
 
     def run_node(self, script: str) -> dict:
         completed = subprocess.run(
