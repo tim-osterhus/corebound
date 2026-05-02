@@ -28,12 +28,16 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "convoy-readout",
             "storm-readout",
             "interdiction-readout",
+            "signal-gate-readout",
             "beacon-readout",
             "ambush-readout",
             "storm-window-readout",
             "storm-anchor-readout",
             "interdiction-raid-readout",
             "interdiction-lure-readout",
+            "signal-capacitor-readout",
+            "signal-transit-readout",
+            "signal-jam-readout",
             "service-readout",
             "scan-action",
             "beacon-action",
@@ -61,6 +65,14 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "interdiction-exposure-state",
             "interdiction-reward-state",
             "interdiction-support-state",
+            "signal-gate-state",
+            "signal-pylon-state",
+            "signal-capacitor-state",
+            "signal-window-state",
+            "signal-convoy-state",
+            "signal-jam-state",
+            "signal-reward-state",
+            "signal-prereq-state",
             "survey-panel",
             "ladder-title",
             "ladder-status-surface",
@@ -68,6 +80,7 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "convoy-list",
             "storm-list",
             "interdiction-list",
+            "signal-list",
             "sector-select",
             "sector-action",
             "service-probes-action",
@@ -79,23 +92,26 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             "service-chart-processors-action",
             "service-storm-plating-action",
             "service-patrol-uplink-action",
+            "service-gate-tuners-action",
             "countermeasure-action",
             "event-log",
         ):
             self.assertIn(hook, html)
 
-        self.assertIn("v0.5.0 Knife Wake Interdiction", html)
-        self.assertIn("C scan or transponder", html)
-        self.assertIn("B anchor/beacon/marker", html)
+        self.assertIn("v0.6.0 Signal Gate Expedition", html)
+        self.assertIn("C scan/transponder/harmonics", html)
+        self.assertIn("B beacon/anchor/marker/pylon", html)
         self.assertIn("Space/M mine or extract", html)
         self.assertIn('aria-label="Survey Ladder controls"', html)
         self.assertIn('aria-label="Selected salvage target state"', html)
         self.assertIn('aria-label="Selected convoy route state"', html)
         self.assertIn('aria-label="Selected storm chart state"', html)
         self.assertIn('aria-label="Selected interdiction cell state"', html)
+        self.assertIn('aria-label="Selected signal gate state"', html)
         self.assertIn('aria-label="Convoy route state"', html)
         self.assertIn('aria-label="Storm chart state"', html)
         self.assertIn('aria-label="Knife Wake interdiction state"', html)
+        self.assertIn('aria-label="Signal Gate Expedition state"', html)
 
     def test_survey_surface_css_keeps_desktop_and_narrow_layout_contracts(self) -> None:
         css = read_game_file("void-prospector.css")
@@ -110,15 +126,18 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
             ".convoy-target-data",
             ".storm-target-data",
             ".interdiction-target-data",
+            ".signal-target-data",
             ".convoy-list",
             ".convoy-row",
             ".storm-list",
             ".storm-row",
             ".interdiction-list",
             ".interdiction-row",
+            ".signal-list",
+            ".signal-row",
             ".event-log",
             "max-height: calc(100vh - 96px)",
-            "max-height: min(220px, max(170px, calc(100vh - 520px)))",
+            "max-height: min(260px, max(190px, calc(100vh - 520px)))",
             "overflow: auto",
             "grid-template-columns: repeat(auto-fit, minmax(96px, 1fr))",
             "@media (max-height: 700px) and (min-width: 981px)",
@@ -136,6 +155,7 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr))", css)
         self.assertIn('.storm-row[data-state="window locked"]', css)
         self.assertIn('.interdiction-row[data-state="distress marker armed"]', css)
+        self.assertIn('.signal-row[data-state="transit window open"]', css)
         self.assertNotIn("border-radius: 12px", css)
         self.assertNotIn("overflow-x: scroll", css)
 
@@ -461,6 +481,99 @@ class VoidProspectorSurveySurfaceTests(unittest.TestCase):
         self.assertEqual(1, result["contract"]["deliveredInterdictions"])
         self.assertIn("cell-rift-decoy-net success", result["routeStatus"])
         self.assertEqual("protected", result["salvageShield"]["status"])
+
+    def test_signal_gate_surface_exposes_gate_actions_support_and_consequences(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/void-prospector/void-prospector.js");
+            const ladder = {
+              currentSectorId: "rift-shelf",
+              recommendedSectorId: "rift-shelf",
+              unlockedSectorIds: ["spoke-approach", "rift-shelf"],
+              completedSectorIds: ["spoke-approach"],
+              scannedAnomalyIds: ["anomaly-rift-lens"],
+            };
+            let state = game.createInitialState({ seed: 64, sectorId: "rift-shelf", ladder, credits: 720 });
+            state.ship.position = { ...state.station.position };
+            state = game.dockAtStation(state);
+            state = game.purchaseStationService(state, "gate-tuners");
+            state.ship.position = { ...state.convoyRoutes[0].beacon.position };
+            state = game.deployRouteBeacon(state, "convoy-rift-relay");
+            state = game.setTarget(state, "signal-gate", "gate-rift-relay-aperture");
+            state.ship.position = { ...state.signalGates[0].position };
+            const readySurface = game.surveyCockpitSurface(state);
+            state = game.scanSignalGateHarmonics(state, "gate-rift-relay-aperture", 2);
+            state.ship.position = { ...state.signalGates[0].pylon.position };
+            const scannedSurface = game.surveyCockpitSurface(state);
+            state = game.alignSignalGatePylon(state, "gate-rift-relay-aperture");
+            state.ship.position = { ...state.signalGates[0].position };
+            state = game.chargeSignalGateCapacitor(state, "gate-rift-relay-aperture", 2);
+            state.elapsed = 6;
+            state.tick = 6;
+            const chargedSurface = game.surveyCockpitSurface(state);
+            state = game.commitSignalGateTransit(state, "gate-rift-relay-aperture", "convoy");
+            const resolvedSurface = game.surveyCockpitSurface(state);
+            console.log(JSON.stringify({
+              readyTitle: readySurface.titleText,
+              readyText: readySurface.signalGateText,
+              readyTarget: readySurface.signalTarget,
+              readyRows: readySurface.signalRows,
+              readyActions: readySurface.actions,
+              scannedActions: scannedSurface.actions,
+              chargedTarget: chargedSurface.signalTarget,
+              chargedActions: chargedSurface.actions,
+              resolvedText: resolvedSurface.signalGateText,
+              resolvedTarget: resolvedSurface.signalTarget,
+              resolvedRows: resolvedSurface.signalRows,
+              resolvedLog: resolvedSurface.log,
+              serviceText: readySurface.serviceText,
+              services: readySurface.services.map((service) => [service.id, service.status, service.enabled]),
+              target: game.targetSummary(state),
+              stats: state.stats,
+              contract: state.contract,
+              routeStatus: state.convoyRoutes[0].convoyState.signalGateStatus,
+              routeDelivered: state.convoyRoutes[0].convoyState.deliveredValue,
+              salvageShield: state.salvageSites[0].salvageState.signalGateShield,
+            }));
+            """
+        )
+
+        self.assertIn("Signal Gate Expedition v0.6.0", result["readyTitle"])
+        self.assertIn("Signal Gate Expedition / Rift Relay Signal Gate", result["readyText"])
+        self.assertIn("Rift Relay Signal Gate / relay aperture / convoy-lane", result["readyTarget"]["gateText"])
+        self.assertIn("Rift Relay Pylon / unaligned", result["readyTarget"]["pylonText"])
+        self.assertIn("charge 0/3.5 / harmonics no", result["readyTarget"]["capacitorText"])
+        self.assertIn("opens 5s / closes 19s", result["readyTarget"]["windowText"])
+        self.assertIn("convoy-rift-relay / convoy 1 / salvage 1 / storm 1", result["readyTarget"]["convoyText"])
+        self.assertIn("jam 22", result["readyTarget"]["jamText"])
+        self.assertIn("scan +0.9 / pylon +16 / charge +0.8 / window +3s / jam -22% / payout +12% / 1 burst", result["readyTarget"]["supportText"])
+        self.assertEqual("harmonics quiet", result["readyRows"][0]["state"])
+        self.assertTrue(result["readyActions"]["canScanSignalGate"])
+        self.assertTrue(result["readyActions"]["canScan"])
+        self.assertFalse(result["readyActions"]["canAlignSignalGatePylon"])
+
+        self.assertTrue(result["scannedActions"]["canAlignSignalGatePylon"])
+        self.assertIn("charge 3.5/3.5 / harmonics yes", result["chargedTarget"]["capacitorText"])
+        self.assertTrue(result["chargedActions"]["canCommitSignalGateTransit"])
+        self.assertTrue(result["chargedActions"]["canCountermeasureSignalGate"])
+
+        self.assertIn("Rift Relay Signal Gate / success", result["resolvedText"])
+        self.assertIn("success", result["resolvedTarget"]["rewardText"])
+        self.assertEqual("success", result["resolvedRows"][0]["state"])
+        self.assertIn("Rift Relay Signal Gate opened", result["resolvedLog"][0])
+        self.assertIn("Gate Tuners / 1 burst", result["serviceText"])
+        self.assertIn(["gate-tuners", "installed", False], result["services"])
+        self.assertEqual("signal-gate", result["target"]["kind"])
+        self.assertEqual("success", result["target"]["outcome"])
+        self.assertEqual(1, result["stats"]["signalGateScans"])
+        self.assertEqual(1, result["stats"]["signalPylonsAligned"])
+        self.assertEqual(1, result["stats"]["signalCapacitorsCharged"])
+        self.assertEqual(1, result["stats"]["signalGateTransits"])
+        self.assertEqual(1, result["stats"]["signalGateConvoyTransits"])
+        self.assertEqual(1, result["contract"]["deliveredSignalTransits"])
+        self.assertIn("gate-rift-relay-aperture success", result["routeStatus"])
+        self.assertGreater(result["routeDelivered"], 0)
+        self.assertEqual("transit shielded", result["salvageShield"]["status"])
 
     def test_station_service_surface_shows_consequences_and_decoy_readiness(self) -> None:
         result = self.run_node(

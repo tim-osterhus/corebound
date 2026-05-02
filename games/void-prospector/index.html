@@ -16,7 +16,7 @@
     <header class="topline">
       <a class="backlink" href="../../">Millrace Arcade</a>
       <div class="identity">
-        <span class="eyebrow">v0.5.0 Knife Wake Interdiction</span>
+        <span class="eyebrow">v0.6.0 Signal Gate Expedition</span>
         <h1>Void Prospector</h1>
       </div>
       <div class="run-chip" id="run-status">launch / stable</div>
@@ -83,6 +83,10 @@
         <span>Interdiction</span>
         <strong id="interdiction-readout">Knife Wake Interdiction / no cell</strong>
       </article>
+      <article class="readout readout-wide">
+        <span>Signal Gate</span>
+        <strong id="signal-gate-readout">Signal Gate Expedition / no gate</strong>
+      </article>
       <article class="readout">
         <span>Beacon</span>
         <strong id="beacon-readout">no beacon</strong>
@@ -108,6 +112,18 @@
         <strong id="interdiction-lure-readout">marker none</strong>
       </article>
       <article class="readout">
+        <span>Capacitor</span>
+        <strong id="signal-capacitor-readout">charge 0/0</strong>
+      </article>
+      <article class="readout">
+        <span>Transit</span>
+        <strong id="signal-transit-readout">window none</strong>
+      </article>
+      <article class="readout">
+        <span>Gate Jam</span>
+        <strong id="signal-jam-readout">jam none</strong>
+      </article>
+      <article class="readout">
         <span>Upgrade</span>
         <strong id="upgrade-readout">beam rig / 90cr</strong>
       </article>
@@ -131,9 +147,9 @@
       <span>A/D steer</span>
       <span>Tab/E target</span>
       <span>Space/M mine or extract</span>
-      <span>C scan or transponder</span>
+      <span>C scan/transponder/harmonics</span>
       <span>F/Enter dock</span>
-      <span>B anchor/beacon/marker</span>
+      <span>B beacon/anchor/marker/pylon</span>
       <span>U upgrade</span>
       <span>R restart</span>
     </footer>
@@ -180,6 +196,16 @@
         <span id="interdiction-reward-state">reward 0cr</span>
         <span id="interdiction-support-state">support none</span>
       </div>
+      <div class="signal-target-data" aria-label="Selected signal gate state">
+        <span id="signal-gate-state">gate none</span>
+        <span id="signal-pylon-state">pylon none</span>
+        <span id="signal-capacitor-state">charge 0/0</span>
+        <span id="signal-window-state">window none</span>
+        <span id="signal-convoy-state">convoy none</span>
+        <span id="signal-jam-state">jam 0 / support none</span>
+        <span id="signal-reward-state">reward 0cr</span>
+        <span id="signal-prereq-state">prereq none</span>
+      </div>
       <div class="action-panel" aria-label="Action controls">
         <button type="button" id="mine-action">Mine</button>
         <button type="button" id="scan-action">Scan</button>
@@ -204,6 +230,7 @@
       <div class="convoy-list" id="convoy-list" aria-label="Convoy route state"></div>
       <div class="storm-list" id="storm-list" aria-label="Storm chart state"></div>
       <div class="interdiction-list" id="interdiction-list" aria-label="Knife Wake interdiction state"></div>
+      <div class="signal-list" id="signal-list" aria-label="Signal Gate Expedition state"></div>
       <div class="choice-row">
         <label for="sector-select">Route</label>
         <select id="sector-select" aria-label="Choose unlocked sector"></select>
@@ -219,6 +246,7 @@
         <button type="button" id="service-chart-processors-action">Processors</button>
         <button type="button" id="service-storm-plating-action">Plating</button>
         <button type="button" id="service-patrol-uplink-action">Patrol</button>
+        <button type="button" id="service-gate-tuners-action">Tuners</button>
         <button type="button" id="countermeasure-action">Burst</button>
       </div>
       <ol class="event-log" id="event-log" aria-label="Recent survey events"></ol>

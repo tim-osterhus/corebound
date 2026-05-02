@@ -146,6 +146,41 @@ class VoidProspectorAssetIntegrationTests(unittest.TestCase):
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*decoy[^"\'\)\s]*\.png')
         self.assertNotRegex(script, r'assets/[^"\'\)\s]*patrol[^"\'\)\s]*\.png')
 
+    def test_signal_gate_visuals_are_procedural_and_keep_raster_manifest_local(self) -> None:
+        script = source_text("void-prospector.js")
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        manifest_paths = {asset["path"].removeprefix("games/void-prospector/") for asset in manifest["assets"]}
+
+        for token in (
+            "createSignalGateMesh",
+            "syncSignalGateMeshes",
+            "signalGateMeshes",
+            "new THREE.IcosahedronGeometry",
+            "new THREE.CylinderGeometry",
+            "new THREE.TorusGeometry",
+            "new THREE.SphereGeometry",
+            "new THREE.BufferGeometry().setFromPoints",
+            "state.target.kind === \"signal-gate\"",
+            "signalTarget",
+            "signalRows",
+        ):
+            self.assertIn(token, script)
+
+        self.assertEqual(
+            {
+                "assets/ship-decal.png",
+                "assets/asteroid-ore-glow.png",
+                "assets/station-dock-panel.png",
+                "assets/pirate-marker.png",
+                "assets/arcade-title-card.png",
+            },
+            manifest_paths,
+        )
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*gate[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*capacitor[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*transit[^"\'\)\s]*\.png')
+        self.assertNotRegex(script, r'assets/[^"\'\)\s]*jam[^"\'\)\s]*\.png')
+
     def test_game_data_exposes_asset_manifest_paths_for_state_checks(self) -> None:
         assets = json.loads(self.run_node("game.GAME_DATA.assets"))
 

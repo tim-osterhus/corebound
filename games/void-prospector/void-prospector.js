@@ -6914,6 +6914,89 @@ const VoidProspector = (() => {
     };
   }
 
+  function signalGateWindowText(timing) {
+    if (!timing) {
+      return "window none";
+    }
+    if (timing.committed) {
+      return `transit committed / ${timing.committedAt}s`;
+    }
+    if (timing.forced) {
+      return `forced open / ${timing.remaining}s remaining`;
+    }
+    if (timing.open) {
+      return `window open / ${timing.remaining}s remaining`;
+    }
+    if (timing.pending) {
+      return `opens ${timing.opensAt}s / closes ${timing.closesAt}s`;
+    }
+    if (timing.missed) {
+      return "window missed";
+    }
+    return `window ${timing.opensAt}-${timing.closesAt}s`;
+  }
+
+  function signalGateSupportText(signalGate, state) {
+    const parts = [];
+    if (signalGate.scanPower > GAME_DATA.signalGateExpedition.baseScanPower) {
+      parts.push(`scan +${round(signalGate.scanPower - GAME_DATA.signalGateExpedition.baseScanPower, 2)}`);
+    }
+    if (signalGate.pylonSupportIntegrity > 0) {
+      parts.push(`pylon +${Math.round(signalGate.pylonSupportIntegrity)}`);
+    }
+    if (signalGate.capacitorBonus > 0) {
+      parts.push(`charge +${round(signalGate.capacitorBonus, 1)}`);
+    }
+    if (signalGate.transitWindowBonus > 0) {
+      parts.push(`window +${Math.round(signalGate.transitWindowBonus)}s`);
+    }
+    if (signalGate.jamMitigation > 0) {
+      parts.push(`jam -${Math.round(signalGate.jamMitigation * 100)}%`);
+    }
+    if (signalGate.payoutBonus > 0) {
+      parts.push(`payout +${Math.round(signalGate.payoutBonus * 100)}%`);
+    }
+    if (state.stationServices.countermeasureCharges > 0) {
+      parts.push(`${state.stationServices.countermeasureCharges} burst`);
+    }
+    return parts.length ? parts.join(" / ") : "support none";
+  }
+
+  function signalGateSurface(gate, supportText) {
+    if (!gate) {
+      return {
+        name: "No signal gate",
+        gateText: "gate none",
+        pylonText: "pylon none",
+        capacitorText: "charge 0/0",
+        windowText: "window none",
+        convoyText: "convoy none",
+        jamText: `jam none / ${supportText}`,
+        rewardText: "reward 0cr",
+        prereqText: "prereq none",
+        supportText,
+      };
+    }
+    const stateText = gate.prerequisitesReady ? gate.state.status : `locked: ${gate.missingPrerequisites.slice(0, 2).join(" + ") || "prereq"}`;
+    const pylonRatio = `${Math.round(gate.pylon.integrity)}/${Math.round(gate.pylon.maxIntegrity)}`;
+    return {
+      name: gate.name,
+      gateText: `${gate.name} / ${gate.type} / ${gate.family}`,
+      pylonText: `${gate.pylon.name} / ${gate.pylon.aligned ? "aligned" : "unaligned"} / ${pylonRatio}`,
+      capacitorText: `charge ${round(gate.capacitorCharge, 1)}/${gate.capacitorRequirement} / ${
+        gate.state.harmonicsScanned ? "harmonics yes" : "harmonics no"
+      }`,
+      windowText: signalGateWindowText(gate.transitWindow),
+      convoyText: `${gate.routeAssociation || "no route"} / convoy ${gate.targets.convoyRouteIds.length} / salvage ${
+        gate.targets.salvageSiteIds.length
+      } / storm ${gate.targets.stormChartIds.length}`,
+      jamText: `jam ${Math.round(gate.pirateJam)} / ${supportText}`,
+      rewardText: `${gate.rewardCredits}cr reward / score ${gate.ladderScore} / ${stateText}`,
+      prereqText: gate.prerequisitesReady ? "ready" : gate.missingPrerequisites.slice(0, 2).join(" + ") || "locked",
+      supportText,
+    };
+  }
+
   function surveyCockpitSurface(state) {
     const summary = surveySummary(state);
     const salvage = salvageSummary(state);
@@ -7035,6 +7118,27 @@ const VoidProspector = (() => {
     const selectedSignalScanInRange = selectedSignalGate
       ? signalGateInRange(state, selectedSignalGate, state.signalGate.scanRange)
       : false;
+    const selectedSignalPylonInRange = selectedSignalGate
+      ? signalGateInRange(state, selectedSignalGate, selectedSignalGate.pylonAlignRange || state.signalGate.pylonAlignRange, "pylon") ||
+        state.station.proximity.dockable
+      : false;
+    const selectedSignalCapacitorInRange = selectedSignalGate
+      ? signalGateInRange(state, selectedSignalGate, state.signalGate.capacitorRange) || state.station.proximity.dockable
+      : false;
+    const selectedSignalTransitInRange = selectedSignalGate
+      ? signalGateInRange(state, selectedSignalGate, state.signalGate.transitRange) || state.station.proximity.dockable
+      : false;
+    const selectedSignalTerminal = selectedSignalGate
+      ? ["success", "partial", "failed"].includes(selectedSignalGate.gateState.outcome)
+      : false;
+    const activeSignal = signalGate.gates.find((gate) => gate.id === signalGate.activeGateId) || null;
+    const signalFocus =
+      activeSignal ||
+      signalGate.gates.find((gate) => gate.prerequisitesReady && !["success", "partial", "failed"].includes(gate.state.outcome)) ||
+      signalGate.gates[0] ||
+      null;
+    const signalSupport = signalGateSupportText(signalGate, state);
+    const signalTarget = signalGateSurface(selectedSignal || signalFocus, signalSupport);
     const convoyRows =
       convoy.routes.length > 0
         ? convoy.routes.map((route) => ({
@@ -7097,6 +7201,28 @@ const VoidProspector = (() => {
               name: "No Knife Wake cell",
               state: "no-cell",
               primaryText: "no pirate cell in this sector",
+              detailText: "choose a higher tier route",
+            },
+          ];
+    const signalRows =
+      signalGate.gates.length > 0
+        ? signalGate.gates.map((gate) => ({
+            id: gate.id,
+            name: gate.name,
+            state: gate.state.status,
+            primaryText: `${gate.state.status} / ${signalGateWindowText(gate.transitWindow)}`,
+            detailText: gate.prerequisitesReady
+              ? `charge ${round(gate.capacitorCharge, 1)}/${gate.capacitorRequirement} / jam ${Math.round(
+                  gate.pirateJam
+                )} / ${gate.rewardCredits}cr`
+              : gate.missingPrerequisites.slice(0, 2).join(" + ") || "locked",
+          }))
+        : [
+            {
+              id: "no-signal-gate",
+              name: "No signal gate",
+              state: "no-gate",
+              primaryText: "no relay gate in this sector",
               detailText: "choose a higher tier route",
             },
           ];
@@ -7169,6 +7295,9 @@ const VoidProspector = (() => {
             interdictionFocus.raidPressure
           )}`
         : `${interdiction.releaseLabel} / no cell`,
+      signalGateText: signalFocus
+        ? `${signalGate.releaseLabel} / ${signalFocus.name} / ${signalFocus.state.status} / jam ${Math.round(signalFocus.pirateJam)}`
+        : `${signalGate.releaseLabel} / no gate`,
       interdictionRaidText: interdictionFocus
         ? `raid ${Math.round(interdictionFocus.raidPressure)} / ${interdictionFocus.type} / ${interdictionFocus.state.outcome}`
         : "raid none",
@@ -7177,6 +7306,9 @@ const VoidProspector = (() => {
             interdictionFocus.state.lureDeployed ? "yes" : "no"
           } / ${interdictionResponseText(interdictionFocus.responseWindow)}`
         : "marker none",
+      signalCapacitorText: signalTarget.capacitorText,
+      signalTransitText: signalTarget.windowText,
+      signalJamText: signalTarget.jamText,
       stormWindowText: stormTarget.windowText,
       stormAnchorText: stormTarget.anchorText,
       salvageTarget: {
@@ -7203,6 +7335,8 @@ const VoidProspector = (() => {
       stormSupportText: stormSupport,
       interdictionTarget,
       interdictionSupportText: interdictionSupport,
+      signalTarget,
+      signalSupportText: signalSupport,
       serviceText:
         serviceNames.length > 0
           ? `${serviceNames.join(" + ")} / ${state.stationServices.countermeasureCharges} burst`
@@ -7218,6 +7352,7 @@ const VoidProspector = (() => {
       interdictionCells: interdiction.cells,
       interdictionRows,
       signalGates: signalGate.gates,
+      signalRows,
       actions: {
         canScan:
           canAct &&
@@ -7305,6 +7440,41 @@ const VoidProspector = (() => {
               signalGate.gates.find((gate) => gate.id === signalGate.activeGateId && gate.state.harmonicsScanned && gate.state.outcome === "none") &&
               state.stationServices.countermeasureCharges > 0
           ),
+        canAlignSignalGatePylon:
+          canAct &&
+          target.kind === "signal-gate" &&
+          selectedSignalReadiness &&
+          selectedSignalReadiness.canAlignPylon &&
+          selectedSignalPylonInRange,
+        canChargeSignalGateCapacitor:
+          canAct &&
+          target.kind === "signal-gate" &&
+          selectedSignalReadiness &&
+          selectedSignalReadiness.canChargeCapacitor &&
+          selectedSignalCapacitorInRange,
+        canAnchorSignalGateWindow:
+          canAct &&
+          target.kind === "signal-gate" &&
+          selectedSignalReadiness &&
+          selectedSignalReadiness.canAnchorStormWindow,
+        canCommitSignalGateTransit:
+          canAct &&
+          target.kind === "signal-gate" &&
+          selectedSignalReadiness &&
+          selectedSignalReadiness.canCommitTransit &&
+          selectedSignalTransitInRange,
+        canAbortSignalGateTransit:
+          canAct &&
+          target.kind === "signal-gate" &&
+          selectedSignalReadiness &&
+          selectedSignalReadiness.canAbortTransit &&
+          !selectedSignalTerminal,
+        canForceSignalGateOpen:
+          canAct &&
+          target.kind === "signal-gate" &&
+          selectedSignalReadiness &&
+          selectedSignalReadiness.canForceOpen &&
+          selectedSignalTransitInRange,
         canScanSignalGate:
           canAct &&
           target.kind === "signal-gate" &&
@@ -7541,12 +7711,16 @@ const VoidProspector = (() => {
     dom.convoy = document.getElementById("convoy-readout");
     dom.storm = document.getElementById("storm-readout");
     dom.interdiction = document.getElementById("interdiction-readout");
+    dom.signalGate = document.getElementById("signal-gate-readout");
     dom.beacon = document.getElementById("beacon-readout");
     dom.ambush = document.getElementById("ambush-readout");
     dom.stormWindow = document.getElementById("storm-window-readout");
     dom.stormAnchor = document.getElementById("storm-anchor-readout");
     dom.interdictionRaid = document.getElementById("interdiction-raid-readout");
     dom.interdictionLure = document.getElementById("interdiction-lure-readout");
+    dom.signalCapacitor = document.getElementById("signal-capacitor-readout");
+    dom.signalTransit = document.getElementById("signal-transit-readout");
+    dom.signalJam = document.getElementById("signal-jam-readout");
     dom.upgrade = document.getElementById("upgrade-readout");
     dom.service = document.getElementById("service-readout");
     dom.target = document.getElementById("target-readout");
@@ -7578,6 +7752,14 @@ const VoidProspector = (() => {
     dom.interdictionExposureState = document.getElementById("interdiction-exposure-state");
     dom.interdictionRewardState = document.getElementById("interdiction-reward-state");
     dom.interdictionSupportState = document.getElementById("interdiction-support-state");
+    dom.signalGateState = document.getElementById("signal-gate-state");
+    dom.signalPylonState = document.getElementById("signal-pylon-state");
+    dom.signalCapacitorState = document.getElementById("signal-capacitor-state");
+    dom.signalWindowState = document.getElementById("signal-window-state");
+    dom.signalConvoyState = document.getElementById("signal-convoy-state");
+    dom.signalJamState = document.getElementById("signal-jam-state");
+    dom.signalRewardState = document.getElementById("signal-reward-state");
+    dom.signalPrereqState = document.getElementById("signal-prereq-state");
     dom.mineAction = document.getElementById("mine-action");
     dom.scanAction = document.getElementById("scan-action");
     dom.beaconAction = document.getElementById("beacon-action");
@@ -7592,6 +7774,7 @@ const VoidProspector = (() => {
     dom.convoyList = document.getElementById("convoy-list");
     dom.stormList = document.getElementById("storm-list");
     dom.interdictionList = document.getElementById("interdiction-list");
+    dom.signalList = document.getElementById("signal-list");
     dom.sectorSelect = document.getElementById("sector-select");
     dom.sectorAction = document.getElementById("sector-action");
     dom.serviceProbesAction = document.getElementById("service-probes-action");
@@ -7603,6 +7786,7 @@ const VoidProspector = (() => {
     dom.serviceChartProcessorsAction = document.getElementById("service-chart-processors-action");
     dom.serviceStormPlatingAction = document.getElementById("service-storm-plating-action");
     dom.servicePatrolUplinkAction = document.getElementById("service-patrol-uplink-action");
+    dom.serviceGateTunersAction = document.getElementById("service-gate-tuners-action");
     dom.countermeasureAction = document.getElementById("countermeasure-action");
     dom.eventLog = document.getElementById("event-log");
   }
@@ -7703,6 +7887,30 @@ const VoidProspector = (() => {
     });
   }
 
+  function renderSignalRows(surface) {
+    if (!dom.signalList) {
+      return;
+    }
+    const signature = surface.signalRows.map((gate) => `${gate.id}:${gate.state}:${gate.primaryText}:${gate.detailText}`).join("|");
+    if (dom.signalList.dataset.signature === signature) {
+      return;
+    }
+    dom.signalList.dataset.signature = signature;
+    dom.signalList.replaceChildren();
+    surface.signalRows.forEach((gate) => {
+      const row = document.createElement("div");
+      row.className = "signal-row";
+      row.dataset.state = gate.state;
+
+      const name = document.createElement("strong");
+      name.textContent = gate.name;
+      const state = document.createElement("span");
+      state.textContent = `${gate.primaryText} / ${gate.detailText}`;
+      row.append(name, state);
+      dom.signalList.append(row);
+    });
+  }
+
   function renderSectorSelect(surface, state) {
     if (!dom.sectorSelect) {
       return;
@@ -7762,6 +7970,7 @@ const VoidProspector = (() => {
     renderConvoyRows(surface);
     renderStormRows(surface);
     renderInterdictionRows(surface);
+    renderSignalRows(surface);
     renderSectorSelect(surface, state);
     renderEventLog(surface);
 
@@ -7777,6 +7986,7 @@ const VoidProspector = (() => {
     renderServiceButton(dom.serviceChartProcessorsAction, surface, "chart-processors", "Processors");
     renderServiceButton(dom.serviceStormPlatingAction, surface, "storm-plating", "Plating");
     renderServiceButton(dom.servicePatrolUplinkAction, surface, "patrol-uplink", "Patrol");
+    renderServiceButton(dom.serviceGateTunersAction, surface, "gate-tuners", "Tuners");
     if (dom.countermeasureAction) {
       dom.countermeasureAction.disabled = !(
         surface.actions.countermeasureReady ||
@@ -7845,12 +8055,16 @@ const VoidProspector = (() => {
     dom.convoy.textContent = surface.convoyText;
     dom.storm.textContent = surface.stormText;
     dom.interdiction.textContent = surface.interdictionText;
+    dom.signalGate.textContent = surface.signalGateText;
     dom.beacon.textContent = surface.beaconText;
     dom.ambush.textContent = surface.ambushText;
     dom.stormWindow.textContent = surface.stormWindowText;
     dom.stormAnchor.textContent = surface.stormAnchorText;
     dom.interdictionRaid.textContent = surface.interdictionRaidText;
     dom.interdictionLure.textContent = surface.interdictionLureText;
+    dom.signalCapacitor.textContent = surface.signalCapacitorText;
+    dom.signalTransit.textContent = surface.signalTransitText;
+    dom.signalJam.textContent = surface.signalJamText;
     dom.upgrade.textContent = upgrade.text;
     dom.service.textContent = surface.serviceText;
     dom.target.textContent = `${target.kind} / ${target.name} / ${target.distance}m`;
@@ -7882,6 +8096,14 @@ const VoidProspector = (() => {
     dom.interdictionExposureState.textContent = surface.interdictionTarget.exposureText;
     dom.interdictionRewardState.textContent = surface.interdictionTarget.rewardText;
     dom.interdictionSupportState.textContent = surface.interdictionTarget.supportText;
+    dom.signalGateState.textContent = surface.signalTarget.gateText;
+    dom.signalPylonState.textContent = surface.signalTarget.pylonText;
+    dom.signalCapacitorState.textContent = surface.signalTarget.capacitorText;
+    dom.signalWindowState.textContent = surface.signalTarget.windowText;
+    dom.signalConvoyState.textContent = surface.signalTarget.convoyText;
+    dom.signalJamState.textContent = surface.signalTarget.jamText;
+    dom.signalRewardState.textContent = surface.signalTarget.rewardText;
+    dom.signalPrereqState.textContent = surface.signalTarget.prereqText;
 
     dom.hull.closest(".readout").dataset.tone = cssToneForPercent(state.ship.hull);
     dom.fuel.closest(".readout").dataset.tone = cssToneForPercent(state.ship.fuel);
@@ -7963,6 +8185,38 @@ const VoidProspector = (() => {
           : interdictionFocus
             ? "warn"
             : "signal";
+    const signalFocus =
+      (state.signalGate.activeGateId && signalGateById(state, state.signalGate.activeGateId)) ||
+      (state.signalGates || []).find((gate) => gate.prerequisiteStatus && gate.prerequisiteStatus.ready && gate.gateState.outcome === "none") ||
+      (state.signalGates || [])[0] ||
+      null;
+    const signalTiming = signalFocus ? signalGateTransitTiming(signalFocus, state) : null;
+    const signalTone =
+      signalFocus && signalFocus.gateState.outcome === "failed"
+        ? "danger"
+        : signalFocus && signalFocus.gateState.outcome === "success"
+          ? "signal"
+          : signalFocus && (signalFocus.gateState.pirateJam > 60 || (signalTiming && signalTiming.missed))
+            ? "danger"
+            : signalFocus
+              ? "warn"
+              : "signal";
+    dom.signalGate.closest(".readout").dataset.tone = signalTone;
+    dom.signalCapacitor.closest(".readout").dataset.tone =
+      signalFocus && signalFocus.gateState.capacitorCharge >= signalFocus.gateState.capacitorRequirement
+        ? "signal"
+        : signalFocus
+          ? "warn"
+          : "signal";
+    dom.signalTransit.closest(".readout").dataset.tone =
+      signalTiming && (signalTiming.open || signalTiming.committed)
+        ? "signal"
+        : signalTiming && signalTiming.missed
+          ? "danger"
+          : signalFocus
+            ? "warn"
+            : "signal";
+    dom.signalJam.closest(".readout").dataset.tone = signalTone;
     dom.service.closest(".readout").dataset.tone =
       state.stationServices.countermeasureCharges > 0 || state.stationServices.purchased.length > 0 ? "signal" : "warn";
     if (dom.mineAction) {
@@ -7979,6 +8233,8 @@ const VoidProspector = (() => {
             ? "Chart Storm"
             : target.kind === "interdiction"
               ? "Scan Transponder"
+              : target.kind === "signal-gate"
+                ? "Scan Harmonics"
               : "Scan";
       dom.scanAction.disabled = !(surface.actions.canScan || surface.actions.canScanSalvage);
     }
@@ -7992,6 +8248,10 @@ const VoidProspector = (() => {
             ? target.markerPlaced
               ? "Marker Armed"
               : "Distress Marker"
+          : target.kind === "signal-gate"
+            ? target.pylonAligned
+              ? "Pylon Aligned"
+              : "Align Pylon"
           : target.kind === "convoy" && target.beaconStatus && target.beaconStatus !== "undeployed"
             ? "Maintain Beacon"
             : "Deploy Beacon";
@@ -8000,25 +8260,51 @@ const VoidProspector = (() => {
         surface.actions.canMaintainBeacon ||
         surface.actions.canDeployStormAnchor ||
         surface.actions.canMaintainStormAnchor ||
-        surface.actions.canPlaceInterdictionMarker
+        surface.actions.canPlaceInterdictionMarker ||
+        surface.actions.canAlignSignalGatePylon
       );
     }
     if (dom.convoyAction) {
       dom.convoyAction.textContent =
-        target.kind === "storm" ? "Lock Window" : target.kind === "interdiction" ? "Resolve Raid" : target.kind === "convoy" ? "Start Convoy" : "Convoy";
+        target.kind === "storm"
+          ? "Lock Window"
+          : target.kind === "interdiction"
+            ? "Resolve Raid"
+            : target.kind === "signal-gate"
+              ? surface.actions.canCommitSignalGateTransit
+                ? "Commit Transit"
+                : "Charge Gate"
+            : target.kind === "convoy"
+              ? "Start Convoy"
+            : "Convoy";
       dom.convoyAction.disabled = !(
         surface.actions.canStartConvoy ||
         surface.actions.canLockStormWindow ||
-        surface.actions.canResolveInterdictionRaid
+        surface.actions.canResolveInterdictionRaid ||
+        surface.actions.canChargeSignalGateCapacitor ||
+        surface.actions.canCommitSignalGateTransit
       );
     }
     if (dom.abandonAction) {
       dom.abandonAction.textContent =
-        target.kind === "storm" ? "Reroute Salvage" : target.kind === "interdiction" ? "Deploy Lure" : "Abandon";
+        target.kind === "storm"
+          ? "Reroute Salvage"
+          : target.kind === "interdiction"
+            ? "Deploy Lure"
+            : target.kind === "signal-gate"
+              ? surface.actions.canAnchorSignalGateWindow
+                ? "Anchor Window"
+                : surface.actions.canForceSignalGateOpen
+                  ? "Force Open"
+                  : "Abort Gate"
+            : "Abandon";
       dom.abandonAction.disabled = !(
         surface.actions.canAbandonSalvage ||
         surface.actions.canRerouteStormSalvage ||
-        surface.actions.canDeployInterdictionLure
+        surface.actions.canDeployInterdictionLure ||
+        surface.actions.canAnchorSignalGateWindow ||
+        surface.actions.canForceSignalGateOpen ||
+        surface.actions.canAbortSignalGateTransit
       );
     }
     if (dom.dockAction) {
@@ -8075,6 +8361,8 @@ const VoidProspector = (() => {
             : deployStormAnchor(currentState, currentState.target.id);
       } else if (currentState.target.kind === "interdiction") {
         currentState = placeInterdictionMarker(currentState, currentState.target.id, "distress");
+      } else if (currentState.target.kind === "signal-gate") {
+        currentState = alignSignalGatePylon(currentState, currentState.target.id);
       }
     } else if (action === "convoy") {
       if (currentState.target.kind === "convoy") {
@@ -8083,6 +8371,11 @@ const VoidProspector = (() => {
         currentState = lockStormRouteWindow(currentState, currentState.target.id);
       } else if (currentState.target.kind === "interdiction") {
         currentState = resolveInterdictionRaid(currentState, currentState.target.id, "escort");
+      } else if (currentState.target.kind === "signal-gate") {
+        const readiness = signalGateReadiness(currentState, currentState.target.id);
+        currentState = readiness.canCommitTransit
+          ? commitSignalGateTransit(currentState, currentState.target.id, "convoy")
+          : chargeSignalGateCapacitor(currentState, currentState.target.id, 1);
       }
     } else if (action === "abandon-salvage") {
       if (currentState.target.kind === "storm") {
@@ -8091,6 +8384,13 @@ const VoidProspector = (() => {
         currentState = site ? rerouteStormSalvage(currentState, site.id, chart.id) : currentState;
       } else if (currentState.target.kind === "interdiction") {
         currentState = deployInterdictionLure(currentState, currentState.target.id);
+      } else if (currentState.target.kind === "signal-gate") {
+        const readiness = signalGateReadiness(currentState, currentState.target.id);
+        currentState = readiness.canAnchorStormWindow
+          ? anchorSignalGateStormWindow(currentState, currentState.target.id)
+          : readiness.canForceOpen
+            ? forceSignalGateOpen(currentState, currentState.target.id)
+            : abortSignalGateTransit(currentState, currentState.target.id);
       } else {
         currentState = abandonSalvageTarget(currentState);
       }
@@ -8117,6 +8417,8 @@ const VoidProspector = (() => {
       currentState = purchaseStationService(currentState, "storm-plating");
     } else if (action === "service-patrol-uplink") {
       currentState = purchaseStationService(currentState, "patrol-uplink");
+    } else if (action === "service-gate-tuners") {
+      currentState = purchaseStationService(currentState, "gate-tuners");
     } else if (action === "countermeasure") {
       currentState = deployCountermeasure(currentState);
     } else if (action === "sector") {
@@ -8210,6 +8512,9 @@ const VoidProspector = (() => {
     }
     if (dom.servicePatrolUplinkAction) {
       dom.servicePatrolUplinkAction.addEventListener("click", () => performAction("service-patrol-uplink"));
+    }
+    if (dom.serviceGateTunersAction) {
+      dom.serviceGateTunersAction.addEventListener("click", () => performAction("service-gate-tuners"));
     }
     if (dom.countermeasureAction) {
       dom.countermeasureAction.addEventListener("click", () => performAction("countermeasure"));
@@ -8816,6 +9121,176 @@ const VoidProspector = (() => {
     });
   }
 
+  function createSignalGateMesh(THREE, gate) {
+    const group = new THREE.Group();
+    group.userData.signalGateId = gate.id;
+    const familyColor = gate.family === "late-run-lattice" ? 0x8ea1ff : gate.family === "manifest-gate" ? 0xd0b36a : 0x4bd6c0;
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: familyColor,
+      transparent: true,
+      opacity: 0.32,
+      side: THREE.DoubleSide,
+    });
+    const latticeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4bd6c0,
+      transparent: true,
+      opacity: 0.24,
+      wireframe: true,
+    });
+    const pylonMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd0b36a,
+      transparent: true,
+      opacity: 0.5,
+    });
+    const capacitorMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4bd6c0,
+      transparent: true,
+      opacity: 0.28,
+    });
+    const jamMaterial = new THREE.MeshBasicMaterial({
+      color: 0xd46857,
+      transparent: true,
+      opacity: 0.22,
+    });
+    const transitMaterial = new THREE.LineBasicMaterial({
+      color: familyColor,
+      transparent: true,
+      opacity: 0.32,
+    });
+
+    const aperture = new THREE.Mesh(new THREE.TorusGeometry(gate.radius || 5, 0.1, 8, 72), ringMaterial);
+    aperture.rotation.x = Math.PI / 2;
+    group.add(aperture);
+
+    const lattice = new THREE.Mesh(new THREE.IcosahedronGeometry((gate.radius || 5) * 0.52, 1), latticeMaterial);
+    lattice.position.y = 0.2;
+    group.add(lattice);
+
+    const pylon = new THREE.Group();
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, (gate.pylon.radius || 4) * 1.7, 6), pylonMaterial);
+    mast.position.y = (gate.pylon.radius || 4) * 0.54;
+    pylon.add(mast);
+    const pylonRing = new THREE.Mesh(new THREE.TorusGeometry((gate.pylon.radius || 4) * 0.48, 0.055, 6, 42), pylonMaterial);
+    pylonRing.rotation.x = Math.PI / 2;
+    pylonRing.position.y = (gate.pylon.radius || 4) * 1.08;
+    pylon.add(pylonRing);
+    const pylonCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), capacitorMaterial);
+    pylonCore.position.y = (gate.pylon.radius || 4) * 1.42;
+    pylon.add(pylonCore);
+    group.add(pylon);
+
+    const capacitors = new THREE.Group();
+    for (let index = 0; index < 4; index += 1) {
+      const node = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), capacitorMaterial);
+      const angle = index * (Math.PI / 2);
+      node.position.set(Math.cos(angle) * (gate.radius || 5) * 0.74, 0.38, Math.sin(angle) * (gate.radius || 5) * 0.74);
+      capacitors.add(node);
+    }
+    group.add(capacitors);
+
+    const latticePosition = gate.latticePosition || gate.position;
+    const latticeOffset = subtract(latticePosition, gate.position);
+    const pylonOffset = subtract(gate.pylon.position, gate.position);
+    const transitLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0.18, 0),
+        new THREE.Vector3(latticeOffset.x * 0.5, latticeOffset.y + 3.2, latticeOffset.z * 0.5),
+        new THREE.Vector3(latticeOffset.x, latticeOffset.y + 0.18, latticeOffset.z),
+      ]),
+      transitMaterial
+    );
+    group.add(transitLine);
+
+    const convoySeal = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.045, 6, 36), capacitorMaterial);
+    convoySeal.position.set(latticeOffset.x * 0.72, latticeOffset.y + 0.32, latticeOffset.z * 0.72);
+    convoySeal.rotation.x = Math.PI / 2;
+    group.add(convoySeal);
+
+    const jamMarkers = new THREE.Group();
+    for (let index = 0; index < 3; index += 1) {
+      const marker = new THREE.Mesh(new THREE.TetrahedronGeometry(0.38 + index * 0.06, 0), jamMaterial);
+      marker.position.set((index - 1) * 0.92, 0.46 + index * 0.12, (gate.radius || 5) * 0.55);
+      jamMarkers.add(marker);
+    }
+    group.add(jamMarkers);
+
+    pylon.position.set(pylonOffset.x, pylonOffset.y, pylonOffset.z);
+    group.userData.ringMaterial = ringMaterial;
+    group.userData.latticeMaterial = latticeMaterial;
+    group.userData.pylonMaterial = pylonMaterial;
+    group.userData.capacitorMaterial = capacitorMaterial;
+    group.userData.jamMaterial = jamMaterial;
+    group.userData.transitMaterial = transitMaterial;
+    group.userData.aperture = aperture;
+    group.userData.lattice = lattice;
+    group.userData.pylon = pylon;
+    group.userData.capacitors = capacitors;
+    group.userData.convoySeal = convoySeal;
+    group.userData.jamMarkers = jamMarkers;
+    return group;
+  }
+
+  function syncSignalGateMeshes(handle, state, timeSeconds = 0) {
+    const { THREE } = handle;
+    const activeIds = new Set((state.signalGates || []).map((gate) => gate.id));
+    handle.objects.signalGateMeshes.forEach((mesh, gateId) => {
+      if (!activeIds.has(gateId)) {
+        handle.scene.remove(mesh);
+        handle.objects.signalGateMeshes.delete(gateId);
+      }
+    });
+    (state.signalGates || []).forEach((gate) => {
+      if (!handle.objects.signalGateMeshes.has(gate.id)) {
+        const mesh = createSignalGateMesh(THREE, gate);
+        handle.objects.signalGateMeshes.set(gate.id, mesh);
+        handle.scene.add(mesh);
+      }
+      const mesh = handle.objects.signalGateMeshes.get(gate.id);
+      const ready = gate.prerequisiteStatus && gate.prerequisiteStatus.ready;
+      const timing = signalGateTransitTiming(gate, state);
+      const terminal = ["success", "partial", "failed"].includes(gate.gateState.outcome);
+      const chargeRatio = clamp(gate.gateState.capacitorCharge / Math.max(1, gate.gateState.capacitorRequirement), 0, 1);
+      const pylonRatio = clamp(gate.gateState.pylonIntegrity / Math.max(1, gate.gateState.maxPylonIntegrity), 0, 1);
+      const jamRatio = clamp((gate.gateState.pirateJam || gate.pirateGateJam || 0) / 80, 0, 1);
+      const tone =
+        terminal && gate.gateState.outcome === "failed"
+          ? 0xd46857
+          : terminal && gate.gateState.outcome === "partial"
+            ? 0xd0b36a
+            : terminal
+              ? 0x4bd6c0
+              : timing.open || timing.forced
+                ? 0x4bd6c0
+                : gate.gateState.pylonAligned
+                  ? 0x8ea1ff
+                  : ready
+                    ? 0xd0b36a
+                    : 0x59655f;
+
+      mesh.position.set(gate.position.x, gate.position.y, gate.position.z);
+      mesh.rotation.y = timeSeconds * (timing.open || timing.forced ? 0.34 : 0.16);
+      mesh.visible = true;
+      mesh.scale.setScalar(terminal ? 0.82 : ready ? 1 : 0.78);
+      mesh.userData.ringMaterial.color.setHex(tone);
+      mesh.userData.ringMaterial.opacity = ready ? 0.24 + chargeRatio * 0.32 : 0.12;
+      mesh.userData.latticeMaterial.color.setHex(tone);
+      mesh.userData.latticeMaterial.opacity = ready ? 0.16 + chargeRatio * 0.24 : 0.08;
+      mesh.userData.pylonMaterial.color.setHex(gate.gateState.pylonAligned ? 0x4bd6c0 : 0xd0b36a);
+      mesh.userData.pylonMaterial.opacity = ready ? 0.28 + pylonRatio * 0.42 : 0.12;
+      mesh.userData.capacitorMaterial.color.setHex(chargeRatio >= 1 ? 0x4bd6c0 : 0xd0b36a);
+      mesh.userData.capacitorMaterial.opacity = ready ? 0.22 + chargeRatio * 0.5 : 0.1;
+      mesh.userData.transitMaterial.color.setHex(tone);
+      mesh.userData.transitMaterial.opacity = ready ? (timing.open || timing.forced ? 0.76 : 0.24 + chargeRatio * 0.24) : 0.1;
+      mesh.userData.jamMaterial.opacity = terminal ? 0.08 : ready ? 0.12 + jamRatio * 0.5 : 0.06;
+      mesh.userData.jamMarkers.visible = ready && (gate.gateState.harmonicsScanned || jamRatio > 0.25);
+      mesh.userData.capacitors.rotation.y = -timeSeconds * (0.3 + chargeRatio * 0.5);
+      mesh.userData.lattice.rotation.y = timeSeconds * (0.18 + chargeRatio * 0.2);
+      mesh.userData.aperture.scale.setScalar(timing.open || timing.forced ? 1 + Math.sin(timeSeconds * 1.8) * 0.04 : 1);
+      mesh.userData.convoySeal.visible = (gate.convoyRouteIds || []).length > 0;
+      mesh.userData.convoySeal.scale.setScalar(0.82 + chargeRatio * 0.28);
+    });
+  }
+
   function createPirateMesh(THREE, assets = {}) {
     const group = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
@@ -8967,6 +9442,14 @@ const VoidProspector = (() => {
       scene.add(mesh);
     });
 
+    const signalGateMeshes = new Map();
+    (state.signalGates || []).forEach((gate) => {
+      const mesh = createSignalGateMesh(THREE, gate);
+      mesh.position.set(gate.position.x, gate.position.y, gate.position.z);
+      signalGateMeshes.set(gate.id, mesh);
+      scene.add(mesh);
+    });
+
     const pirate = createPirateMesh(THREE, sceneAssets);
     scene.add(pirate);
 
@@ -8989,6 +9472,7 @@ const VoidProspector = (() => {
         convoyMeshes,
         stormMeshes,
         interdictionMeshes,
+        signalGateMeshes,
         pirate,
         targetRing,
         miningBeam,
@@ -9036,6 +9520,7 @@ const VoidProspector = (() => {
     syncConvoyMeshes(handle, state, timeSeconds);
     syncStormMeshes(handle, state, timeSeconds);
     syncInterdictionMeshes(handle, state, timeSeconds);
+    syncSignalGateMeshes(handle, state, timeSeconds);
     (state.salvageSites || []).forEach((site) => {
       const mesh = handle.objects.salvageMeshes.get(site.id);
       if (!mesh) {
@@ -9069,6 +9554,8 @@ const VoidProspector = (() => {
               ? 0xd46857
               : state.target.kind === "interdiction"
                 ? 0xd46857
+              : state.target.kind === "signal-gate"
+                ? 0x4bd6c0
               : 0x4bd6c0
       );
       handle.objects.targetRing.visible = true;
