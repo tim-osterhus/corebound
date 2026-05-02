@@ -1,12 +1,14 @@
 :root {
   color-scheme: dark;
-  --bg: #080b0a;
-  --panel: #101412;
-  --panel-strong: #151b18;
+  --bg: #070908;
+  --panel: rgba(13, 17, 15, 0.94);
+  --panel-strong: rgba(18, 23, 21, 0.98);
+  --panel-soft: rgba(11, 15, 13, 0.72);
   --line: #2a3430;
+  --line-soft: rgba(133, 145, 139, 0.28);
   --line-hot: #4bd6c0;
   --text: #dde5df;
-  --muted: #85918b;
+  --muted: #87938d;
   --dim: #59655f;
   --warn: #d7b867;
   --danger: #d6604d;
@@ -20,14 +22,21 @@
   box-sizing: border-box;
 }
 
+html {
+  min-width: 320px;
+  background: var(--bg);
+}
+
 body {
   min-width: 320px;
+  min-height: 100vh;
   margin: 0;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0, rgba(75, 214, 192, 0.08), transparent 36rem),
     var(--bg);
-  background-size: 32px 32px;
+  background-size: 32px 32px, 32px 32px, auto, auto;
   color: var(--text);
 }
 
@@ -37,7 +46,7 @@ select {
 }
 
 button {
-  min-height: 2.5rem;
+  min-height: 2.45rem;
   border: 1px solid var(--line);
   border-radius: 3px;
   background: #111815;
@@ -47,11 +56,16 @@ button {
 }
 
 button:hover,
-button:focus-visible {
+button:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+.backlink:focus-visible,
+.lane-card:focus-visible,
+.queue-item:focus-visible {
   border-color: var(--line-hot);
   color: #f5fffb;
   outline: none;
-  box-shadow: 0 0 0 1px rgba(75, 214, 192, 0.18);
+  box-shadow: 0 0 0 2px rgba(75, 214, 192, 0.22);
 }
 
 button:disabled {
@@ -63,7 +77,7 @@ button:disabled {
 
 select {
   width: 100%;
-  min-height: 2.5rem;
+  min-height: 2.45rem;
   border: 1px solid var(--line);
   border-radius: 3px;
   background: #0d1210;
@@ -71,19 +85,22 @@ select {
 }
 
 .dispatch-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
   width: min(1440px, 100%);
-  min-height: 100vh;
+  height: 100vh;
   margin: 0 auto;
-  padding: 18px;
+  padding: 12px;
+  overflow: hidden;
 }
 
-.topline {
+.status-strip {
   display: grid;
-  grid-template-columns: minmax(112px, auto) 1fr minmax(148px, auto);
-  gap: 16px;
-  align-items: center;
-  padding: 14px 0 18px;
-  border-bottom: 1px solid var(--line);
+  grid-template-columns: minmax(112px, 0.7fr) minmax(190px, 1.1fr) minmax(250px, 1.35fr) minmax(300px, 1.4fr) minmax(168px, auto);
+  gap: 10px;
+  align-items: stretch;
+  min-height: 76px;
 }
 
 .backlink,
@@ -95,7 +112,9 @@ select {
 .queue-meta,
 .job-meta,
 .contract-meta,
-.log-tick {
+.log-tick,
+.selected-kicker,
+.stat span {
   color: var(--muted);
   font-size: 0.72rem;
   letter-spacing: 0;
@@ -103,206 +122,179 @@ select {
 }
 
 .backlink {
+  display: grid;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  color: var(--muted);
   text-decoration: none;
 }
 
-.backlink:hover,
-.backlink:focus-visible {
-  color: var(--line-hot);
+.identity,
+.objective-card,
+.top-stats,
+.header-actions,
+.panel,
+.advanced-drawer,
+.help-dialog form {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  box-shadow: 0 18px 42px var(--shadow);
+}
+
+.identity {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  padding: 10px 12px;
 }
 
 .identity h1 {
   margin: 2px 0 0;
-  font-size: clamp(1.6rem, 4vw, 3.6rem);
+  font-size: clamp(1.2rem, 2.6vw, 2.1rem);
   font-weight: 600;
   letter-spacing: 0;
-  line-height: 0.95;
+  line-height: 1.02;
 }
 
-.run-chip {
-  justify-self: end;
-  min-width: 148px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  background: #0d1210;
-  color: var(--line-hot);
-  text-align: center;
-}
-
-.resource-strip {
+.objective-card {
   display: grid;
-  grid-template-columns: repeat(8, minmax(86px, 1fr));
-  gap: 8px;
-  padding: 16px 0;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
 }
 
-.escalation-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 8px;
-  padding: 0 0 14px;
+.objective-card strong,
+.selected-detail strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
-.title-card-band {
-  height: clamp(118px, 17vw, 210px);
-  margin: 0 0 14px;
+.objective-meter,
+.detail-meter {
+  height: 8px;
   overflow: hidden;
   border: 1px solid var(--line);
   background: #090d0b;
-  box-shadow: 0 18px 42px var(--shadow);
 }
 
-.title-card-band img {
+.objective-meter span,
+.detail-meter span {
   display: block;
-  width: 100%;
+  width: var(--progress, 0%);
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  background: linear-gradient(90deg, var(--line-hot), var(--warn));
 }
 
-.readout {
-  min-height: 58px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  background: rgba(16, 20, 18, 0.92);
-  box-shadow: 0 12px 36px var(--shadow);
-}
-
-.escalation-card {
-  min-width: 0;
-  min-height: 96px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  background: rgba(13, 18, 16, 0.96);
-  box-shadow: 0 12px 36px var(--shadow);
-}
-
-.escalation-card span {
-  display: block;
-  color: var(--muted);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-}
-
-.readout strong {
-  display: block;
-  margin-top: 4px;
-  font-size: 1.35rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.escalation-card strong {
-  display: block;
-  margin: 5px 0 7px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
-.escalation-card p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  text-transform: uppercase;
-}
-
-.escalation-card p + p {
-  margin-top: 4px;
-}
-
-.escalation-card[data-alert="active"] {
-  border-color: rgba(75, 214, 192, 0.7);
-  background: rgba(75, 214, 192, 0.07);
-}
-
-.escalation-card[data-alert="pending"],
-.escalation-card[data-alert="armed"] {
-  border-color: rgba(215, 184, 103, 0.72);
-}
-
-.escalation-card[data-surface="breach"][data-alert="dormant"],
-.escalation-card[data-surface="breach"][data-alert="contained"] {
-  border-color: rgba(75, 214, 192, 0.5);
-}
-
-.escalation-card[data-surface="breach"][data-alert="active"] {
-  border-color: rgba(75, 214, 192, 0.82);
-  background: rgba(75, 214, 192, 0.08);
-}
-
-.escalation-card[data-surface="breach"][data-alert="escaped"] {
-  border-color: rgba(214, 96, 77, 0.82);
-  background: rgba(214, 96, 77, 0.08);
-}
-
-.escalation-card[data-surface="rail-sabotage"][data-alert="incident-open"],
-.escalation-card[data-surface="rail-sabotage"][data-alert="contained"] {
-  border-color: rgba(75, 214, 192, 0.82);
-  background: rgba(75, 214, 192, 0.08);
-}
-
-.escalation-card[data-surface="rail-sabotage"][data-alert="tampered"],
-.escalation-card[data-surface="rail-sabotage"][data-alert="scarred"] {
-  border-color: rgba(215, 184, 103, 0.72);
-  background: rgba(215, 184, 103, 0.055);
-}
-
-.escalation-card[data-surface="rail-sabotage"][data-alert="sabotaged"] {
-  border-color: rgba(214, 96, 77, 0.82);
-  background: rgba(214, 96, 77, 0.08);
-}
-
-.escalation-card[data-surface="crisis-arbitration"][data-alert="docket-open"],
-.escalation-card[data-surface="crisis-arbitration"][data-alert="ruled"] {
-  border-color: rgba(75, 214, 192, 0.82);
-  background: rgba(75, 214, 192, 0.08);
-}
-
-.escalation-card[data-surface="crisis-arbitration"][data-alert="scarred"] {
-  border-color: rgba(214, 96, 77, 0.82);
-  background: rgba(214, 96, 77, 0.08);
-}
-
-.breach-actions {
+.top-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  margin-top: 8px;
+  padding: 8px;
 }
 
-.breach-actions button {
-  min-height: 2rem;
-  font-size: 0.68rem;
-}
-
-.factory-grid {
-  display: grid;
-  grid-template-areas:
-    "lanes grid grid"
-    "lanes freight freight"
-    "lanes sabotage sabotage"
-    "lanes crisis crisis"
-    "lanes queue contracts"
-    "lanes upgrades jobs"
-    "controls controls log";
-  grid-template-columns: minmax(360px, 1.6fr) minmax(280px, 0.85fr) minmax(300px, 0.9fr);
-  gap: 12px;
-  align-items: start;
-}
-
-.factory-grid > * {
+.stat {
   min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line-soft);
+  background: rgba(8, 12, 10, 0.88);
+}
+
+.stat strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.header-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+}
+
+.run-chip {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  background: #0d1210;
+  color: var(--line-hot);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.icon-button {
+  width: 4.7rem;
+}
+
+.operator-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.76fr) minmax(560px, 1.86fr) minmax(280px, 0.86fr);
+  grid-template-rows: minmax(0, 1fr) minmax(118px, auto);
+  grid-template-areas:
+    "left floor right"
+    "actions actions log";
+  gap: 10px;
+  min-height: 0;
+}
+
+.left-rail,
+.right-rail {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.left-rail {
+  grid-area: left;
+  grid-template-rows: minmax(250px, 1fr) minmax(160px, auto);
+}
+
+.right-rail {
+  grid-area: right;
+  grid-template-rows: minmax(170px, auto) minmax(250px, 1fr);
+}
+
+.factory-floor-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-area: floor;
+  min-height: 55vh;
+}
+
+.actions-panel {
+  grid-area: actions;
+}
+
+.log-panel {
+  grid-area: log;
 }
 
 .panel {
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: rgba(12, 16, 14, 0.95);
-  box-shadow: 0 18px 42px var(--shadow);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grid-panel,
+.freight-panel,
+.sabotage-panel,
+.crisis-panel,
+.upgrade-panel,
+.job-panel,
+.controls-panel,
+.escalation-panel {
+  min-width: 0;
 }
 
 .panel-head {
@@ -310,88 +302,51 @@ select {
   justify-content: space-between;
   gap: 12px;
   align-items: baseline;
-  min-height: 46px;
-  padding: 12px;
+  min-height: 42px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--panel-strong);
 }
 
 .panel-head strong {
-  font-size: 0.9rem;
+  min-width: 0;
+  font-size: 0.86rem;
   font-weight: 600;
   text-align: right;
+  overflow-wrap: anywhere;
 }
 
-.lane-panel {
-  grid-area: lanes;
-}
-
-.grid-panel {
-  grid-area: grid;
-}
-
-.freight-panel {
-  grid-area: freight;
-}
-
-.sabotage-panel {
-  grid-area: sabotage;
-}
-
-.crisis-panel {
-  grid-area: crisis;
-}
-
-.queue-panel {
-  grid-area: queue;
-}
-
-.contract-panel {
-  grid-area: contracts;
-}
-
-.upgrade-panel {
-  grid-area: upgrades;
-}
-
-.job-panel {
-  grid-area: jobs;
-}
-
-.controls-panel {
-  grid-area: controls;
-}
-
-.log-panel {
-  grid-area: log;
-}
-
-.lane-board,
+.queue-list,
+.resource-strip,
+.contract-board,
+.selected-detail,
+.context-actions,
+.operator-log,
 .grid-siege-board,
 .freight-board,
 .rail-sabotage-board,
 .crisis-board,
 .job-catalog,
-.contract-board,
 .upgrade-board,
 .control-stack,
-.operator-log,
-.queue-list {
+.escalation-strip {
   margin: 0;
   padding: 10px;
 }
 
-.lane-board {
+.queue-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  max-height: 100%;
+  overflow: auto;
+  list-style: none;
 }
 
-.grid-siege-board {
-  display: grid;
-  gap: 10px;
-}
-
-.lane-card,
+.queue-item,
+.contract-card,
+.selected-card,
+.job-card,
+.upgrade-card,
 .grid-summary,
 .grid-sector-card,
 .grid-directive-card,
@@ -400,73 +355,319 @@ select {
 .crisis-summary,
 .crisis-case-card,
 .freight-manifest-card,
-.queue-item,
-.job-card,
-.contract-card,
-.upgrade-card {
+.escalation-card {
   border: 1px solid var(--line);
   border-radius: 3px;
-  background: var(--panel);
+  background: var(--panel-strong);
+}
+
+.queue-item {
+  display: grid;
+  gap: 8px;
+  min-height: 96px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.queue-item[data-selected="true"],
+.lane-card[data-selected="true"] {
+  border-color: rgba(75, 214, 192, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(75, 214, 192, 0.2), 0 0 28px rgba(75, 214, 192, 0.12);
+}
+
+.queue-item[data-emergency="true"],
+.job-card[data-family="emergency"],
+.contract-card[data-emergency="true"] {
+  border-color: rgba(215, 184, 103, 0.68);
+  background: rgba(215, 184, 103, 0.055);
+}
+
+.queue-title,
+.lane-title,
+.job-title,
+.contract-title,
+.upgrade-title,
+.selected-title,
+.grid-sector-title,
+.grid-directive-title,
+.rail-incident-title,
+.crisis-case-title,
+.freight-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.asset-title,
+.job-inline {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.asset-title strong,
+.job-inline strong,
+.queue-title strong,
+.lane-title strong,
+.job-title strong,
+.contract-title strong,
+.upgrade-title strong,
+.selected-title strong {
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.asset-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(75, 214, 192, 0.14));
+}
+
+.queue-icon,
+.job-icon {
+  border: 1px solid rgba(75, 214, 192, 0.2);
+  background: rgba(75, 214, 192, 0.06);
+}
+
+.lane-icon {
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  filter: saturate(0.85) contrast(1.1);
+}
+
+.fault-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.resource-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.readout {
+  min-height: 66px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgba(75, 214, 192, 0.06), transparent 58%),
+    rgba(16, 20, 18, 0.92);
+}
+
+.readout strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.28rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.readout[data-resource="power"] strong,
+.readout[data-resource="stability"] strong,
+.readout[data-resource="circuits"] strong,
+.readout[data-resource="modules"] strong,
+.readout[data-resource="drones"] strong,
+.readout[data-resource="defenses"] strong {
+  color: var(--line-hot);
+}
+
+.lane-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 0;
+  height: auto;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 34%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 52px),
+    #080c0a;
 }
 
 .lane-card {
+  position: relative;
   display: grid;
+  grid-template-rows: auto minmax(250px, 1fr) auto auto;
   gap: 10px;
-  min-height: 170px;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
   padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, rgba(75, 214, 192, 0.04), rgba(0, 0, 0, 0) 38%),
+    #0c1110;
+  cursor: pointer;
+  overflow: hidden;
 }
 
-.grid-summary {
+.lane-machine {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-rows: minmax(128px, 0.9fr) minmax(160px, 1.2fr);
+  min-height: 0;
+  border: 1px solid rgba(133, 145, 139, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    #090d0b;
+}
+
+.machine-image {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 8px;
+  border-bottom: 1px solid rgba(133, 145, 139, 0.2);
+}
+
+.machine-image img {
+  width: 100%;
+  height: 100%;
+  max-height: 210px;
+  object-fit: cover;
+  border: 1px solid rgba(75, 214, 192, 0.14);
+  opacity: 0.86;
+}
+
+.conveyor {
+  position: relative;
+  display: grid;
+  align-items: end;
+  min-height: 0;
+  padding: 12px 10px;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.055) 1px, transparent 1px, transparent 28px),
+    linear-gradient(90deg, rgba(75, 214, 192, 0.08), rgba(215, 184, 103, 0.08));
+}
+
+.conveyor::before,
+.conveyor::after {
+  content: "";
+  position: absolute;
+  inset: 16px auto 16px 38%;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.conveyor::after {
+  left: 62%;
+}
+
+.belt {
+  position: absolute;
+  inset: 14px 18px;
+  border: 1px solid rgba(133, 145, 139, 0.26);
+  background:
+    repeating-linear-gradient(180deg, rgba(75, 214, 192, 0.14), rgba(75, 214, 192, 0.14) 9px, transparent 9px, transparent 23px),
+    rgba(0, 0, 0, 0.24);
+  transform: skewX(-6deg);
+}
+
+.job-token {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  width: min(74%, 190px);
+  min-height: 92px;
+  margin: auto auto 10px;
   padding: 10px;
+  border: 1px solid rgba(75, 214, 192, 0.42);
+  background: rgba(9, 13, 11, 0.88);
+  text-align: center;
 }
 
-.freight-board {
-  display: grid;
-  gap: 10px;
+.job-token span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
 }
 
-.rail-sabotage-board {
-  display: grid;
-  gap: 10px;
+.job-token strong {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
-.crisis-board {
-  display: grid;
-  gap: 10px;
+.state-marker {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  min-width: 86px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  background: rgba(8, 12, 10, 0.88);
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-align: center;
+  text-transform: uppercase;
 }
 
-.freight-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+.progress-track {
+  height: 9px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #090d0b;
 }
 
-.rail-sabotage-summary {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px;
+.progress-track span {
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  background: linear-gradient(90deg, var(--line-hot), var(--warn));
 }
 
-.crisis-summary {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px;
+.lane-meta,
+.job-meta,
+.contract-meta,
+.queue-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
+.lane-meta span,
+.job-meta span,
+.contract-meta span,
+.queue-meta span,
+.selected-meta span,
 .grid-summary > span,
 .rail-sabotage-summary > span,
 .crisis-summary > span,
 .freight-summary > span,
-.grid-directive-card > span {
-  display: block;
+.grid-directive-card > span,
+.grid-sector-meta span,
+.freight-route span,
+.freight-metrics span,
+.rail-incident-meta span,
+.crisis-case-meta span,
+.job-io span,
+.contract-reward span {
   min-width: 0;
-  padding: 7px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
+  padding: 5px 6px;
+  border: 1px solid var(--line-soft);
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.35;
@@ -474,76 +675,357 @@ select {
   text-transform: uppercase;
 }
 
-.grid-sector-list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+.lane-card[data-status="running"] {
+  border-color: rgba(75, 214, 192, 0.72);
 }
 
-.grid-sector-card,
-.grid-directive-card {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
+.lane-card[data-status="running"] .state-marker,
+.lane-card[data-status="running"] .status-pill,
+.contract-card[data-status="active"] .status-pill {
+  border-color: rgba(75, 214, 192, 0.75);
+  color: var(--line-hot);
 }
 
-.freight-manifest-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+.lane-card[data-status="running"] .belt {
+  animation: beltMove 900ms linear infinite;
 }
 
-.rail-incident-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+.lane-card[data-overdrive="true"] {
+  border-color: rgba(75, 214, 192, 0.86);
+  background:
+    linear-gradient(180deg, rgba(75, 214, 192, 0.12), rgba(0, 0, 0, 0) 46%),
+    #0c1110;
 }
 
-.crisis-case-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+.lane-card[data-overdrive="true"] .belt {
+  animation-duration: 520ms;
 }
 
-.freight-manifest-card {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
+.lane-card[data-status="assigned"] .status-pill,
+.lane-card[data-status="assigned"] .state-marker {
+  border-color: rgba(156, 167, 255, 0.65);
+  color: var(--cool);
 }
 
-.rail-incident-card {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
+.lane-card[data-status="blocked"],
+.lane-card[data-status="locked"] {
+  border-color: rgba(214, 96, 77, 0.84);
 }
 
-.crisis-case-card {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
+.lane-card[data-status="blocked"] .state-marker,
+.lane-card[data-status="locked"] .state-marker,
+.lane-card[data-status="blocked"] .status-pill,
+.contract-card[data-status="failed"] .status-pill {
+  border-color: rgba(214, 96, 77, 0.84);
+  color: var(--danger);
 }
 
-.grid-sector-card[data-powered="false"],
-.grid-directive-card[data-audit="active"],
-.grid-directive-card[data-audit="failed"] {
-  border-color: rgba(215, 184, 103, 0.72);
-  background: rgba(215, 184, 103, 0.055);
+.lane-card[data-status="blocked"] .machine-image img,
+.lane-card[data-status="locked"] .machine-image img {
+  filter: saturate(0.7) contrast(1.15) drop-shadow(0 0 16px rgba(214, 96, 77, 0.22));
 }
 
-.grid-sector-card[data-isolated="true"],
-.grid-sector-card[data-blackout="true"] {
-  border-color: rgba(214, 96, 77, 0.75);
+.lane-card[data-status="recovering"] {
+  border-color: rgba(215, 184, 103, 0.78);
 }
 
+.lane-card[data-status="recovering"] .state-marker,
+.lane-card[data-status="recovering"] .status-pill,
+.contract-card[data-status="complete"] .status-pill,
+.upgrade-card[data-installed="true"] .status-pill {
+  border-color: rgba(215, 184, 103, 0.78);
+  color: var(--warn);
+}
+
+.lane-card[data-breach-quarantine="true"],
+.lane-card[data-breach="contaminated"],
 .grid-sector-card[data-breach="contaminated"],
 .grid-sector-card[data-breach="quarantined"],
 .queue-item[data-compromised="true"],
-.lane-card[data-breach="contaminated"],
-.lane-card[data-breach-quarantine="true"],
 .job-card[data-family="breach"],
 .contract-card[data-family="breach"] {
   border-color: rgba(75, 214, 192, 0.68);
   background: rgba(75, 214, 192, 0.055);
+}
+
+.fault-readout,
+.breach-readout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px;
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.fault-readout[data-active="true"] {
+  border-color: rgba(215, 184, 103, 0.72);
+  background: rgba(215, 184, 103, 0.08);
+  color: var(--text);
+}
+
+.breach-readout[data-active="true"] {
+  border-color: rgba(75, 214, 192, 0.64);
+  background: rgba(75, 214, 192, 0.06);
+  color: var(--text);
+}
+
+.contract-board,
+.selected-detail,
+.job-catalog,
+.upgrade-board,
+.grid-siege-board,
+.freight-board,
+.rail-sabotage-board,
+.crisis-board {
+  display: grid;
+  gap: 10px;
+  overflow: auto;
+}
+
+.contract-card,
+.selected-card,
+.job-card,
+.upgrade-card,
+.grid-sector-card,
+.grid-directive-card,
+.rail-incident-card,
+.crisis-case-card,
+.freight-manifest-card,
+.escalation-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.contract-reward,
+.job-io {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.selected-detail {
+  min-height: 100%;
+}
+
+.selected-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.context-actions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(92px, 1fr));
+  gap: 8px;
+  align-content: center;
+  min-height: 76px;
+}
+
+.context-actions p,
+.empty-note,
+.upgrade-card p,
+.help-body p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.context-actions .action-note {
+  grid-column: 1 / -1;
+}
+
+.operator-log {
+  display: grid;
+  gap: 7px;
+  max-height: 126px;
+  overflow: hidden;
+  list-style: none;
+}
+
+.operator-log li {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid rgba(133, 145, 139, 0.24);
+  background: #0d1210;
+  font-size: 0.78rem;
+}
+
+.operator-log li span:last-child {
+  overflow-wrap: anywhere;
+}
+
+.advanced-drawer {
+  min-height: 38px;
+  overflow: hidden;
+}
+
+.advanced-drawer > summary {
+  min-height: 38px;
+  padding: 10px 12px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.advanced-drawer[open] {
+  overflow: auto;
+}
+
+.advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 10px 10px;
+}
+
+.escalation-panel {
+  grid-column: 1 / -1;
+}
+
+.escalation-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.grid-summary,
+.freight-summary,
+.rail-sabotage-summary,
+.crisis-summary,
+.grid-sector-list,
+.freight-manifest-list,
+.rail-incident-list,
+.crisis-case-list,
+.control-selects,
+.button-grid,
+.grid-actions,
+.directive-actions,
+.freight-actions,
+.rail-actions,
+.crisis-actions,
+.crisis-evidence-actions,
+.crisis-priority-actions,
+.crisis-evidence-seals,
+.breach-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.grid-summary,
+.freight-summary,
+.crisis-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rail-sabotage-summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.grid-sector-list,
+.rail-incident-list,
+.crisis-case-list,
+.freight-manifest-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-sector-meta,
+.freight-route,
+.freight-metrics,
+.rail-incident-meta,
+.crisis-case-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.grid-actions,
+.directive-actions,
+.freight-actions,
+.crisis-actions,
+.breach-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rail-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.crisis-evidence-actions {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.crisis-priority-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.crisis-evidence-seals {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-actions button,
+.directive-actions button,
+.freight-actions button,
+.crisis-actions button,
+.crisis-evidence-actions button,
+.crisis-priority-actions button,
+.rail-actions button,
+.breach-actions button,
+.button-grid button {
+  min-height: 2.1rem;
+  font-size: 0.68rem;
+}
+
+.freight-rail,
+.sabotage-rail {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  min-height: 34px;
+  padding: 6px;
+  border: 1px solid var(--line-soft);
+  background:
+    repeating-linear-gradient(90deg, rgba(75, 214, 192, 0.08), rgba(75, 214, 192, 0.08) 1px, transparent 1px, transparent 12px),
+    #0b100e;
+}
+
+.freight-rail span,
+.sabotage-rail span {
+  min-height: 20px;
+  border: 1px solid rgba(133, 145, 139, 0.32);
+  background: rgba(16, 20, 18, 0.92);
+}
+
+.freight-rail span[data-filled="true"],
+.sabotage-rail span[data-state="sealed"],
+.crisis-evidence-seals span[data-assigned="true"],
+.freight-manifest-card[data-status="complete"],
+.crisis-case-card[data-status="binding"] {
+  border-color: rgba(75, 214, 192, 0.7);
+  background: rgba(75, 214, 192, 0.16);
+}
+
+.sabotage-rail span[data-state="hot"],
+.freight-manifest-card[data-status="failed"],
+.freight-manifest-card[data-route-alert="true"],
+.freight-manifest-card[data-risk="critical"],
+.rail-incident-card[data-status="failed"],
+.rail-incident-card[data-lane-damage="sabotaged"],
+.rail-incident-card[data-dock-ready="false"][data-actionable="true"],
+.crisis-case-card[data-status="failed"] {
+  border-color: rgba(214, 96, 77, 0.78);
+  background: rgba(214, 96, 77, 0.08);
 }
 
 .freight-manifest-card[data-status="available"],
@@ -563,500 +1045,23 @@ select {
 }
 
 .freight-manifest-card[data-status="enroute"],
-.freight-manifest-card[data-risk="elevated"] {
-  border-color: rgba(215, 184, 103, 0.72);
-  background: rgba(215, 184, 103, 0.055);
-}
-
-.freight-manifest-card[data-status="failed"],
-.freight-manifest-card[data-route-alert="true"],
-.freight-manifest-card[data-risk="critical"],
-.rail-incident-card[data-status="failed"],
-.rail-incident-card[data-lane-damage="sabotaged"],
-.rail-incident-card[data-dock-ready="false"][data-actionable="true"],
-.crisis-case-card[data-status="failed"] {
-  border-color: rgba(214, 96, 77, 0.78);
-}
-
-.freight-manifest-card[data-status="complete"],
-.crisis-case-card[data-status="binding"] {
-  border-color: rgba(75, 214, 192, 0.82);
-}
-
+.freight-manifest-card[data-risk="elevated"],
 .grid-sector-card[data-breach="scarred"],
 .rail-incident-card[data-status="partial"],
 .rail-incident-card[data-lane-damage="scarred"],
 .crisis-case-card[data-status="partial"],
 .crisis-case-card[data-status="deferred"],
-.queue-item[data-breach-directive="true"] {
+.queue-item[data-breach-directive="true"],
+.grid-sector-card[data-powered="false"],
+.grid-directive-card[data-audit="active"],
+.grid-directive-card[data-audit="failed"] {
   border-color: rgba(215, 184, 103, 0.72);
   background: rgba(215, 184, 103, 0.055);
 }
 
-.grid-sector-title,
-.grid-directive-title,
-.rail-incident-title,
-.crisis-case-title,
-.freight-title {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: baseline;
-}
-
-.grid-sector-title strong,
-.grid-directive-title strong,
-.rail-incident-title strong,
-.crisis-case-title strong,
-.freight-title strong {
-  min-width: 0;
-  font-size: 0.9rem;
-  overflow-wrap: anywhere;
-}
-
-.grid-sector-meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.grid-sector-meta span {
-  padding: 6px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
-  color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  text-transform: uppercase;
-}
-
-.freight-route,
-.freight-metrics,
-.rail-incident-meta,
-.crisis-case-meta {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.freight-route span,
-.freight-metrics span,
-.rail-incident-meta span,
-.crisis-case-meta span {
-  min-width: 0;
-  padding: 6px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
-  color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  text-transform: uppercase;
-}
-
-.freight-rail {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-  min-height: 34px;
-  padding: 6px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
-  background:
-    repeating-linear-gradient(90deg, rgba(75, 214, 192, 0.08), rgba(75, 214, 192, 0.08) 1px, transparent 1px, transparent 12px),
-    #0b100e;
-}
-
-.freight-rail span {
-  display: block;
-  min-height: 20px;
-  border: 1px solid rgba(133, 145, 139, 0.32);
-  background: rgba(16, 20, 18, 0.92);
-}
-
-.freight-rail span[data-filled="true"] {
-  border-color: rgba(75, 214, 192, 0.7);
-  background: rgba(75, 214, 192, 0.2);
-}
-
-.sabotage-rail {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(24px, 1fr));
-  gap: 4px;
-  min-height: 34px;
-  padding: 6px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
-  background:
-    repeating-linear-gradient(90deg, rgba(214, 96, 77, 0.08), rgba(214, 96, 77, 0.08) 1px, transparent 1px, transparent 12px),
-    #0b100e;
-}
-
-.sabotage-rail span {
-  display: block;
-  min-height: 20px;
-  border: 1px solid rgba(133, 145, 139, 0.32);
-  background: rgba(16, 20, 18, 0.92);
-}
-
-.sabotage-rail span[data-state="hot"] {
-  border-color: rgba(214, 96, 77, 0.72);
-  background: rgba(214, 96, 77, 0.22);
-}
-
-.sabotage-rail span[data-state="sealed"] {
-  border-color: rgba(75, 214, 192, 0.7);
-  background: rgba(75, 214, 192, 0.2);
-}
-
-.crisis-evidence-seals {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.crisis-evidence-seals span {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  min-height: 58px;
-  padding: 7px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
-  background:
-    repeating-linear-gradient(135deg, rgba(75, 214, 192, 0.07), rgba(75, 214, 192, 0.07) 1px, transparent 1px, transparent 9px),
-    #0b100e;
-  color: var(--muted);
-  font-size: 0.68rem;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-  text-transform: uppercase;
-}
-
-.crisis-evidence-seals strong {
-  color: var(--text);
-  font-size: 0.72rem;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.crisis-evidence-seals small {
-  font-size: 0.68rem;
-  line-height: 1.3;
-}
-
-.crisis-evidence-seals span[data-assigned="true"] {
-  border-color: rgba(75, 214, 192, 0.7);
-  background: rgba(75, 214, 192, 0.12);
-}
-
-.grid-actions,
-.directive-actions,
-.freight-actions,
-.crisis-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.crisis-evidence-actions {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.crisis-priority-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.rail-actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.grid-actions button,
-.directive-actions button,
-.freight-actions button,
-.crisis-actions button,
-.crisis-evidence-actions button,
-.crisis-priority-actions button,
-.rail-actions button {
-  min-height: 2.1rem;
-  font-size: 0.68rem;
-}
-
-.lane-card[data-overdrive="true"] {
-  border-color: rgba(75, 214, 192, 0.68);
-  background:
-    linear-gradient(90deg, rgba(75, 214, 192, 0.08), rgba(16, 20, 18, 0) 46%),
-    var(--panel);
-}
-
-.lane-title,
-.queue-title,
-.job-title,
-.contract-title,
-.upgrade-title {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: baseline;
-}
-
-.asset-title,
-.job-inline {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-}
-
-.asset-title strong,
-.job-inline strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.asset-icon {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 10px rgba(75, 214, 192, 0.12));
-}
-
-.lane-icon {
-  width: 34px;
-  height: 34px;
-  flex-basis: 34px;
-}
-
-.fault-icon {
-  width: 30px;
-  height: 30px;
-  flex-basis: 30px;
-}
-
-.lane-title strong,
-.queue-title strong,
-.job-title strong,
-.contract-title strong,
-.upgrade-title strong {
-  font-size: 1rem;
-}
-
-.status-pill {
-  padding: 3px 7px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-}
-
-.fault-readout {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 6px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
-  color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.35;
-  text-transform: uppercase;
-}
-
-.breach-readout {
-  min-height: 34px;
-  padding: 6px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
-  color: var(--muted);
-  font-size: 0.72rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  text-transform: uppercase;
-}
-
-.breach-readout[data-active="true"] {
-  border-color: rgba(75, 214, 192, 0.64);
-  background: rgba(75, 214, 192, 0.06);
-  color: var(--text);
-}
-
-.fault-readout[data-active="true"] {
-  border-color: rgba(215, 184, 103, 0.72);
-  background: rgba(215, 184, 103, 0.08);
-  color: var(--text);
-}
-
-.lane-card[data-status="running"] .status-pill,
-.contract-card[data-status="active"] .status-pill {
-  border-color: rgba(75, 214, 192, 0.7);
-  color: var(--line-hot);
-}
-
-.contract-card[data-emergency="true"] {
-  border-color: rgba(215, 184, 103, 0.64);
-}
-
-.lane-card[data-status="assigned"] .status-pill {
-  border-color: rgba(156, 167, 255, 0.65);
-  color: var(--cool);
-}
-
-.lane-card[data-status="blocked"] .status-pill,
-.lane-card[data-status="recovering"] .status-pill,
-.contract-card[data-status="complete"] .status-pill,
-.upgrade-card[data-installed="true"] .status-pill {
-  border-color: rgba(215, 184, 103, 0.75);
-  color: var(--warn);
-}
-
-.contract-card[data-status="failed"] .status-pill {
-  border-color: rgba(214, 96, 77, 0.82);
-  color: var(--danger);
-}
-
-.lane-card[data-status="idle"] .status-pill {
-  color: var(--dim);
-}
-
-.lane-job {
-  min-height: 42px;
-  color: var(--text);
-}
-
-.lane-job span {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--muted);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-}
-
-.lane-meta,
-.job-meta,
-.contract-meta,
-.queue-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.lane-meta span,
-.job-meta span,
-.contract-meta span,
-.queue-meta span {
-  padding: 3px 6px;
-  border: 1px solid rgba(133, 145, 139, 0.3);
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-
-.progress-track {
-  height: 8px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: #090d0b;
-}
-
-.progress-track span {
-  display: block;
-  width: var(--progress, 0%);
-  height: 100%;
-  background: linear-gradient(90deg, var(--line-hot), var(--warn));
-}
-
-.lane-actions {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.queue-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.lane-actions button,
-.queue-actions button {
-  min-height: 2.1rem;
-  font-size: 0.72rem;
-}
-
-.queue-list {
-  display: grid;
-  gap: 8px;
-  list-style: none;
-}
-
-.queue-item {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-}
-
-.queue-item[data-emergency="true"],
-.job-card[data-family="emergency"] {
-  border-color: rgba(215, 184, 103, 0.68);
-  background: rgba(215, 184, 103, 0.055);
-}
-
-.empty-note {
-  padding: 12px;
-  border: 1px dashed var(--line);
-  color: var(--muted);
-  font-size: 0.84rem;
-}
-
-.contract-board,
-.job-catalog,
-.upgrade-board {
-  display: grid;
-  gap: 10px;
-}
-
-.contract-card,
-.job-card,
-.upgrade-card {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-}
-
-.contract-reward,
-.job-io {
-  display: grid;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.contract-reward {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.job-io {
-  grid-template-columns: 1fr 1fr;
-}
-
-.job-io span,
-.contract-reward span {
-  display: block;
-  padding: 7px;
-  border: 1px solid rgba(133, 145, 139, 0.28);
-}
-
-.job-card button {
-  width: 100%;
-}
-
-.upgrade-card p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.35;
+.grid-sector-card[data-isolated="true"],
+.grid-sector-card[data-blackout="true"] {
+  border-color: rgba(214, 96, 77, 0.75);
 }
 
 .select-line {
@@ -1071,143 +1076,168 @@ select {
 }
 
 .control-selects {
-  display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
 }
 
 .button-grid {
-  display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
   margin-top: 10px;
 }
 
-.operator-log {
-  display: grid;
-  gap: 7px;
-  max-height: 270px;
-  overflow: auto;
-  list-style: none;
+.help-dialog {
+  width: min(520px, calc(100vw - 28px));
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
 }
 
-.operator-log li {
+.help-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.help-body {
   display: grid;
-  grid-template-columns: 54px 1fr;
+  gap: 10px;
+  padding: 14px;
+}
+
+.help-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  padding: 8px;
-  border: 1px solid rgba(133, 145, 139, 0.24);
-  background: #0d1210;
-  font-size: 0.78rem;
+  padding: 0 14px 14px;
 }
 
-@media (max-width: 1100px) {
-  .factory-grid {
-    grid-template-areas:
-      "lanes lanes"
-      "grid grid"
-      "freight freight"
-      "sabotage sabotage"
-      "crisis crisis"
-      "queue contracts"
-      "upgrades jobs"
-      "controls log";
+@keyframes beltMove {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 46px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 1160px) {
+  .dispatch-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .status-strip {
     grid-template-columns: 1fr 1fr;
   }
 
-  .resource-strip {
-    grid-template-columns: repeat(4, minmax(82px, 1fr));
+  .objective-card,
+  .top-stats {
+    grid-column: 1 / -1;
   }
 
-  .escalation-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .operator-layout {
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "floor floor"
+      "left right"
+      "actions log";
   }
 
-  .grid-sector-list {
-    grid-template-columns: 1fr;
+  .lane-card {
+    min-height: 430px;
   }
 
-  .freight-manifest-list {
-    grid-template-columns: 1fr;
-  }
-
-  .rail-incident-list {
-    grid-template-columns: 1fr;
-  }
-
-  .crisis-case-list {
+  .advanced-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
   .dispatch-shell {
-    padding: 12px;
+    padding: 10px;
   }
 
-  .topline {
+  .status-strip,
+  .operator-layout,
+  .left-rail,
+  .right-rail {
     grid-template-columns: 1fr;
-    gap: 8px;
   }
 
-  .run-chip {
-    justify-self: stretch;
+  .status-strip {
+    min-height: 0;
   }
 
-  .factory-grid {
+  .operator-layout {
     grid-template-areas:
-      "lanes"
-      "grid"
-      "freight"
-      "sabotage"
-      "crisis"
-      "queue"
-      "contracts"
-      "upgrades"
-      "jobs"
-      "controls"
+      "floor"
+      "left"
+      "right"
+      "actions"
       "log";
+  }
+
+  .header-actions {
     grid-template-columns: 1fr;
   }
 
-  .resource-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .control-selects,
-  .crisis-summary,
-  .freight-summary,
+  .top-stats,
+  .resource-strip,
+  .lane-board,
+  .context-actions,
+  .help-actions,
+  .contract-reward,
+  .job-io,
   .grid-summary,
+  .freight-summary,
+  .crisis-summary,
+  .rail-sabotage-summary,
+  .grid-sector-list,
+  .rail-incident-list,
+  .crisis-case-list,
+  .freight-manifest-list,
   .grid-sector-meta,
-  .rail-sabotage-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .escalation-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .freight-route,
   .freight-metrics,
   .rail-incident-meta,
-  .crisis-case-meta {
-    grid-template-columns: 1fr;
-  }
-
-  .button-grid,
-  .lane-actions,
-  .queue-actions,
+  .crisis-case-meta,
   .grid-actions,
   .directive-actions,
-  .breach-actions,
+  .freight-actions,
   .crisis-actions,
+  .breach-actions,
+  .rail-actions,
   .crisis-evidence-actions,
   .crisis-priority-actions,
   .crisis-evidence-seals,
-  .contract-reward,
-  .freight-actions,
-  .rail-actions,
-  .job-io {
+  .control-selects,
+  .button-grid {
     grid-template-columns: 1fr;
+  }
+
+  .factory-floor-panel {
+    min-height: 0;
+  }
+
+  .lane-card {
+    min-height: 390px;
+  }
+
+  .lane-machine {
+    grid-template-rows: 132px 160px;
+  }
+
+  .operator-log {
+    max-height: none;
   }
 }

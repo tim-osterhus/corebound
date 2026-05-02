@@ -1155,7 +1155,7 @@ const DarkFactoryDispatch = (() => {
         }
       ));
     }
-    if (lane.currentJob) {
+    if (lane.currentJob && (lane.status === "assigned" || (lane.status === "blocked" && !lane.fault))) {
       actions.push(actionState(
         "start",
         "Start",
@@ -1180,6 +1180,23 @@ const DarkFactoryDispatch = (() => {
         lane.overdrive.active || canPay(state.resources, cost),
         { laneId: lane.id, cost, reason: "overdrive resources unavailable" }
       ));
+    }
+    if (lane.status === "running") {
+      actions.push(actionState("pause", "Pause", true, { laneId: lane.id }));
+    }
+    if (state.breach && state.breach.status === "active") {
+      const sector = gridSectorForLane(state.grid, lane.id);
+      const quarantineActive = Boolean(lane.breachQuarantine);
+      const contaminated = sector && sector.breach && sector.breach.status === "contaminated";
+      const cost = { stability: GAME_DATA.signalBreach.quarantine.stabilityCost };
+      if (quarantineActive || contaminated) {
+        actions.push(actionState(
+          quarantineActive ? "release-quarantine" : "quarantine",
+          quarantineActive ? "Release Quarantine" : "Quarantine",
+          quarantineActive || canPay(state.resources, cost),
+          { laneId: lane.id, cost, reason: "quarantine stability unavailable" }
+        ));
+      }
     }
     return actions;
   }
@@ -5123,6 +5140,15 @@ const DarkFactoryDispatch = (() => {
     if (action.id === "release-overdrive") {
       return toggleLaneOverdrive(state, action.laneId, false);
     }
+    if (action.id === "pause") {
+      return pauseLane(state, action.laneId);
+    }
+    if (action.id === "quarantine") {
+      return quarantineBreachLane(state, action.laneId, true);
+    }
+    if (action.id === "release-quarantine") {
+      return quarantineBreachLane(state, action.laneId, false);
+    }
     return withLog(state, "Contextual action ignored.");
   }
 
@@ -5289,6 +5315,26 @@ const DarkFactoryDispatch = (() => {
       }
       return runningState;
     }, state);
+  }
+
+  function pauseLane(state, laneId) {
+    const next = clone(state);
+    const lane = byId(next.lanes, laneId);
+    if (!lane || lane.status !== "running" || !lane.currentJob) {
+      return withLog(next, "No running lane selected to pause.");
+    }
+    lane.status = "assigned";
+    lane.currentJob.status = "assigned";
+    lane.runRemaining = lane.currentJob.remaining;
+    if (lane.overdrive && lane.overdrive.active) {
+      lane.overdrive.active = false;
+      refreshLanePerformance(next, lane);
+      rescaleCurrentJobForLane(lane);
+    }
+    next.selection.selectedLaneId = lane.id;
+    next.selection.selectedObjectType = "lane";
+    next.selection.lastAction = "pause";
+    return withLog(next, `${lane.name} paused with ${jobName(lane.currentJob.jobTypeId)} staged.`);
   }
 
   function completeLaneJob(state, lane) {
@@ -6281,6 +6327,8 @@ const DarkFactoryDispatch = (() => {
     }
     Object.assign(dom, {
       runChip: document.getElementById("run-chip"),
+      objective: document.getElementById("objective-card"),
+      topStats: document.getElementById("top-stats"),
       resources: document.getElementById("resource-readouts"),
       escalation: document.getElementById("escalation-surface"),
       grid: document.getElementById("grid-siege-board"),
@@ -6293,6 +6341,8 @@ const DarkFactoryDispatch = (() => {
       upgrades: document.getElementById("upgrade-board"),
       jobs: document.getElementById("job-catalog"),
       log: document.getElementById("operator-log"),
+      selectedDetail: document.getElementById("selected-detail"),
+      contextActions: document.getElementById("context-actions"),
       jobSelect: document.getElementById("job-type-select"),
       queuePolicySelect: document.getElementById("queue-policy-select"),
       enqueue: document.getElementById("enqueue-job"),
@@ -6301,6 +6351,9 @@ const DarkFactoryDispatch = (() => {
       reprioritize: document.getElementById("reprioritize-job"),
       cancel: document.getElementById("cancel-job"),
       restart: document.getElementById("restart-factory"),
+      helpToggle: document.getElementById("help-toggle"),
+      helpDialog: document.getElementById("help-dialog"),
+      replayTutorial: document.getElementById("replay-tutorial"),
     });
     currentState = createInitialState();
     renderStaticControls();
@@ -6308,6 +6361,17 @@ const DarkFactoryDispatch = (() => {
     render(currentState);
     window.setInterval(() => {
       if (currentState && currentState.run.status === "active") {
+        const waitingForFirstInput = currentState.tutorial
+          && !currentState.tutorial.completed
+          && [
+            "select-smelt-circuits",
+            "select-forge-line",
+            "assign-forge-line",
+            "start-forge-line",
+          ].includes(currentState.tutorial.stepId);
+        if (waitingForFirstInput) {
+          return;
+        }
         currentState = stepFactory(currentState, 1);
         render(currentState);
       }
@@ -6315,15 +6379,51 @@ const DarkFactoryDispatch = (() => {
   }
 
   function renderStaticControls() {
-    dom.jobSelect.innerHTML = GAME_DATA.jobTypes
-      .map((jobType) => `<option value="${jobType.id}">${jobType.name}</option>`)
-      .join("");
-    dom.queuePolicySelect.innerHTML = GAME_DATA.campaign.queuePolicies
-      .map((policy) => `<option value="${policy.id}">${policy.name}</option>`)
-      .join("");
+    if (dom.jobSelect) {
+      dom.jobSelect.innerHTML = GAME_DATA.jobTypes
+        .map((jobType) => `<option value="${jobType.id}">${jobType.name}</option>`)
+        .join("");
+    }
+    if (dom.queuePolicySelect) {
+      dom.queuePolicySelect.innerHTML = GAME_DATA.campaign.queuePolicies
+        .map((policy) => `<option value="${policy.id}">${policy.name}</option>`)
+        .join("");
+    }
   }
 
   function bindControls() {
+    if (dom.contextActions) {
+      dom.contextActions.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) {
+          return;
+        }
+        if (button.dataset.action === "select-incoming") {
+          currentState = selectJobCard(currentState, button.dataset.entry);
+        } else {
+          currentState = performContextAction(currentState, button.dataset.action);
+        }
+        render(currentState);
+      });
+    }
+    if (dom.helpToggle && dom.helpDialog) {
+      dom.helpToggle.addEventListener("click", () => {
+        if (typeof dom.helpDialog.showModal === "function") {
+          dom.helpDialog.showModal();
+        } else {
+          dom.helpDialog.setAttribute("open", "open");
+        }
+      });
+    }
+    if (dom.replayTutorial) {
+      dom.replayTutorial.addEventListener("click", () => {
+        currentState = replayTutorial(currentState);
+        if (dom.helpDialog && typeof dom.helpDialog.close === "function") {
+          dom.helpDialog.close();
+        }
+        render(currentState);
+      });
+    }
     dom.enqueue.addEventListener("click", () => {
       currentState = enqueueJob(currentState, dom.jobSelect.value);
       render(currentState);
@@ -6490,6 +6590,18 @@ const DarkFactoryDispatch = (() => {
       }
       render(currentState);
     });
+    dom.lanes.addEventListener("keydown", (event) => {
+      if (!["Enter", " "].includes(event.key) || event.target.closest("button")) {
+        return;
+      }
+      const laneCard = event.target.closest(".lane-card[data-lane]");
+      if (!laneCard) {
+        return;
+      }
+      event.preventDefault();
+      currentState = selectLane(currentState, laneCard.dataset.lane);
+      render(currentState);
+    });
     dom.queue.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-action]");
       if (!button) {
@@ -6513,6 +6625,18 @@ const DarkFactoryDispatch = (() => {
       if (button.dataset.action === "breach-cleanse") {
         currentState = cleanseCompromisedQueueEntry(currentState, button.dataset.entry);
       }
+      render(currentState);
+    });
+    dom.queue.addEventListener("keydown", (event) => {
+      if (!["Enter", " "].includes(event.key) || event.target.closest("button")) {
+        return;
+      }
+      const item = event.target.closest(".queue-item[data-entry]");
+      if (!item) {
+        return;
+      }
+      event.preventDefault();
+      currentState = selectJobCard(currentState, item.dataset.entry);
       render(currentState);
     });
     dom.jobs.addEventListener("click", (event) => {
@@ -6557,6 +6681,8 @@ const DarkFactoryDispatch = (() => {
 
   function render(state) {
     dom.runChip.textContent = `shift ${String(state.restart.run).padStart(2, "0")} / d${state.campaign.demand} / ${state.run.status} / t${state.tick}`;
+    renderObjective(state);
+    renderTopStats(state);
     renderResources(state);
     renderEscalationSurface(state);
     renderGridSiege(state);
@@ -6568,13 +6694,66 @@ const DarkFactoryDispatch = (() => {
     renderContracts(state);
     renderUpgrades(state);
     renderJobs(state);
+    renderSelectedDetail(state);
+    renderContextActions(state);
     renderLog(state);
   }
 
+  function activeObjective(state) {
+    if (state.shift && state.shift.objective) {
+      return state.shift.objective;
+    }
+    return state.contracts.find((contract) => contract.status === "active") || state.contracts[0];
+  }
+
+  function objectiveProgressPercent(contract, state) {
+    const lines = contractProgress(contract, state);
+    if (!lines.length) {
+      return 0;
+    }
+    const total = lines.reduce((sum, line) => sum + Math.min(line.current, line.required), 0);
+    const required = lines.reduce((sum, line) => sum + line.required, 0);
+    return required ? Math.min(100, Math.round((total / required) * 100)) : 0;
+  }
+
+  function renderObjective(state) {
+    if (!dom.objective) {
+      return;
+    }
+    const contract = activeObjective(state);
+    const progress = contractProgress(contract, state)
+      .map((line) => `${GAME_DATA.resources[line.resource] ? GAME_DATA.resources[line.resource].label : titleCase(line.resource)} ${line.current}/${line.required}`)
+      .join(" / ");
+    dom.objective.innerHTML = `
+      <span class="selected-kicker">${contract.status} objective</span>
+      <strong>${contract.pressure || contract.name}</strong>
+      <div class="objective-meter" aria-label="${contract.name} progress" style="--progress: ${objectiveProgressPercent(contract, state)}%"><span></span></div>
+      <span class="selected-kicker">${progress} / ${contract.timeRemaining} ticks</span>
+    `;
+  }
+
+  function renderTopStats(state) {
+    if (!dom.topStats) {
+      return;
+    }
+    const activeFaults = state.lanes.filter((lane) => lane.fault || lane.status === "locked").length;
+    const rating = Math.max(0, Math.min(99, state.resources.stability - activeFaults * 6 + state.resources.reputation * 3));
+    dom.topStats.innerHTML = `
+      <div class="stat"><span>Day</span><strong>${formatShiftNumber(state.campaign.shift)} / t${state.tick}</strong></div>
+      <div class="stat"><span>Factory rating</span><strong>${rating}%</strong></div>
+      <div class="stat"><span>Power</span><strong>${state.resources.power}</strong></div>
+      <div class="stat"><span>Alerts</span><strong>${activeFaults}</strong></div>
+    `;
+  }
+
   function renderResources(state) {
-    const resourceIds = state.disclosure && state.disclosure.visibleResources
+    const baseResourceIds = state.disclosure && state.disclosure.visibleResources
       ? state.disclosure.visibleResources
       : RESOURCE_ORDER;
+    const objective = activeObjective(state);
+    const objectiveResourceIds = Object.keys(objective.requirement || {})
+      .filter((id) => !baseResourceIds.includes(id));
+    const resourceIds = baseResourceIds.concat(objectiveResourceIds).slice(0, 5);
     dom.resources.innerHTML = resourceIds.map((id) => {
       const label = GAME_DATA.resources[id].label;
       return `<div class="readout" data-resource="${id}"><span>${label}</span><strong>${state.resources[id] || 0}</strong></div>`;
@@ -7137,7 +7316,7 @@ const DarkFactoryDispatch = (() => {
   function renderLanes(state) {
     dom.lanes.innerHTML = state.lanes.map((lane) => {
       const jobType = lane.currentJob ? byId(GAME_DATA.jobTypes, lane.currentJob.jobTypeId) : null;
-      const jobText = jobType ? jobType.name : "idle bay";
+      const jobText = jobType ? jobType.name : "empty belt";
       const laneIcon = iconMarkup(ASSET_PATHS.lanes[lane.id], "asset-icon lane-icon");
       const jobIcon = jobType ? iconMarkup(ASSET_PATHS.jobs[jobType.id], "asset-icon job-icon") : "";
       const faultIcon = lane.fault ? iconMarkup(ASSET_PATHS.faults[lane.fault.id], "asset-icon fault-icon") : "";
@@ -7170,13 +7349,24 @@ const DarkFactoryDispatch = (() => {
           : countermeasureJob ? `countermeasure ${lane.currentJob.sourceBreachId}`
             : `breach ${breachState}`;
       const selected = state.selection && state.selection.selectedLaneId === lane.id;
+      const stateLabel = lane.fault
+        ? lane.fault.name
+        : lane.status === "running" && overdriveActive ? "overdrive"
+          : statusText;
       return `
-        <article class="lane-card" data-lane="${lane.id}" data-selected="${selected ? "true" : "false"}" data-status="${lane.status}" data-overdrive="${overdriveActive ? "true" : "false"}" data-breach-quarantine="${quarantineActive ? "true" : "false"}" data-breach="${breachState}">
+        <article class="lane-card" data-lane="${lane.id}" data-selected="${selected ? "true" : "false"}" data-status="${lane.status}" data-overdrive="${overdriveActive ? "true" : "false"}" data-breach-quarantine="${quarantineActive ? "true" : "false"}" data-breach="${breachState}" tabindex="0" role="button" aria-label="${lane.name} ${statusText}">
           <div class="lane-title">
-            <span class="asset-title">${laneIcon}<strong>${lane.name}</strong></span>
+            <span class="asset-title"><strong>${lane.name}</strong></span>
             <span class="status-pill">${statusText}</span>
           </div>
-          <div class="lane-job"><span>Current job</span><div class="job-inline">${jobIcon}<strong>${jobText}</strong></div></div>
+          <div class="lane-machine" aria-hidden="true">
+            <div class="machine-image">${laneIcon}</div>
+            <div class="conveyor">
+              <span class="belt"></span>
+              <div class="job-token">${jobIcon}<span>current job</span><strong>${jobText}</strong></div>
+            </div>
+            <div class="state-marker">${stateLabel}</div>
+          </div>
           <div class="progress-track" aria-label="${lane.name} progress" style="--progress: ${lane.progress}%"><span></span></div>
           <div class="lane-meta">
             <span>${lane.trait}</span>
@@ -7184,17 +7374,10 @@ const DarkFactoryDispatch = (() => {
             <span>jam ${Math.round(lane.jamRisk * 100)}%</span>
             <span>recover ${lane.recoveryRemaining}</span>
             <span>${overdriveText}</span>
-            <span>${gridText}</span>
           </div>
           <div class="breach-readout" data-active="${breachLaneText === "breach clean" ? "false" : "true"}"><span>${breachLaneText}</span></div>
           <div class="fault-readout" data-active="${lane.fault ? "true" : "false"}">${faultIcon}<span>fault ${faultText}</span></div>
-          <div class="lane-actions">
-            <button type="button" data-action="assign" data-lane="${lane.id}">assign</button>
-            <button type="button" data-action="start" data-lane="${lane.id}">start</button>
-            <button type="button" data-action="recover" data-lane="${lane.id}">recover</button>
-            <button type="button" data-action="overdrive" data-lane="${lane.id}" data-overdrive-active="${overdriveActive ? "true" : "false"}" ${overdriveDisabled ? "disabled" : ""}>${overdriveActive ? "release" : "overdrive"}</button>
-            <button type="button" data-action="breach-quarantine" data-lane="${lane.id}" data-quarantined="${quarantineActive ? "true" : "false"}" ${canQuarantine ? "" : "disabled"}>${quarantineActive ? "release" : "quarantine"}</button>
-          </div>
+          <div class="lane-meta"><span>${gridText}</span><span>${overdriveDisabled && !overdriveActive ? "overdrive unavailable" : "context ready"}</span><span>${canQuarantine ? "quarantine ready" : "clear lane"}</span></div>
         </article>
       `;
     }).join("");
@@ -7205,7 +7388,8 @@ const DarkFactoryDispatch = (() => {
       dom.queue.innerHTML = `<li class="empty-note">queue empty</li>`;
       return;
     }
-    dom.queue.innerHTML = state.queue.map((entry) => {
+    const compactQueue = state.disclosure && state.disclosure.beginnerVisible;
+    dom.queue.innerHTML = state.queue.slice(0, 5).map((entry) => {
       const jobType = byId(GAME_DATA.jobTypes, entry.jobTypeId);
       const compromised = entry.compromised && entry.compromised.status === "compromised";
       const statusText = compromised
@@ -7217,7 +7401,7 @@ const DarkFactoryDispatch = (() => {
       const cleanseDisabled = !compromised || !canPay(state.resources, GAME_DATA.signalBreach.cleanse.cost);
       const selected = state.selection && state.selection.selectedJobId === entry.id;
       return `
-        <li class="queue-item" data-entry="${entry.id}" data-selected="${selected ? "true" : "false"}" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}" data-freight-directive="${entry.freightDirective ? "true" : "false"}" data-sabotage-directive="${entry.sabotageDirective ? "true" : "false"}">
+        <li class="queue-item" data-entry="${entry.id}" data-selected="${selected ? "true" : "false"}" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}" data-freight-directive="${entry.freightDirective ? "true" : "false"}" data-sabotage-directive="${entry.sabotageDirective ? "true" : "false"}" tabindex="0" role="button" aria-label="${jobType.name} ${statusText}">
           <div class="queue-title">
             <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[entry.jobTypeId], "asset-icon queue-icon")}<strong>${jobType.name}</strong></span>
             <span class="status-pill">${statusText}</span>
@@ -7232,12 +7416,12 @@ const DarkFactoryDispatch = (() => {
             ${entry.sabotageDirective ? `<span>sabotage ${entry.sourceSabotageId}</span>` : ""}
             ${compromised ? `<span>compromised ${entry.compromised.sourceId} / severity ${entry.compromised.severity}</span>` : ""}
           </div>
-          <div class="queue-actions">
+          ${compactQueue ? "" : `<div class="queue-actions">
             ${compromised ? `<button type="button" data-action="breach-cleanse" data-entry="${entry.id}" ${cleanseDisabled ? "disabled" : ""}>cleanse</button>` : ""}
             <button type="button" data-action="assign" data-entry="${entry.id}">assign</button>
             <button type="button" data-action="raise" data-entry="${entry.id}">raise</button>
             <button type="button" data-action="cancel" data-entry="${entry.id}">cancel</button>
-          </div>
+          </div>`}
         </li>
       `;
     }).join("");
@@ -7340,8 +7524,102 @@ const DarkFactoryDispatch = (() => {
     `).join("");
   }
 
+  function renderSelectedDetail(state) {
+    if (!dom.selectedDetail) {
+      return;
+    }
+    const lane = selectedLane(state);
+    const entry = selectedQueueEntry(state);
+    if (lane) {
+      const jobType = lane.currentJob ? byId(GAME_DATA.jobTypes, lane.currentJob.jobTypeId) : null;
+      const faultText = lane.fault
+        ? `${lane.fault.name}: ${lane.fault.decision}`
+        : "no lane fault";
+      dom.selectedDetail.innerHTML = `
+        <article class="selected-card" data-selection="lane" data-status="${lane.status}">
+          <div class="selected-title">
+            <strong>${lane.name}</strong>
+            <span class="status-pill">${lane.status === "idle" ? "ready" : lane.status}</span>
+          </div>
+          <div class="detail-meter" aria-label="${lane.name} selected progress" style="--progress: ${lane.progress}%"><span></span></div>
+          <div class="selected-meta">
+            <span>job ${jobType ? jobType.name : "empty"}</span>
+            <span>input ${jobType ? formatBundle(jobType.inputs) : "none"}</span>
+            <span>output ${jobType ? formatBundle(jobType.outputs) : "none"}</span>
+            <span>${faultText}</span>
+            <span>throughput ${lane.throughput} / jam ${Math.round(lane.jamRisk * 100)}%</span>
+          </div>
+        </article>
+      `;
+      return;
+    }
+    if (entry) {
+      const jobType = byId(GAME_DATA.jobTypes, entry.jobTypeId);
+      dom.selectedDetail.innerHTML = `
+        <article class="selected-card" data-selection="job" data-status="${entry.status}">
+          <div class="selected-title">
+            <strong>${jobType.name}</strong>
+            <span class="status-pill">${entry.status}</span>
+          </div>
+          <div class="selected-meta">
+            <span>input ${formatBundle(jobType.inputs)}</span>
+            <span>output ${formatBundle(jobType.outputs)}</span>
+            <span>duration ${jobType.duration} ticks</span>
+            <span>priority ${entry.priority}</span>
+          </div>
+        </article>
+      `;
+      return;
+    }
+    const objective = activeObjective(state);
+    const incoming = state.queue.find((candidate) => candidate.status === "queued") || state.queue[0];
+    const incomingJob = incoming ? byId(GAME_DATA.jobTypes, incoming.jobTypeId) : null;
+    dom.selectedDetail.innerHTML = `
+      <article class="selected-card" data-selection="none">
+        <div class="selected-title">
+          <strong>${incomingJob ? incomingJob.name : objective.name}</strong>
+          <span class="status-pill">${incomingJob ? "incoming" : objective.status}</span>
+        </div>
+        <div class="selected-meta">
+          <span>${objective.name}</span>
+          <span>${contractProgress(objective, state).map((line) => `${line.resource} ${line.current}/${line.required}`).join(" / ")}</span>
+          <span>${incomingJob ? `input ${formatBundle(incomingJob.inputs)}` : "queue clear"}</span>
+          <span>${incomingJob ? `output ${formatBundle(incomingJob.outputs)}` : "select a lane"}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderContextActions(state) {
+    if (!dom.contextActions) {
+      return;
+    }
+    let actions = contextualActionsForState(state).slice(0, 5);
+    if (!actions.length) {
+      const incoming = state.queue.find((entry) => entry.status === "queued") || state.queue[0];
+      if (incoming) {
+        actions = [actionState("select-incoming", "Select Job", true, { entryId: incoming.id })];
+      }
+    }
+    if (!actions.length) {
+      dom.contextActions.innerHTML = `<p class="action-note">No surfaced action for the current selection.</p>`;
+      return;
+    }
+    const buttons = actions.map((action) => {
+      const cost = Object.keys(action.cost || {}).length ? ` data-cost="${formatBundle(action.cost)}"` : "";
+      const reason = action.available ? "" : ` title="${action.reason}"`;
+      const entry = action.entryId ? ` data-entry="${action.entryId}"` : "";
+      return `<button type="button" data-action="${action.id}"${entry}${cost}${reason} ${action.available ? "" : "disabled"}>${action.label}</button>`;
+    }).join("");
+    const hint = selectedQueueEntry(state) && !selectedLane(state)
+      ? `<p class="action-note">Select a lane to assign the job.</p>`
+      : "";
+    dom.contextActions.innerHTML = `${buttons}${hint}`;
+  }
+
   function renderLog(state) {
-    dom.log.innerHTML = state.log.map((entry) => `
+    const limit = state.disclosure && state.disclosure.flags.compactLog ? 3 : 5;
+    dom.log.innerHTML = state.log.slice(0, limit).map((entry) => `
       <li><span class="log-tick">t${entry.tick}</span><span>${entry.message}</span></li>
     `).join("");
   }
@@ -7360,6 +7638,7 @@ const DarkFactoryDispatch = (() => {
     assignJobToLane,
     startLane,
     startAllLanes,
+    pauseLane,
     stepFactory,
     injectLaneFault,
     recoverLane,

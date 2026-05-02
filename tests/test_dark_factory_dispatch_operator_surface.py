@@ -16,12 +16,24 @@ def source_text(filename: str) -> str:
 
 
 class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
-    def test_escalation_surface_hooks_and_operator_controls_are_present(self) -> None:
+    def test_factory_floor_shell_and_contextual_controls_are_present(self) -> None:
         html = source_text("index.html")
         css = source_text("dark-factory-dispatch.css")
         js = source_text("dark-factory-dispatch.js")
 
         for token in (
+            'id="objective-card"',
+            'id="top-stats"',
+            'class="operator-layout"',
+            'class="left-rail"',
+            'class="right-rail"',
+            'id="lane-board"',
+            'Forge Line / Assembler Bay / Clean Room',
+            'id="selected-detail"',
+            'id="context-actions"',
+            'id="operator-log"',
+            'id="advanced-drawer"',
+            "Advanced systems",
             'id="escalation-surface"',
             'aria-label="Campaign and Grid Siege status"',
             'id="grid-siege-board"',
@@ -34,11 +46,10 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             "Freight Lockdown",
             "Rail Sabotage",
             "Crisis Arbitration",
-            "Production floor",
-            "Queued jobs",
-            "Dispatch board",
+            "Incoming jobs",
+            "Current objective",
             "Improvement rack",
-            "Operator log",
+            "Last signals",
         ):
             self.assertIn(token, html)
 
@@ -54,6 +65,11 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             "renderFreightLockdown",
             "renderRailSabotage",
             "renderCrisisArbitration",
+            "renderObjective",
+            "renderTopStats",
+            "renderSelectedDetail",
+            "renderContextActions",
+            "pauseLane",
             'data-surface="campaign"',
             'data-surface="emergency"',
             'data-surface="progression"',
@@ -62,11 +78,15 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             'data-surface="rail-sabotage"',
             'data-surface="crisis-arbitration"',
             'data-grid="sectors"',
-            'data-action="overdrive"',
+            '"overdrive"',
+            'data-action="${action.id}"',
+            '"select-incoming"',
+            'data-selection="lane"',
+            'data-selection="job"',
             'data-action="breach-trace"',
             'data-action="breach-defer"',
             'data-action="breach-cleanse"',
-            'data-action="breach-quarantine"',
+            '"breach-quarantine"',
             'data-action="grid-route"',
             'data-action="grid-isolate"',
             'data-action="grid-reserve"',
@@ -108,6 +128,9 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             'data-protected="${caseState.protection.laneGuarded ? "true" : "false"}"',
             "setQueuePolicy(currentState",
             "toggleLaneOverdrive(",
+            "performContextAction(currentState",
+            "selectJobCard(currentState",
+            "selectLane(currentState",
             "cleanseCompromisedQueueEntry(currentState",
             "quarantineBreachLane(",
             "traceBreachSource(currentState",
@@ -141,6 +164,20 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             self.assertIn(token, js)
 
         for token in (
+            ".operator-layout",
+            '"left floor right"',
+            '"actions actions log"',
+            ".factory-floor-panel",
+            "min-height: 55vh",
+            ".lane-board",
+            "grid-template-columns: repeat(3, minmax(0, 1fr))",
+            ".lane-machine",
+            ".state-marker",
+            ".context-actions",
+            ".selected-detail",
+            ".objective-card",
+            ".top-stats",
+            ".advanced-drawer",
             ".escalation-strip",
             ".escalation-card",
             ".grid-panel",
@@ -179,10 +216,9 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             ".directive-actions",
             ".breach-actions",
             ".breach-readout",
-            '.escalation-card[data-surface="breach"][data-alert="active"]',
-            '.escalation-card[data-surface="rail-sabotage"][data-alert="incident-open"]',
-            '.escalation-card[data-surface="rail-sabotage"][data-alert="sabotaged"]',
-            '.escalation-card[data-surface="crisis-arbitration"][data-alert="docket-open"]',
+            '.lane-card[data-status="running"] .belt',
+            '.lane-card[data-status="blocked"]',
+            '.lane-card[data-status="recovering"]',
             '.lane-card[data-overdrive="true"]',
             '.lane-card[data-breach-quarantine="true"]',
             '.grid-sector-card[data-isolated="true"]',
@@ -203,6 +239,7 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
             '.crisis-case-card[data-actionable="true"]',
             '.crisis-case-card[data-protected="true"]',
             '.crisis-evidence-seals span[data-assigned="true"]',
+            "@media (prefers-reduced-motion: reduce)",
             "@media (max-width: 720px)",
             "grid-template-areas:",
             "overflow-wrap: anywhere",
@@ -251,6 +288,51 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
         self.assertEqual(1, active["choices"]["activeOverdrives"])
         self.assertEqual("active", active["breach"]["status"])
         self.assertIn(active["breach"]["source"]["name"], {"Spoofed Dispatch Uplink", "Audit Ghost Carrier"})
+
+    def test_contextual_actions_drive_click_first_job_lane_loop(self) -> None:
+        result = self.run_node(
+            """
+            const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
+            let state = game.createInitialState({ seed: 17, faultsEnabled: false, replayTutorial: true });
+            const initialActions = game.contextualActionsForState(state);
+
+            state = game.selectJobCard(state, state.queue[0].id);
+            const jobOnlyActions = game.contextualActionsForState(state);
+
+            state = game.selectLane(state, "forge-line");
+            const readyActions = game.contextualActionsForState(state);
+            state = game.performContextAction(state, "assign");
+            const assignedLane = state.lanes.find((lane) => lane.id === "forge-line");
+            const assignedActions = game.contextualActionsForState(state);
+
+            state = game.performContextAction(state, "start");
+            const runningActions = game.contextualActionsForState(state);
+            state = game.performContextAction(state, "pause");
+            const pausedLane = state.lanes.find((lane) => lane.id === "forge-line");
+
+            console.log(JSON.stringify({
+              initialActions,
+              jobOnlyActions,
+              readyActions,
+              assignedStatus: assignedLane.status,
+              assignedActions,
+              runningActions,
+              pausedStatus: pausedLane.status,
+              selectedLaneId: state.selection.selectedLaneId,
+            }));
+            """
+        )
+
+        self.assertEqual([], result["initialActions"])
+        self.assertEqual(["assign"], [action["id"] for action in result["jobOnlyActions"]])
+        self.assertFalse(result["jobOnlyActions"][0]["available"])
+        self.assertEqual(["assign"], [action["id"] for action in result["readyActions"]])
+        self.assertTrue(result["readyActions"][0]["available"])
+        self.assertEqual("assigned", result["assignedStatus"])
+        self.assertEqual(["start"], [action["id"] for action in result["assignedActions"]])
+        self.assertEqual(["overdrive", "pause"], [action["id"] for action in result["runningActions"]])
+        self.assertEqual("assigned", result["pausedStatus"])
+        self.assertEqual("forge-line", result["selectedLaneId"])
 
     def test_signal_breach_surface_model_exposes_operator_visible_decisions(self) -> None:
         result = self.run_node(
@@ -520,29 +602,27 @@ class DarkFactoryDispatchOperatorSurfaceTests(unittest.TestCase):
         self.assertEqual(1, result["choices"]["crisisFreightFirstRulings"])
         self.assertIn("priority ruling filed", result["latestLog"]["message"])
 
-    def test_grid_siege_layout_contract_uses_named_areas_and_narrow_stacking(self) -> None:
+    def test_factory_floor_layout_contract_uses_named_areas_and_narrow_stacking(self) -> None:
         css = source_text("dark-factory-dispatch.css")
 
         for token in (
-            '"lanes grid grid"',
-            '"lanes freight freight"',
-            '"lanes sabotage sabotage"',
-            '"lanes crisis crisis"',
-            '"controls controls log"',
-            '"lanes lanes"',
-            '"grid grid"',
-            '"freight freight"',
-            '"sabotage sabotage"',
-            '"crisis crisis"',
-            '"controls log"',
-            '"lanes"',
-            '"grid"',
-            '"freight"',
-            '"sabotage"',
-            '"crisis"',
-            ".grid-summary,\n  .grid-sector-meta",
-            ".grid-actions,\n  .directive-actions",
-            ".breach-actions,\n  .crisis-actions",
+            '"left floor right"',
+            '"actions actions log"',
+            '"floor floor"',
+            '"left right"',
+            '"floor"',
+            '"left"',
+            '"right"',
+            '"actions"',
+            '"log"',
+            ".operator-layout",
+            ".factory-floor-panel",
+            ".lane-board",
+            ".context-actions",
+            ".advanced-drawer",
+            ".grid-summary,\n.freight-summary",
+            ".grid-actions,\n.directive-actions",
+            ".crisis-actions,\n.breach-actions",
         ):
             self.assertIn(token, css)
 
