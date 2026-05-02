@@ -1,10 +1,9 @@
 {
   "schema_version": 2,
-  "ok": true,
-  "generatedAt": "2026-05-02T14:14:49.271Z",
+  "generatedAt": "2026-05-02T15:31:50.347Z",
+  "smokeBaseUrl": "http://127.0.0.1:33425",
   "version": "0.7.0",
   "release": "v0.7.0 Factory Floor Repair",
-  "smokeBaseUrl": "http://127.0.0.1:8768",
   "screenshots": {
     "arcadeDesktop": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/dark-factory-dispatch-assets/dark-factory-dispatch-arcade-root-v0-7-smoke.png",
     "arcadeNarrow": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/dark-factory-dispatch-assets/dark-factory-dispatch-arcade-root-v0-7-narrow-smoke.png",
@@ -13,6 +12,7 @@
     "postWaitTraining": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/dark-factory-dispatch-assets/dark-factory-dispatch-direct-post-wait-v0-7-smoke.png",
     "jamRecovery": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/dark-factory-dispatch-assets/dark-factory-dispatch-direct-jam-recovery-v0-7-smoke.png",
     "shiftSummary": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/dark-factory-dispatch-assets/dark-factory-dispatch-direct-shift-summary-v0-7-smoke.png",
+    "shiftSummaryHold": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/dark-factory-dispatch-assets/dark-factory-dispatch-direct-shift-summary-hold-v0-7-smoke.png",
     "directNarrow": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/dark-factory-dispatch-assets/dark-factory-dispatch-direct-mobile-v0-7-smoke.png"
   },
   "arcade": {
@@ -21,11 +21,14 @@
       "releaseLabel": "v0.7.0 Factory Floor Repair",
       "hasSnapshot070": true,
       "hasSnapshot060": true,
-      "hasThumbnail": true
+      "text": "playable / v0.7.0 Dark Factory Dispatch Run a compact machine-intelligence factory from a repaired factory-floor surface with a guided Training Shift, visible Forge Line, Assembler Bay, and Clean Room lanes, click-first job assignment, contextual Start, Overdrive, Pause, and Recover actions, deterministic production, jam and recovery feedback, shift summaries, local lane, job, fault, and title art, procedural output and incident signals, and advanced Grid Siege, Signal Breach, Freight Lockdown, Rail Sabotage, Crisis Arbitration, and upgrade systems staged behind later-shift disclosure. v0.7.0 Factory Floor Repair Factory Floor Repair replaces the old default operations wall with a compact training-first dispatch surface: the first screen centers the factory floor, shows the current objective, core resources, incoming jobs, selected detail, contextual actions, and a short log, then preserves Crisis Arbitration, Rail Sabotage, Freight Lockdown, Signal Breach, Grid Siege, and upgrades behind progressive disclosure. Open dark-factory-dispatch Snapshots v0.7.0 v0.7.0 Factory Floor Repair 2026-05-02 v0.6.0 v0.6.0 Crisis Arbitration 2026-05-01 v0.5.0 v0.5.0 Rail Sabotage 2026-04-30 v0.4.0 v0.4.0 Freight Lockdown 2026-04-29 v0.3.0 v0.3.0 Signal Breach 2026-04-29 v0.2.0 v0.2.0 Grid Siege 2026-04-28commit e8529bdd885a v0.1.0 v0.1.0 Escalation Shift 2026-04-28commit bb5df91df6a7 v0.0.1 v0.0.1 Dispatch Floor 2026-04-28commit 1e2fa8193edb"
     },
     "narrow": {
-      "overflowX": false,
-      "cardVisible": true
+      "versionText": "playable / v0.7.0",
+      "releaseLabel": "v0.7.0 Factory Floor Repair",
+      "hasSnapshot070": true,
+      "hasSnapshot060": true,
+      "text": "playable / v0.7.0 Dark Factory Dispatch Run a compact machine-intelligence factory from a repaired factory-floor surface with a guided Training Shift, visible Forge Line, Assembler Bay, and Clean Room lanes, click-first job assignment, contextual Start, Overdrive, Pause, and Recover actions, deterministic production, jam and recovery feedback, shift summaries, local lane, job, fault, and title art, procedural output and incident signals, and advanced Grid Siege, Signal Breach, Freight Lockdown, Rail Sabotage, Crisis Arbitration, and upgrade systems staged behind later-shift disclosure. v0.7.0 Factory Floor Repair Factory Floor Repair replaces the old default operations wall with a compact training-first dispatch surface: the first screen centers the factory floor, shows the current objective, core resources, incoming jobs, selected detail, contextual actions, and a short log, then preserves Crisis Arbitration, Rail Sabotage, Freight Lockdown, Signal Breach, Grid Siege, and upgrades behind progressive disclosure. Open dark-factory-dispatch Snapshots v0.7.0 v0.7.0 Factory Floor Repair 2026-05-02 v0.6.0 v0.6.0 Crisis Arbitration 2026-05-01 v0.5.0 v0.5.0 Rail Sabotage 2026-04-30 v0.4.0 v0.4.0 Freight Lockdown 2026-04-29 v0.3.0 v0.3.0 Signal Breach 2026-04-29 v0.2.0 v0.2.0 Grid Siege 2026-04-28commit e8529bdd885a v0.1.0 v0.1.0 Escalation Shift 2026-04-28commit bb5df91df6a7 v0.0.1 v0.0.1 Dispatch Floor 2026-04-28commit 1e2fa8193edb"
     }
   },
   "direct": {
@@ -67,7 +70,9 @@
       "feedback": "production",
       "motion": "belt",
       "output": "circuits",
+      "breach": "clean",
       "gridLocked": false,
+      "sabotageLocked": false,
       "text": "Forge Line running current jobSmelt Circuits running high heat rate 1.2 jam 8% recover 0 normal breach clean fault clear Forge Bus / balancedcontext readyclear lane",
       "contextualActions": [
         "Overdrive",
@@ -75,44 +80,127 @@
       ]
     },
     "postWaitTraining": {
-      "waitMs": 12200,
+      "waitMs": 12211,
       "runChip": "shift 01 / d1 / active / t14",
       "objectiveText": "active objective make 3 circuits before the first dispatch bell Circuits 0/3 / 12 ticks",
       "tutorialStillActive": true,
       "trainingTimeRemainingHeld": true,
-      "laneStatus": "blocked",
-      "laneFeedback": "jam",
-      "laneMotion": "still",
-      "laneGridLocked": false,
+      "status": "blocked",
+      "feedback": "jam",
+      "motion": "still",
+      "output": "circuits",
+      "breach": "clean",
+      "gridLocked": false,
+      "sabotageLocked": false,
+      "text": "Forge Line blocked current jobSmelt Circuits Material Jam high heat rate 1.2 jam 8% recover 0 normal breach clean fault Material Jam / blocked / purge the feed chute / scrap 1 / power 1 Forge Bus / balancedcontext readyclear lane",
       "recoverAvailable": true,
       "contextualActions": [
         "Recover"
       ],
-      "advancedLogEntries": []
+      "advancedLogEntries": [],
+      "trainingContractStillActive": true,
+      "laneStatus": "blocked",
+      "laneFeedback": "jam",
+      "laneMotion": "still",
+      "laneGridLocked": false
     },
     "jamState": {
       "status": "blocked",
       "feedback": "jam",
       "motion": "still",
-      "recoverAvailable": true
+      "output": "circuits",
+      "breach": "clean",
+      "gridLocked": false,
+      "sabotageLocked": false,
+      "text": "Forge Line blocked current jobSmelt Circuits Material Jam high heat rate 1.2 jam 8% recover 0 normal breach clean fault Material Jam / blocked / purge the feed chute / scrap 1 / power 1 Forge Bus / balancedcontext readyclear lane",
+      "recoverAvailable": true,
+      "laneStatus": "blocked"
     },
     "recoveryState": {
       "status": "recovering",
       "feedback": "recovery",
       "motion": "diagnostic",
       "output": "circuits",
+      "breach": "clean",
       "gridLocked": false,
-      "text": "Forge Line recovering current jobSmelt Circuits Material Jam high heat rate 1.2 jam 8% recover 2 normal breach clean fault Material Jam / recovering / purge the feed chute / scrap 1 / power 1 Forge Bus / balancedcontext readyclear lane",
+      "sabotageLocked": false,
+      "text": "Forge Line recovering current jobSmelt Circuits Material Jam high heat rate 1.2 jam 8% recover 1 normal breach clean fault Material Jam / recovering / purge the feed chute / scrap 1 / power 1 Forge Bus / balancedcontext readyclear lane",
       "contextualActions": [
         "Recover"
-      ]
+      ],
+      "laneStatus": "recovering"
     },
     "shiftSummary": {
+      "waitMs": 0,
+      "runChip": "shift 01 / d1 / active / t18",
+      "objectiveText": "complete objective make 3 circuits before the first dispatch bell Circuits 3/3 / 12 ticks",
       "summaryVisible": true,
-      "drawerOpen": true,
-      "summaryText": "Shift summary Training Shift status complete / produced circuits 3 upgrade choice available / next upgrade-choice / shift-02-advanced-systems",
+      "summaryText": "Shift summary Training Shift status complete / produced circuits 3 resources scrap 23 / circuits 6 / modules 1 / drones 0 / defenses 0 / reputation 1 / power 10 / stability 97 / change reputation 1 incident Material Jam resolved / next upgrade-choice / shift-02-advanced-systems / Improvement rack available Lane Overclock: ready / Fault Guards: ready / Buffer Cache: ready shift 02 / Escalation Shift / demand x2 / Training Shift complete output circuits 3 resources scrap 23 / circuits 6 / modules 1 / drones 0 / defenses 0 / reputation 1 / power 10 / stability 97 change reputation 1 incident Material Jam resolved next upgrade-choice / shift-02-advanced-systems",
+      "summaryTextStillPopulated": true,
       "upgradeChoiceVisible": true,
-      "latestLog": "t18Training Shift complete; shift summary opened."
+      "handoffActionVisible": true,
+      "contextualActions": [
+        {
+          "action": "start-next-shift",
+          "label": "Start Shift 02",
+          "disabled": false
+        }
+      ],
+      "advancedLogEntries": [],
+      "factoryRating": "99%",
+      "laneStatus": "idle",
+      "laneFeedback": "idle",
+      "laneGridLocked": false,
+      "laneSabotageLocked": false,
+      "laneBreach": "clean",
+      "laneText": "Forge Line ready current jobempty belt ready high heat rate 1.2 jam 8% recover 0 normal breach clean fault clear Forge Bus / balancedcontext readyclear lane",
+      "advancedDrawerOpen": true
+    },
+    "shiftSummaryHold": {
+      "waitMs": 15009,
+      "runChip": "shift 01 / d1 / active / t35",
+      "objectiveText": "complete objective make 3 circuits before the first dispatch bell Circuits 3/3 / 12 ticks",
+      "summaryVisible": true,
+      "summaryText": "Shift summary Training Shift status complete / produced circuits 3 resources scrap 23 / circuits 6 / modules 1 / drones 0 / defenses 0 / reputation 1 / power 10 / stability 97 / change reputation 1 incident Material Jam resolved / next upgrade-choice / shift-02-advanced-systems / Improvement rack available Lane Overclock: ready / Fault Guards: ready / Buffer Cache: ready shift 02 / Escalation Shift / demand x2 / Training Shift complete output circuits 3 resources scrap 23 / circuits 6 / modules 1 / drones 0 / defenses 0 / reputation 1 / power 10 / stability 97 change reputation 1 incident Material Jam resolved next upgrade-choice / shift-02-advanced-systems",
+      "summaryTextStillPopulated": true,
+      "upgradeChoiceVisible": true,
+      "handoffActionVisible": true,
+      "contextualActions": [
+        {
+          "action": "start-next-shift",
+          "label": "Start Shift 02",
+          "disabled": false
+        }
+      ],
+      "advancedLogEntries": [],
+      "factoryRating": "99%",
+      "laneStatus": "idle",
+      "laneFeedback": "idle",
+      "laneGridLocked": false,
+      "laneSabotageLocked": false,
+      "laneBreach": "clean",
+      "laneText": "Forge Line ready current jobempty belt ready high heat rate 1.2 jam 8% recover 0 normal breach clean fault clear Forge Bus / balancedcontext readyclear lane",
+      "advancedDrawerOpen": true,
+      "summaryTextStable": true,
+      "objectiveHeldOnTrainingShift": true,
+      "factoryRatingStable": true,
+      "laneLockStateStable": true,
+      "objectiveTextStable": true,
+      "objectiveDidNotAdvanceToRelayRefit": true
+    },
+    "handoffRelease": {
+      "runChip": "shift 02 / d2 / active / t1",
+      "objectiveText": "active objective deliver drones and defenses before the yard blackout; demand x2 Defenses 0/3 / Drones 0/2 / 17 ticks",
+      "summaryVisible": false,
+      "advancedVisible": {
+        "grid": true,
+        "freight": true,
+        "rail": true,
+        "crisis": true
+      },
+      "contextualActions": [
+        "Select Job"
+      ]
     },
     "narrow": {
       "horizontalOverflow": false,
@@ -190,11 +278,19 @@
     "advancedSystemsIdleDuringTraining": true,
     "jamOrRecovery": true,
     "shiftSummary": true,
+    "shiftSummaryHold": true,
+    "shiftSummaryHoldPopulated": true,
+    "shiftSummaryHoldObjectiveStable": true,
+    "shiftSummaryHoldAdvancedIdle": true,
+    "shiftSummaryHoldRatingStable": true,
+    "shiftSummaryHoldLaneLockStable": true,
+    "handoffRelease": true,
     "directOverflow": true,
     "mobileNoOverlap": true,
     "mobileFirstViewport": true,
     "mobileFirstViewportFullyVisible": true,
     "consoleClean": true
   },
-  "notes": "Browser smoke used a local static server. Direct play exercised fresh load, click-first Smelt Circuits assignment to Forge Line, immediate running feedback, a 12.2s post-start Training Shift wait with advanced systems idle, tutorial jam Recover flow, Training Shift summary completion, and 390x740 first-viewport objective/floor/action visibility."
+  "notes": "Browser smoke used a local static server. Direct play exercised fresh load, click-first Smelt Circuits assignment to Forge Line, immediate running feedback, a 12.2s post-start Training Shift wait into forced Material Jam with advanced systems idle, Recover, recovery wait, restart, Training Shift completion, a 15s populated summary hold with visible handoff action, explicit next-shift release, and 390x740 first-viewport objective/floor/action visibility.",
+  "ok": true
 }

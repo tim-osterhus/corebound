@@ -386,6 +386,13 @@ class DarkFactoryDispatchArcadeReleaseTests(unittest.TestCase):
             "advancedSystemsIdleDuringTraining",
             "jamOrRecovery",
             "shiftSummary",
+            "shiftSummaryHold",
+            "shiftSummaryHoldPopulated",
+            "shiftSummaryHoldObjectiveStable",
+            "shiftSummaryHoldAdvancedIdle",
+            "shiftSummaryHoldRatingStable",
+            "shiftSummaryHoldLaneLockStable",
+            "handoffRelease",
             "directOverflow",
             "mobileNoOverlap",
             "mobileFirstViewport",
@@ -405,6 +412,7 @@ class DarkFactoryDispatchArcadeReleaseTests(unittest.TestCase):
         self.assertEqual("production", smoke_report["direct"]["runningLane"]["feedback"])
         self.assertGreaterEqual(smoke_report["direct"]["postWaitTraining"]["waitMs"], 12000)
         self.assertTrue(smoke_report["direct"]["postWaitTraining"]["tutorialStillActive"])
+        self.assertTrue(smoke_report["direct"]["postWaitTraining"]["trainingContractStillActive"])
         self.assertTrue(smoke_report["direct"]["postWaitTraining"]["trainingTimeRemainingHeld"])
         self.assertEqual("blocked", smoke_report["direct"]["postWaitTraining"]["laneStatus"])
         self.assertFalse(smoke_report["direct"]["postWaitTraining"]["laneGridLocked"])
@@ -415,6 +423,31 @@ class DarkFactoryDispatchArcadeReleaseTests(unittest.TestCase):
         self.assertEqual("recovering", smoke_report["direct"]["recoveryState"]["status"])
         self.assertTrue(smoke_report["direct"]["shiftSummary"]["summaryVisible"])
         self.assertIn("Training Shift", smoke_report["direct"]["shiftSummary"]["summaryText"])
+        self.assertTrue(smoke_report["direct"]["shiftSummary"]["upgradeChoiceVisible"])
+        self.assertTrue(smoke_report["direct"]["shiftSummary"]["handoffActionVisible"])
+
+        summary_hold = smoke_report["direct"]["shiftSummaryHold"]
+        self.assertGreaterEqual(summary_hold["waitMs"], 15000)
+        self.assertTrue(summary_hold["summaryVisible"])
+        self.assertTrue(summary_hold["summaryTextStillPopulated"])
+        self.assertTrue(summary_hold["upgradeChoiceVisible"])
+        self.assertTrue(summary_hold["handoffActionVisible"])
+        self.assertTrue(summary_hold["summaryTextStable"])
+        self.assertTrue(summary_hold["objectiveTextStable"])
+        self.assertTrue(summary_hold["objectiveDidNotAdvanceToRelayRefit"])
+        self.assertTrue(summary_hold["objectiveHeldOnTrainingShift"])
+        self.assertNotIn("Relay Refit", summary_hold["objectiveText"])
+        self.assertEqual([], summary_hold["advancedLogEntries"])
+        self.assertEqual(smoke_report["direct"]["shiftSummary"]["factoryRating"], summary_hold["factoryRating"])
+        self.assertTrue(summary_hold["factoryRatingStable"])
+        self.assertTrue(summary_hold["laneLockStateStable"])
+        self.assertFalse(summary_hold["laneGridLocked"])
+        self.assertFalse(summary_hold["laneSabotageLocked"])
+
+        handoff = smoke_report["direct"]["handoffRelease"]
+        self.assertIn("shift 02", handoff["runChip"])
+        self.assertFalse(handoff["summaryVisible"])
+        self.assertTrue(all(handoff["advancedVisible"].values()))
         self.assertFalse(smoke_report["direct"]["narrow"]["horizontalOverflow"])
         self.assertFalse(smoke_report["direct"]["narrow"]["objectiveFloorOverlap"])
         self.assertFalse(smoke_report["direct"]["narrow"]["floorActionsOverlap"])
