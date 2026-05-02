@@ -1,86 +1,144 @@
 {
   "schema_version": 1,
-  "status": "passed",
-  "checked_at": "2026-04-30T23:09:12Z",
-  "served_from": "http://127.0.0.1:8765/",
+  "generatedAt": "2026-05-02T05:08:36Z",
+  "baseUrl": "http://127.0.0.1:8771/",
   "game": "void-prospector",
-  "version": "0.5.0",
-  "release": "v0.5.0 Knife Wake Interdiction",
-  "checks": [
-    {
-      "name": "arcade root",
-      "url": "http://127.0.0.1:8765/",
+  "version": "0.6.0",
+  "release": "v0.6.0 Signal Gate Expedition",
+  "screenshots": {
+    "arcadeDesktop": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/void-prospector-assets/browser-smoke-arcade-v0-6.png",
+    "arcadeNarrow": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/void-prospector-assets/browser-smoke-arcade-v0-6-narrow.png",
+    "directDesktop": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/void-prospector-assets/browser-smoke-direct-v0-6-desktop.png",
+    "directNarrow": "/mnt/f/_evolve/millrace-games/auto-games/_visual-check/void-prospector-assets/browser-smoke-direct-v0-6-narrow.png"
+  },
+  "arcade": {
+    "desktop": {
       "title": "Millrace Arcade",
-      "console_errors": 0,
-      "observed_text": [
-        "4 games",
-        "Void Prospector's v0.5.0 Knife Wake Interdiction pirate-cell release"
-      ]
-    },
-    {
-      "name": "direct game desktop",
-      "url": "http://127.0.0.1:8765/games/void-prospector/",
-      "viewport": {
+      "hasVoidCard": true,
+      "hasDirectLaunch": true,
+      "hasSnapshot060": true,
+      "hasSnapshot050": true,
+      "hasSnapshot040": true,
+      "versionText": "playable / v0.6.0",
+      "releaseLabel": "v0.6.0 Signal Gate Expedition",
+      "copyIncludesSignalGate": true,
+      "copyIncludesTransit": true,
+      "copyIncludesJam": true,
+      "overflow": {
         "width": 1280,
-        "height": 720
-      },
-      "release_text": "v0.5.0 Knife Wake Interdiction",
-      "console_errors": 0,
-      "horizontal_overflow": false,
-      "canvas": {
-        "width": 1280,
-        "height": 720,
-        "non_blank_samples": 68,
-        "color_buckets": 15
-      },
-      "knife_wake_decision": {
-        "cell": "cell-rift-decoy-net",
-        "path": "transponder scan, decoy marker, lure deployment, escort resolution",
-        "outcome": "success",
-        "markers_placed": 1,
-        "lures_deployed": 1,
-        "raids_resolved": 1,
-        "surface_text": "Knife Wake Interdiction / Rift Decoy Net / success / raid 7",
-        "target_text": "marker decoy / lure yes / scan yes"
+        "scrollWidth": 1280,
+        "overflowing": false
       }
     },
-    {
-      "name": "direct game narrow",
-      "url": "http://127.0.0.1:8765/games/void-prospector/",
-      "viewport": {
+    "narrow": {
+      "title": "Millrace Arcade",
+      "hasVoidCard": true,
+      "hasDirectLaunch": true,
+      "hasSnapshot060": true,
+      "hasSnapshot050": true,
+      "versionText": "playable / v0.6.0",
+      "releaseLabel": "v0.6.0 Signal Gate Expedition",
+      "overflow": {
         "width": 390,
-        "height": 844
+        "scrollWidth": 390,
+        "overflowing": false
+      }
+    }
+  },
+  "direct": {
+    "desktop": {
+      "title": "Void Prospector",
+      "renderer": "surveying / local renderer",
+      "eyebrow": "v0.6.0 Signal Gate Expedition",
+      "signalReadout": "Signal Gate Expedition / no gate",
+      "capacitorReadout": "charge 0/0",
+      "transitReadout": "window none",
+      "canvas": {
+        "width": 1280,
+        "height": 800,
+        "sampled": 1024000,
+        "nonDark": 697250,
+        "bright": 68865,
+        "nonDarkRatio": 0.680908203125,
+        "brightRatio": 0.0672509765625
       },
-      "release_text": "v0.5.0 Knife Wake Interdiction",
-      "console_errors": 0,
-      "horizontal_overflow": false,
-      "overflow_offenders": [],
+      "overflow": {
+        "width": 1280,
+        "scrollWidth": 1280,
+        "overflowing": false
+      },
+      "signalGateDecision": {
+        "source": "window.VoidProspector direct-page API",
+        "release": "v0.6.0 Signal Gate Expedition",
+        "baseRelease": "v0.5.0 Knife Wake Interdiction",
+        "gateId": "gate-rift-relay-aperture",
+        "gateName": "Rift Relay Signal Gate",
+        "outcome": "success",
+        "transitMode": "convoy",
+        "capacitorCharge": 3.5,
+        "capacitorRequirement": 3.5,
+        "pylonAligned": true,
+        "harmonicsScanned": true,
+        "transitWindowCommitted": true,
+        "convoyRouteStatus": "delivered",
+        "convoySignalGateStatus": "gate-rift-relay-aperture success",
+        "creditsBefore": 0,
+        "creditsAfter": 506,
+        "fuelAfter": 89.2,
+        "deliveredSignalTransits": 1,
+        "deliveredSignalPayout": 230,
+        "completedGateIds": [
+          "gate-rift-relay-aperture"
+        ],
+        "lastLog": "Rift Relay Signal Gate opened for 230 credits."
+      }
+    },
+    "narrow": {
+      "title": "Void Prospector",
+      "renderer": "surveying / local renderer",
+      "eyebrow": "v0.6.0 Signal Gate Expedition",
+      "signalReadout": "Signal Gate Expedition / no gate",
       "canvas": {
         "width": 390,
         "height": 844,
-        "non_blank_samples": 55,
-        "color_buckets": 15
+        "sampled": 329160,
+        "nonDark": 240340,
+        "bright": 27375,
+        "nonDarkRatio": 0.7301616235265525,
+        "brightRatio": 0.08316198809089737
+      },
+      "overflow": {
+        "width": 390,
+        "scrollWidth": 390,
+        "overflowing": false,
+        "overflowOffenders": []
       }
     },
-    {
-      "name": "v0.5.0 snapshot desktop",
-      "url": "http://127.0.0.1:8765/games/void-prospector/versions/0.5.0/?smoke=2",
-      "viewport": {
+    "snapshot060": {
+      "title": "Void Prospector",
+      "eyebrow": "v0.6.0 Signal Gate Expedition",
+      "faviconHref": "../../../../favicon.png",
+      "backlinkHref": "../../../../",
+      "hasSignalList": true,
+      "hasNestedVersionsText": false,
+      "overflow": {
         "width": 1280,
-        "height": 720
-      },
-      "release_text": "v0.5.0 Knife Wake Interdiction",
-      "console_errors": 0,
-      "horizontal_overflow": false,
-      "favicon_href": "../../../../favicon.png",
-      "backlink_href": "../../../../",
-      "canvas": {
-        "width": 1280,
-        "height": 720,
-        "non_blank_samples": 45,
-        "color_buckets": 9
+        "scrollWidth": 1280,
+        "overflowing": false
       }
     }
-  ],
-  "notes": "Browser smoke used the local static server and page-local VoidProspector API to exercise a Knife Wake interdiction decision path in the browser context. WebGL performance warnings from pixel reads were ignored when no console errors were present."
+  },
+  "consoleErrors": [],
+  "checks": {
+    "arcadeDesktop": true,
+    "arcadeNarrow": true,
+    "desktopCanvasNonblank": true,
+    "narrowCanvasNonblank": true,
+    "directOverflow": true,
+    "snapshot060Playable": true,
+    "signalGateDecision": true,
+    "consoleClean": true
+  },
+  "ok": true,
+  "notes": "Browser smoke used the local static server and page-local VoidProspector API to exercise a Rift Relay Signal Gate harmonics scan, pylon alignment, capacitor charge, and convoy transit commitment path. Canvas nonblank counts come from Playwright screenshots of the direct game page."
 }
