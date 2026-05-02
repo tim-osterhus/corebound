@@ -756,6 +756,78 @@ const DarkFactoryDispatch = (() => {
     },
   };
 
+  const TUTORIAL_STORAGE_KEY = "dark-factory-dispatch:tutorial-complete";
+  const TRAINING_CONTRACT = {
+    id: "training-circuits",
+    name: "Training Shift",
+    requirement: { circuits: 3 },
+    reward: { reputation: 1 },
+    deadline: 12,
+    pressure: "make 3 circuits before the first dispatch bell",
+  };
+  const TUTORIAL_STEPS = [
+    {
+      id: "select-smelt-circuits",
+      label: "Select Smelt Circuits",
+      focus: { type: "job", jobTypeId: "smelt-circuits" },
+      action: "select-job",
+    },
+    {
+      id: "select-forge-line",
+      label: "Select Forge Line",
+      focus: { type: "lane", laneId: "forge-line" },
+      action: "select-lane",
+    },
+    {
+      id: "assign-forge-line",
+      label: "Assign Forge Line",
+      focus: { type: "context-action", actionId: "assign" },
+      action: "assign",
+    },
+    {
+      id: "start-forge-line",
+      label: "Start Forge Line",
+      focus: { type: "context-action", actionId: "start" },
+      action: "start",
+    },
+    {
+      id: "observe-output",
+      label: "Watch Production",
+      focus: { type: "lane", laneId: "forge-line" },
+      action: "wait",
+    },
+    {
+      id: "recover-material-jam",
+      label: "Recover Jam",
+      focus: { type: "context-action", actionId: "recover" },
+      action: "recover",
+    },
+    {
+      id: "wait-recovery",
+      label: "Clear Recovery",
+      focus: { type: "lane", laneId: "forge-line" },
+      action: "wait",
+    },
+    {
+      id: "restart-forge-line",
+      label: "Restart Forge Line",
+      focus: { type: "context-action", actionId: "start" },
+      action: "start",
+    },
+    {
+      id: "complete-training-contract",
+      label: "Complete Training Contract",
+      focus: { type: "contract", contractId: "training-circuits" },
+      action: "wait",
+    },
+    {
+      id: "shift-summary",
+      label: "Shift Summary",
+      focus: { type: "summary", summaryId: "training-shift" },
+      action: "review",
+    },
+  ];
+
   const dom = {};
   let currentState = null;
 
@@ -800,6 +872,335 @@ const DarkFactoryDispatch = (() => {
 
   function roundTenth(value) {
     return Math.round(value * 10) / 10;
+  }
+
+  function storageAdapter(storage = null) {
+    if (storage) {
+      return storage;
+    }
+    if (typeof window !== "undefined" && window.localStorage) {
+      return window.localStorage;
+    }
+    return null;
+  }
+
+  function readTutorialCompletion(storage = null) {
+    const adapter = storageAdapter(storage);
+    if (!adapter || typeof adapter.getItem !== "function") {
+      return false;
+    }
+    try {
+      return adapter.getItem(TUTORIAL_STORAGE_KEY) === "complete";
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function writeTutorialCompletion(storage = null, completed = true) {
+    const adapter = storageAdapter(storage);
+    if (!adapter || typeof adapter.setItem !== "function") {
+      return false;
+    }
+    try {
+      if (!completed && typeof adapter.removeItem === "function") {
+        adapter.removeItem(TUTORIAL_STORAGE_KEY);
+      } else {
+        adapter.setItem(TUTORIAL_STORAGE_KEY, completed ? "complete" : "incomplete");
+      }
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function tutorialStepIndex(stepId) {
+    return Math.max(0, TUTORIAL_STEPS.findIndex((step) => step.id === stepId));
+  }
+
+  function tutorialStep(stepId) {
+    return clone(TUTORIAL_STEPS[tutorialStepIndex(stepId)] || TUTORIAL_STEPS[0]);
+  }
+
+  function createTrainingContract(completed = false) {
+    return {
+      id: TRAINING_CONTRACT.id,
+      name: TRAINING_CONTRACT.name,
+      family: "training",
+      requirement: clone(TRAINING_CONTRACT.requirement),
+      reward: clone(TRAINING_CONTRACT.reward),
+      deadline: TRAINING_CONTRACT.deadline,
+      timeRemaining: TRAINING_CONTRACT.deadline,
+      pressure: TRAINING_CONTRACT.pressure,
+      status: completed ? "complete" : "active",
+      startedAtTick: 0,
+      completedAtTick: completed ? 0 : null,
+      failedAtTick: null,
+      tutorial: true,
+    };
+  }
+
+  function createTutorialState(options = {}, run = 1) {
+    const enabled = options.tutorialEnabled !== false && options.tutorial !== false;
+    const storedCompletion = readTutorialCompletion(options.storage);
+    const completed = !enabled
+      || options.tutorialCompleted === true
+      || (!options.replayTutorial && storedCompletion)
+      || run > 1;
+    const stepId = completed ? "shift-summary" : "select-smelt-circuits";
+    return {
+      id: "training-shift",
+      enabled,
+      replayable: true,
+      storageKey: TUTORIAL_STORAGE_KEY,
+      completed,
+      completionPersisted: storedCompletion,
+      status: completed ? "complete" : "active",
+      stepId,
+      stepIndex: tutorialStepIndex(stepId),
+      currentStep: tutorialStep(stepId),
+      contract: createTrainingContract(completed),
+      selectedJobId: null,
+      selectedLaneId: null,
+      forcedJam: {
+        laneId: "forge-line",
+        faultTypeId: "material-jam",
+        armed: !completed,
+        triggered: false,
+        resolved: false,
+      },
+      events: [],
+    };
+  }
+
+  function createSelectionState() {
+    return {
+      selectedJobId: null,
+      selectedLaneId: null,
+      selectedObjectType: null,
+      lastAction: null,
+    };
+  }
+
+  function createDisclosureState(state) {
+    const tutorial = state.tutorial || createTutorialState({ tutorialCompleted: true }, state.restart ? state.restart.run : 1);
+    const run = state.restart ? state.restart.run : 1;
+    const guided = tutorial.enabled && !tutorial.completed && run === 1;
+    const summaryOpen = tutorial.status === "summary";
+    const laterShift = run > 1;
+    const beginnerResourceIds = ["scrap", "power", "stability"];
+    const systemVisible = laterShift || (!guided && !summaryOpen && tutorial.completed);
+    const advancedGate = tutorial.completed ? "start next shift" : "complete Training Shift";
+    return {
+      mode: guided ? "first-shift-guided" : summaryOpen ? "between-shift" : "full-dispatch",
+      beginnerVisible: guided,
+      advancedUnlocked: tutorial.completed || laterShift,
+      visibleResources: guided ? beginnerResourceIds : RESOURCE_ORDER.slice(),
+      flags: {
+        guidedFirstShift: guided,
+        contextualActions: true,
+        compactLog: guided,
+        shiftSummary: summaryOpen,
+        upgradeChoice: summaryOpen || !guided,
+      },
+      systems: {
+        contracts: {
+          visible: true,
+          unlocked: true,
+          mode: guided ? "training-only" : "full",
+          gate: null,
+        },
+        upgrades: {
+          visible: summaryOpen || !guided,
+          unlocked: tutorial.completed || laterShift,
+          mode: summaryOpen ? "choice" : "catalog",
+          gate: tutorial.completed || laterShift ? null : "complete Training Shift",
+        },
+        jobCatalog: {
+          visible: !guided,
+          unlocked: !guided,
+          gate: guided ? "finish the incoming Smelt Circuits card" : null,
+        },
+        gridSiege: {
+          visible: systemVisible,
+          unlocked: tutorial.completed || laterShift,
+          gate: systemVisible ? null : advancedGate,
+        },
+        signalBreach: {
+          visible: systemVisible,
+          unlocked: tutorial.completed || laterShift,
+          gate: systemVisible ? null : advancedGate,
+        },
+        freightLockdown: {
+          visible: laterShift,
+          unlocked: laterShift,
+          gate: laterShift ? null : "shift 02",
+        },
+        railSabotage: {
+          visible: laterShift,
+          unlocked: laterShift,
+          gate: laterShift ? null : "shift 02",
+        },
+        crisisArbitration: {
+          visible: laterShift,
+          unlocked: laterShift,
+          gate: laterShift ? null : "shift 02",
+        },
+      },
+    };
+  }
+
+  function createShiftSummary(state) {
+    const trainingContract = state.tutorial ? state.tutorial.contract : null;
+    return {
+      id: "training-shift-summary",
+      shift: state.campaign.shift,
+      phase: state.campaign.phase,
+      tick: state.tick,
+      status: trainingContract ? trainingContract.status : state.run.status,
+      completedContracts: state.run.completedContracts + (trainingContract && trainingContract.status === "complete" ? 1 : 0),
+      failedContracts: state.run.failedContracts,
+      produced: clone(state.produced),
+      resources: clone(state.resources),
+      trainingContract: trainingContract ? clone(trainingContract) : null,
+      nextUnlocks: ["upgrade-choice", "shift-02-advanced-systems"],
+    };
+  }
+
+  function createShiftState(state) {
+    const summaryOpen = state.tutorial && state.tutorial.status === "summary";
+    const upgradeOpen = summaryOpen || state.run.status === "success";
+    return {
+      id: `shift-${formatShiftNumber(state.campaign.shift)}`,
+      status: summaryOpen ? "summary" : state.run.status,
+      objective: state.tutorial && !state.tutorial.completed
+        ? clone(state.tutorial.contract)
+        : clone(state.contracts.find((contract) => contract.status === "active") || state.contracts[0]),
+      summary: summaryOpen ? createShiftSummary(state) : null,
+      upgradeChoice: {
+        status: upgradeOpen ? "available" : "locked",
+        options: GAME_DATA.upgrades.map((upgrade) => ({
+          id: upgrade.id,
+          name: upgrade.name,
+          cost: clone(upgrade.cost),
+          affordable: canPay(state.resources, upgrade.cost),
+          installed: state.upgrades.purchased.includes(upgrade.id),
+        })),
+        selectedUpgradeId: null,
+      },
+    };
+  }
+
+  function tutorialActive(state) {
+    return Boolean(
+      state.tutorial
+        && state.tutorial.enabled
+        && !state.tutorial.completed
+        && ["active", "summary"].includes(state.tutorial.status)
+    );
+  }
+
+  function setTutorialStepInPlace(state, stepId) {
+    if (!state.tutorial || state.tutorial.stepId === stepId) {
+      return;
+    }
+    state.tutorial.stepId = stepId;
+    state.tutorial.stepIndex = tutorialStepIndex(stepId);
+    state.tutorial.currentStep = tutorialStep(stepId);
+    state.tutorial.events.unshift({ tick: state.tick, stepId });
+    state.tutorial.events = state.tutorial.events.slice(0, 12);
+  }
+
+  function selectedQueueEntry(state) {
+    return state.selection && state.selection.selectedJobId
+      ? byId(state.queue, state.selection.selectedJobId)
+      : null;
+  }
+
+  function selectedLane(state) {
+    return state.selection && state.selection.selectedLaneId
+      ? byId(state.lanes, state.selection.selectedLaneId)
+      : null;
+  }
+
+  function actionState(id, label, available, detail = {}) {
+    return {
+      id,
+      label,
+      available: Boolean(available),
+      reason: available ? null : detail.reason || "not available",
+      laneId: detail.laneId || null,
+      entryId: detail.entryId || null,
+      cost: detail.cost ? clone(detail.cost) : {},
+    };
+  }
+
+  function contextualActionsForState(state) {
+    const lane = selectedLane(state);
+    const entry = selectedQueueEntry(state);
+    if (!lane) {
+      return entry
+        ? [actionState("assign", "Assign", false, { entryId: entry.id, reason: "select a lane" })]
+        : [];
+    }
+    const actions = [];
+    if (entry) {
+      actions.push(actionState(
+        "assign",
+        "Assign",
+        lane.status === "idle" && entry.status === "queued" && laneGridAvailable(state, lane),
+        {
+          laneId: lane.id,
+          entryId: entry.id,
+          reason: lane.status !== "idle" ? "lane is not idle" : "lane unavailable",
+        }
+      ));
+    }
+    if (lane.currentJob) {
+      actions.push(actionState(
+        "start",
+        "Start",
+        lane.status === "assigned" || (lane.status === "blocked" && !lane.fault),
+        { laneId: lane.id, reason: lane.fault ? "recover the lane first" : "lane is not assigned" }
+      ));
+    }
+    if (lane.fault) {
+      actions.push(actionState(
+        "recover",
+        "Recover",
+        lane.status === "blocked" && canPay(state.resources, lane.fault.recovery),
+        { laneId: lane.id, cost: lane.fault.recovery, reason: "recovery resources unavailable" }
+      ));
+    }
+    if (lane.status === "running" || (lane.overdrive && lane.overdrive.active)) {
+      const overdrive = GAME_DATA.campaign.laneOverdrive;
+      const cost = { power: overdrive.powerCost, stability: overdrive.stabilityCost };
+      actions.push(actionState(
+        lane.overdrive.active ? "release-overdrive" : "overdrive",
+        lane.overdrive.active ? "Release Overdrive" : "Overdrive",
+        lane.overdrive.active || canPay(state.resources, cost),
+        { laneId: lane.id, cost, reason: "overdrive resources unavailable" }
+      ));
+    }
+    return actions;
+  }
+
+  function refreshRuntimeSurfacesInPlace(state) {
+    if (!state || !state.restart || !state.campaign) {
+      return state;
+    }
+    if (!state.selection) {
+      state.selection = createSelectionState();
+    }
+    if (state.tutorial) {
+      state.tutorial.selectedJobId = state.selection.selectedJobId;
+      state.tutorial.selectedLaneId = state.selection.selectedLaneId;
+      state.tutorial.stepIndex = tutorialStepIndex(state.tutorial.stepId);
+      state.tutorial.currentStep = tutorialStep(state.tutorial.stepId);
+    }
+    state.contextualActions = contextualActionsForState(state);
+    state.disclosure = createDisclosureState(state);
+    state.shift = createShiftState(state);
+    return state;
   }
 
   function purchasedUpgradeIds(upgrades) {
@@ -1617,6 +2018,11 @@ const DarkFactoryDispatch = (() => {
         effects: upgradeEffects,
       },
       campaign,
+      selection: createSelectionState(),
+      tutorial: createTutorialState(options, run),
+      contextualActions: [],
+      disclosure: null,
+      shift: null,
       run: {
         status: "active",
         completedContracts: 0,
@@ -1635,6 +2041,7 @@ const DarkFactoryDispatch = (() => {
       state.queue.push(createQueueEntry(state, entry.jobTypeId, entry.priority));
     });
     applyQueuePolicy(state);
+    refreshRuntimeSurfacesInPlace(state);
 
     return state;
   }
@@ -1678,6 +2085,7 @@ const DarkFactoryDispatch = (() => {
     const next = clone(state);
     next.log.unshift({ tick: next.tick, message });
     next.log = next.log.slice(0, 8);
+    refreshRuntimeSurfacesInPlace(next);
     return next;
   }
 
@@ -4521,6 +4929,231 @@ const DarkFactoryDispatch = (() => {
     }
   }
 
+  function updateTutorialAfterSelectionInPlace(state) {
+    if (!tutorialActive(state)) {
+      return;
+    }
+    const entry = selectedQueueEntry(state);
+    const lane = selectedLane(state);
+    if (
+      state.tutorial.stepId === "select-smelt-circuits"
+      && entry
+      && entry.jobTypeId === "smelt-circuits"
+    ) {
+      setTutorialStepInPlace(state, "select-forge-line");
+    }
+    if (
+      state.tutorial.stepId === "select-forge-line"
+      && lane
+      && lane.id === "forge-line"
+    ) {
+      setTutorialStepInPlace(state, "assign-forge-line");
+    }
+  }
+
+  function updateTutorialAfterAssignmentInPlace(state, lane, jobType) {
+    if (!tutorialActive(state) || !lane || !jobType) {
+      return;
+    }
+    if (
+      state.tutorial.stepId === "assign-forge-line"
+      && lane.id === "forge-line"
+      && jobType.id === "smelt-circuits"
+    ) {
+      setTutorialStepInPlace(state, "start-forge-line");
+    }
+  }
+
+  function updateTutorialAfterStartInPlace(state, lane) {
+    if (!tutorialActive(state) || !lane || !lane.currentJob) {
+      return;
+    }
+    const onTrainingLane = lane.id === "forge-line" && lane.currentJob.jobTypeId === "smelt-circuits";
+    if (!onTrainingLane) {
+      return;
+    }
+    if (state.tutorial.stepId === "start-forge-line") {
+      setTutorialStepInPlace(state, "observe-output");
+    } else if (state.tutorial.stepId === "restart-forge-line") {
+      setTutorialStepInPlace(state, "complete-training-contract");
+    }
+  }
+
+  function tutorialOwnsLaneFaults(state, lane) {
+    return Boolean(
+      tutorialActive(state)
+        && lane
+        && lane.id === "forge-line"
+        && lane.currentJob
+        && lane.currentJob.jobTypeId === "smelt-circuits"
+    );
+  }
+
+  function maybeTriggerTutorialJamInPlace(state, lane) {
+    if (
+      !tutorialOwnsLaneFaults(state, lane)
+      || state.tutorial.stepId !== "observe-output"
+      || state.tutorial.forcedJam.triggered
+      || lane.status !== "running"
+      || !lane.currentJob
+      || lane.currentJob.remaining >= lane.currentJob.duration
+    ) {
+      return false;
+    }
+    const fault = byId(GAME_DATA.faultTypes, state.tutorial.forcedJam.faultTypeId);
+    if (!fault) {
+      return false;
+    }
+    applyFaultToLane(state, lane, fault);
+    state.tutorial.forcedJam.triggered = true;
+    setTutorialStepInPlace(state, "recover-material-jam");
+    return true;
+  }
+
+  function updateTutorialAfterRecoveryStartInPlace(state, lane) {
+    if (!tutorialActive(state) || !lane || lane.id !== "forge-line") {
+      return;
+    }
+    if (state.tutorial.stepId === "recover-material-jam" && lane.status === "recovering") {
+      setTutorialStepInPlace(state, "wait-recovery");
+    }
+  }
+
+  function updateTutorialAfterRecoveryClearInPlace(state, lane) {
+    if (!tutorialActive(state) || !lane || lane.id !== "forge-line") {
+      return;
+    }
+    if (state.tutorial.stepId === "wait-recovery" && lane.status === "assigned" && !lane.fault) {
+      state.tutorial.forcedJam.resolved = true;
+      setTutorialStepInPlace(state, "restart-forge-line");
+    }
+  }
+
+  function tutorialContractSatisfied(state) {
+    if (!state.tutorial || !state.tutorial.contract) {
+      return false;
+    }
+    return Object.entries(state.tutorial.contract.requirement)
+      .every(([resource, amount]) => (state.produced[resource] || 0) >= amount);
+  }
+
+  function completeTutorialInPlace(state, persist = true) {
+    if (!state.tutorial || state.tutorial.completed) {
+      return false;
+    }
+    state.tutorial.completed = true;
+    state.tutorial.status = "summary";
+    state.tutorial.completedAtTick = state.tick;
+    state.tutorial.contract.status = "complete";
+    state.tutorial.contract.completedAtTick = state.tick;
+    state.tutorial.contract.timeRemaining = Math.max(0, state.tutorial.contract.deadline - state.tick);
+    state.tutorial.completionPersisted = persist
+      ? writeTutorialCompletion(null, true) || state.tutorial.completionPersisted
+      : state.tutorial.completionPersisted;
+    applyBundle(state.resources, state.tutorial.contract.reward, 1);
+    setTutorialStepInPlace(state, "shift-summary");
+    state.log.unshift({ tick: state.tick, message: `${state.tutorial.contract.name} complete; shift summary opened.` });
+    return true;
+  }
+
+  function evaluateTutorialContractInPlace(state) {
+    if (!tutorialActive(state) || state.tutorial.contract.status !== "active") {
+      return false;
+    }
+    state.tutorial.contract.timeRemaining = Math.max(0, state.tutorial.contract.deadline - state.tick);
+    if (!tutorialContractSatisfied(state)) {
+      return false;
+    }
+    return completeTutorialInPlace(state);
+  }
+
+  function selectJobCard(state, entryId) {
+    const next = clone(state);
+    const entry = byId(next.queue, entryId);
+    if (!entry) {
+      return withLog(next, "No queued job selected.");
+    }
+    next.selection.selectedJobId = entry.id;
+    next.selection.selectedObjectType = "job";
+    next.selection.lastAction = "select-job";
+    updateTutorialAfterSelectionInPlace(next);
+    return withLog(next, `${jobName(entry.jobTypeId)} selected.`);
+  }
+
+  function selectLane(state, laneId) {
+    const next = clone(state);
+    const lane = byId(next.lanes, laneId);
+    if (!lane) {
+      return withLog(next, "No lane selected.");
+    }
+    next.selection.selectedLaneId = lane.id;
+    next.selection.selectedObjectType = "lane";
+    next.selection.lastAction = "select-lane";
+    updateTutorialAfterSelectionInPlace(next);
+    return withLog(next, `${lane.name} selected.`);
+  }
+
+  function clearSelection(state) {
+    const next = clone(state);
+    next.selection = createSelectionState();
+    return withLog(next, "Selection cleared.");
+  }
+
+  function performContextAction(state, actionId) {
+    const actions = contextualActionsForState(state);
+    const action = actions.find((candidate) => candidate.id === actionId);
+    if (!action) {
+      return withLog(state, "No contextual action available.");
+    }
+    if (!action.available) {
+      return withLog(state, `${action.label} unavailable: ${action.reason}.`);
+    }
+    if (action.id === "assign") {
+      return assignJobToLane(state, action.laneId, action.entryId);
+    }
+    if (action.id === "start") {
+      return startLane(state, action.laneId);
+    }
+    if (action.id === "recover") {
+      return recoverLane(state, action.laneId);
+    }
+    if (action.id === "overdrive") {
+      return toggleLaneOverdrive(state, action.laneId, true);
+    }
+    if (action.id === "release-overdrive") {
+      return toggleLaneOverdrive(state, action.laneId, false);
+    }
+    return withLog(state, "Contextual action ignored.");
+  }
+
+  function completeTutorial(state, storage = null) {
+    const next = clone(state);
+    if (!next.tutorial) {
+      next.tutorial = createTutorialState({ tutorialCompleted: true }, next.restart ? next.restart.run : 1);
+    }
+    const wasComplete = next.tutorial.completed;
+    if (!wasComplete) {
+      next.tutorial.contract.status = "complete";
+      next.tutorial.contract.completedAtTick = next.tick;
+      next.tutorial.completed = true;
+      next.tutorial.status = "summary";
+      next.tutorial.completedAtTick = next.tick;
+      setTutorialStepInPlace(next, "shift-summary");
+    }
+    next.tutorial.completionPersisted = writeTutorialCompletion(storage, true) || next.tutorial.completionPersisted;
+    return withLog(next, wasComplete ? "Training Shift completion persisted." : "Training Shift marked complete.");
+  }
+
+  function replayTutorial(state) {
+    return createInitialState({
+      run: 1,
+      seed: state && state.restart ? state.restart.seed : 7103,
+      upgrades: state && state.upgrades ? state.upgrades.purchased : [],
+      tutorialCompleted: false,
+      replayTutorial: true,
+    });
+  }
+
   function enqueueJob(state, jobTypeId) {
     const jobType = byId(GAME_DATA.jobTypes, jobTypeId);
     if (!jobType) {
@@ -4603,6 +5236,11 @@ const DarkFactoryDispatch = (() => {
     lane.status = "assigned";
     lane.progress = 0;
     lane.runRemaining = lane.currentJob.remaining;
+    next.selection.selectedJobId = null;
+    next.selection.selectedLaneId = lane.id;
+    next.selection.selectedObjectType = "lane";
+    next.selection.lastAction = "assign";
+    updateTutorialAfterAssignmentInPlace(next, lane, jobType);
     return withLog(next, `${jobType.name} assigned to ${lane.name}.`);
   }
 
@@ -4637,6 +5275,10 @@ const DarkFactoryDispatch = (() => {
     lane.currentJob.status = "running";
     lane.currentJob.startedAtTick = next.tick;
     lane.runRemaining = lane.currentJob.remaining;
+    next.selection.selectedLaneId = lane.id;
+    next.selection.selectedObjectType = "lane";
+    next.selection.lastAction = "start";
+    updateTutorialAfterStartInPlace(next, lane);
     return withLog(next, `${lane.name} started ${jobType.name}.`);
   }
 
@@ -4683,6 +5325,7 @@ const DarkFactoryDispatch = (() => {
       applyCompromisedJobCompletion(state, lane, completedJob);
     }
     evaluateContracts(state);
+    evaluateTutorialContractInPlace(state);
   }
 
   function applyFaultToLane(state, lane, faultType) {
@@ -4710,6 +5353,9 @@ const DarkFactoryDispatch = (() => {
     if (!state.faults.enabled || state.tick <= state.faults.graceTicks || lane.fault || !lane.currentJob) {
       return false;
     }
+    if (tutorialOwnsLaneFaults(state, lane)) {
+      return false;
+    }
     const roll = advanceSeed(state);
     if (roll >= lane.jamRisk) {
       return false;
@@ -4735,6 +5381,7 @@ const DarkFactoryDispatch = (() => {
     if (recoveredJob) {
       lane.currentJob.status = "assigned";
     }
+    updateTutorialAfterRecoveryClearInPlace(state, lane);
     state.log.unshift({ tick: state.tick, message: `${lane.name} cleared ${faultName}; restart required.` });
   }
 
@@ -4786,13 +5433,18 @@ const DarkFactoryDispatch = (() => {
         lane.currentJob.remaining = Math.max(0, lane.currentJob.remaining - 1);
         lane.runRemaining = lane.currentJob.remaining;
         lane.progress = Math.round(((lane.currentJob.duration - lane.currentJob.remaining) / lane.currentJob.duration) * 100);
+        if (maybeTriggerTutorialJamInPlace(next, lane)) {
+          return;
+        }
         if (lane.currentJob.remaining === 0) {
           completeLaneJob(next, lane);
         }
       });
       evaluateContracts(next);
+      evaluateTutorialContractInPlace(next);
     }
     next.log = next.log.slice(0, 8);
+    refreshRuntimeSurfacesInPlace(next);
     return next;
   }
 
@@ -4920,6 +5572,10 @@ const DarkFactoryDispatch = (() => {
     if (lane.currentJob) {
       lane.currentJob.status = "recovering";
     }
+    next.selection.selectedLaneId = lane.id;
+    next.selection.selectedObjectType = "lane";
+    next.selection.lastAction = "recover";
+    updateTutorialAfterRecoveryStartInPlace(next, lane);
     return withLog(next, `${lane.name} recovery started.`);
   }
 
@@ -4931,6 +5587,7 @@ const DarkFactoryDispatch = (() => {
       seed,
       upgrades: state && state.upgrades ? state.upgrades.purchased : [],
       campaign: campaignForRestart(state),
+      tutorialCompleted: state && state.tutorial ? state.tutorial.completed : false,
     });
     next.restart.reason = "operator restart";
     next.restart.lastResetTick = state ? state.tick : 0;
@@ -5801,6 +6458,11 @@ const DarkFactoryDispatch = (() => {
     dom.lanes.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-action]");
       if (!button) {
+        const laneCard = event.target.closest(".lane-card[data-lane]");
+        if (laneCard) {
+          currentState = selectLane(currentState, laneCard.dataset.lane);
+          render(currentState);
+        }
         return;
       }
       if (button.dataset.action === "assign") {
@@ -5831,6 +6493,11 @@ const DarkFactoryDispatch = (() => {
     dom.queue.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-action]");
       if (!button) {
+        const item = event.target.closest(".queue-item[data-entry]");
+        if (item) {
+          currentState = selectJobCard(currentState, item.dataset.entry);
+          render(currentState);
+        }
         return;
       }
       if (button.dataset.action === "assign") {
@@ -5900,19 +6567,63 @@ const DarkFactoryDispatch = (() => {
     renderQueue(state);
     renderContracts(state);
     renderUpgrades(state);
-    renderJobs();
+    renderJobs(state);
     renderLog(state);
   }
 
   function renderResources(state) {
-    dom.resources.innerHTML = RESOURCE_ORDER.map((id) => {
+    const resourceIds = state.disclosure && state.disclosure.visibleResources
+      ? state.disclosure.visibleResources
+      : RESOURCE_ORDER;
+    dom.resources.innerHTML = resourceIds.map((id) => {
       const label = GAME_DATA.resources[id].label;
       return `<div class="readout" data-resource="${id}"><span>${label}</span><strong>${state.resources[id] || 0}</strong></div>`;
     }).join("");
   }
 
+  function disclosureSystem(state, systemId) {
+    return state.disclosure && state.disclosure.systems
+      ? state.disclosure.systems[systemId]
+      : null;
+  }
+
+  function systemVisible(state, systemId) {
+    const system = disclosureSystem(state, systemId);
+    return !system || system.visible;
+  }
+
+  function lockedSystemMarkup(title, system) {
+    return `<div class="empty-note" data-disclosure-locked="true"><strong>${title}</strong><span>${system && system.gate ? `unlocks: ${system.gate}` : "locked for this shift"}</span></div>`;
+  }
+
   function renderEscalationSurface(state) {
     const surface = campaignSurfaceState(state);
+    if (state.disclosure && state.disclosure.beginnerVisible) {
+      const training = state.tutorial.contract;
+      const nextStep = state.tutorial.currentStep;
+      const progress = contractProgress(training, state)
+        .map((line) => `${line.resource} ${line.current}/${line.required}`)
+        .join(" / ");
+      dom.queuePolicySelect.value = surface.queuePolicy.id;
+      dom.escalation.innerHTML = `
+        <article class="escalation-card" data-surface="campaign">
+          <span>Campaign</span>
+          <strong>Training Shift</strong>
+          <p>shift ${formatShiftNumber(surface.shift)} / ${surface.phase} / t${surface.tick}</p>
+        </article>
+        <article class="escalation-card" data-surface="tutorial" data-alert="${state.tutorial.status}">
+          <span>Next action</span>
+          <strong>${nextStep.label}</strong>
+          <p>${progress} / ${training.timeRemaining} ticks</p>
+        </article>
+        <article class="escalation-card" data-surface="progression">
+          <span>Disclosure</span>
+          <strong>${state.disclosure.mode}</strong>
+          <p>advanced systems unlock after the training shift</p>
+        </article>
+      `;
+      return;
+    }
     const breach = surface.breach;
     const rail = surface.railSabotage;
     const crisis = surface.crisisArbitration;
@@ -5991,6 +6702,10 @@ const DarkFactoryDispatch = (() => {
   }
 
   function renderGridSiege(state) {
+    if (!systemVisible(state, "gridSiege")) {
+      dom.grid.innerHTML = lockedSystemMarkup("Grid Siege", disclosureSystem(state, "gridSiege"));
+      return;
+    }
     const surface = gridSurfaceState(state);
     const activeSector = surface.blackout.activeSectorId
       ? surface.sectors.find((sector) => sector.id === surface.blackout.activeSectorId)
@@ -6109,6 +6824,10 @@ const DarkFactoryDispatch = (() => {
   }
 
   function renderFreightLockdown(state) {
+    if (!systemVisible(state, "freightLockdown")) {
+      dom.freight.innerHTML = lockedSystemMarkup("Freight Lockdown", disclosureSystem(state, "freightLockdown"));
+      return;
+    }
     const surface = freightSurfaceState(state);
     if (!surface) {
       dom.freight.innerHTML = `<div class="empty-note">freight lockdown offline</div>`;
@@ -6210,6 +6929,10 @@ const DarkFactoryDispatch = (() => {
   }
 
   function renderRailSabotage(state) {
+    if (!systemVisible(state, "railSabotage")) {
+      dom.sabotage.innerHTML = lockedSystemMarkup("Rail Sabotage", disclosureSystem(state, "railSabotage"));
+      return;
+    }
     const surface = railSabotageSurfaceState(state);
     if (!surface) {
       dom.sabotage.innerHTML = `<div class="empty-note">rail sabotage offline</div>`;
@@ -6326,6 +7049,10 @@ const DarkFactoryDispatch = (() => {
   }
 
   function renderCrisisArbitration(state) {
+    if (!systemVisible(state, "crisisArbitration")) {
+      dom.crisis.innerHTML = lockedSystemMarkup("Crisis Arbitration", disclosureSystem(state, "crisisArbitration"));
+      return;
+    }
     const surface = crisisArbitrationSurfaceState(state);
     if (!surface) {
       dom.crisis.innerHTML = `<div class="empty-note">crisis arbitration offline</div>`;
@@ -6442,8 +7169,9 @@ const DarkFactoryDispatch = (() => {
         : compromisedJob ? `compromised ${compromisedJob.sourceId} / severity ${compromisedJob.severity}`
           : countermeasureJob ? `countermeasure ${lane.currentJob.sourceBreachId}`
             : `breach ${breachState}`;
+      const selected = state.selection && state.selection.selectedLaneId === lane.id;
       return `
-        <article class="lane-card" data-status="${lane.status}" data-overdrive="${overdriveActive ? "true" : "false"}" data-breach-quarantine="${quarantineActive ? "true" : "false"}" data-breach="${breachState}">
+        <article class="lane-card" data-lane="${lane.id}" data-selected="${selected ? "true" : "false"}" data-status="${lane.status}" data-overdrive="${overdriveActive ? "true" : "false"}" data-breach-quarantine="${quarantineActive ? "true" : "false"}" data-breach="${breachState}">
           <div class="lane-title">
             <span class="asset-title">${laneIcon}<strong>${lane.name}</strong></span>
             <span class="status-pill">${statusText}</span>
@@ -6487,8 +7215,9 @@ const DarkFactoryDispatch = (() => {
             : entry.sabotageDirective ? "sabotage sweep"
             : entry.status === "held" ? "held" : `p${entry.priority}`;
       const cleanseDisabled = !compromised || !canPay(state.resources, GAME_DATA.signalBreach.cleanse.cost);
+      const selected = state.selection && state.selection.selectedJobId === entry.id;
       return `
-        <li class="queue-item" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}" data-freight-directive="${entry.freightDirective ? "true" : "false"}" data-sabotage-directive="${entry.sabotageDirective ? "true" : "false"}">
+        <li class="queue-item" data-entry="${entry.id}" data-selected="${selected ? "true" : "false"}" data-emergency="${entry.emergency ? "true" : "false"}" data-compromised="${compromised ? "true" : "false"}" data-breach-directive="${entry.breachDirective ? "true" : "false"}" data-freight-directive="${entry.freightDirective ? "true" : "false"}" data-sabotage-directive="${entry.sabotageDirective ? "true" : "false"}">
           <div class="queue-title">
             <span class="asset-title">${iconMarkup(ASSET_PATHS.jobs[entry.jobTypeId], "asset-icon queue-icon")}<strong>${jobType.name}</strong></span>
             <span class="status-pill">${statusText}</span>
@@ -6515,6 +7244,30 @@ const DarkFactoryDispatch = (() => {
   }
 
   function renderContracts(state) {
+    if (state.disclosure && state.disclosure.systems.contracts.mode === "training-only") {
+      const contract = state.tutorial.contract;
+      const progress = contractProgress(contract, state)
+        .map((line) => `${line.resource} ${line.current}/${line.required}`)
+        .join(" / ");
+      dom.contracts.innerHTML = `
+        <article class="contract-card" data-status="${contract.status}" data-family="training">
+          <div class="contract-title">
+            <strong>${contract.name}</strong>
+            <span class="status-pill">${contract.status}</span>
+          </div>
+          <div class="contract-meta">
+            <span>${contract.timeRemaining} ticks left</span>
+            <span>${contract.pressure}</span>
+            <span>${progress}</span>
+          </div>
+          <div class="contract-reward">
+            <span>requires ${formatBundle(contract.requirement)}</span>
+            <span>reward ${formatBundle(contract.reward)}</span>
+          </div>
+        </article>
+      `;
+      return;
+    }
     dom.contracts.innerHTML = state.contracts.map((contract) => {
       const progress = contractProgress(contract, state)
         .map((line) => `${line.resource} ${line.current}/${line.required}`)
@@ -6544,6 +7297,10 @@ const DarkFactoryDispatch = (() => {
   }
 
   function renderUpgrades(state) {
+    if (!systemVisible(state, "upgrades")) {
+      dom.upgrades.innerHTML = lockedSystemMarkup("Improvement rack", disclosureSystem(state, "upgrades"));
+      return;
+    }
     dom.upgrades.innerHTML = GAME_DATA.upgrades.map((upgrade) => {
       const installed = state.upgrades.purchased.includes(upgrade.id);
       const affordable = canPay(state.resources, upgrade.cost);
@@ -6560,7 +7317,11 @@ const DarkFactoryDispatch = (() => {
     }).join("");
   }
 
-  function renderJobs() {
+  function renderJobs(state = currentState) {
+    if (state && !systemVisible(state, "jobCatalog")) {
+      dom.jobs.innerHTML = lockedSystemMarkup("Job catalog", disclosureSystem(state, "jobCatalog"));
+      return;
+    }
     dom.jobs.innerHTML = GAME_DATA.jobTypes.map((jobType) => `
       <article class="job-card" data-family="${jobType.family || "standard"}" data-breach-countermeasure="${jobType.breachCountermeasure ? "true" : "false"}" data-freight-inspection="${jobType.freightInspection ? "true" : "false"}" data-sabotage-sweep="${jobType.sabotageSweep ? "true" : "false"}">
         <div class="job-title">
@@ -6591,6 +7352,11 @@ const DarkFactoryDispatch = (() => {
     enqueueJob,
     reprioritizeQueue,
     cancelQueueEntry,
+    selectJobCard,
+    selectLane,
+    clearSelection,
+    contextualActionsForState,
+    performContextAction,
     assignJobToLane,
     startLane,
     startAllLanes,
@@ -6637,6 +7403,10 @@ const DarkFactoryDispatch = (() => {
     advanceRailSabotageState,
     advanceCrisisArbitrationState,
     resetFactoryState,
+    completeTutorial,
+    replayTutorial,
+    readTutorialCompletion,
+    writeTutorialCompletion,
     canPay,
     applyBundle,
     contractProgress,

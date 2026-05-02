@@ -37,7 +37,7 @@ class DarkFactoryDispatchFoundationTests(unittest.TestCase):
         result = self.run_node(
             """
             const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
-            const state = game.createInitialState({ seed: 99 });
+            const state = game.createInitialState({ seed: 99, tutorialCompleted: true });
             const payload = {
               laneCount: state.lanes.length,
               jobCount: game.GAME_DATA.jobTypes.length,
@@ -69,7 +69,7 @@ class DarkFactoryDispatchFoundationTests(unittest.TestCase):
         result = self.run_node(
             """
             const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
-            let state = game.createInitialState({ seed: 12 });
+            let state = game.createInitialState({ seed: 12, tutorialCompleted: true });
             state = game.enqueueJob(state, "weave-defenses");
             const raisedEntry = state.queue[state.queue.length - 1].id;
             state = game.reprioritizeQueue(state, raisedEntry);

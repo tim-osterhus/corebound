@@ -14,12 +14,12 @@ class DarkFactoryDispatchPressureLoopTests(unittest.TestCase):
         result = self.run_node(
             """
             const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
-            let success = game.createInitialState({ seed: 33, faultsEnabled: false });
+            let success = game.createInitialState({ seed: 33, faultsEnabled: false, tutorialCompleted: true });
             success.produced.drones = 2;
             success.produced.defenses = 2;
             success = game.stepFactory(success, 1);
 
-            let failed = game.createInitialState({ seed: 44, faultsEnabled: false });
+            let failed = game.createInitialState({ seed: 44, faultsEnabled: false, tutorialCompleted: true });
             failed = game.stepFactory(failed, game.GAME_DATA.contracts[0].deadline);
 
             console.log(JSON.stringify({
@@ -46,7 +46,7 @@ class DarkFactoryDispatchPressureLoopTests(unittest.TestCase):
         result = self.run_node(
             """
             const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
-            let state = game.createInitialState({ seed: 1972, faultGraceTicks: 0 });
+            let state = game.createInitialState({ seed: 1972, faultGraceTicks: 0, tutorialCompleted: true });
             state = game.assignJobToLane(state, "forge-line", state.queue[0].id);
             state = game.startLane(state, "forge-line");
             state = game.stepFactory(state, 1);
@@ -90,7 +90,7 @@ class DarkFactoryDispatchPressureLoopTests(unittest.TestCase):
         result = self.run_node(
             """
             const game = require("./games/dark-factory-dispatch/dark-factory-dispatch.js");
-            let state = game.createInitialState({ seed: 55, faultsEnabled: false });
+            let state = game.createInitialState({ seed: 55, faultsEnabled: false, tutorialCompleted: true });
             state.resources.reputation = 3;
             state.resources.circuits = 6;
             state.resources.modules = 2;
